@@ -8,6 +8,10 @@ DEFAULT_TRAINING_PATH = (
 DEFAULT_GOLDEN_DIR = PROJECT_ROOT / "datasets" / "raw" / "bioasq_13b" / "Task13BGoldenEnriched"
 DEFAULT_OUTPUT_DIR = PROJECT_ROOT / "datasets" / "processed" / "bioasq_rag"
 DEFAULT_CACHE_DIR = PROJECT_ROOT / "datasets" / "processed" / "bioasq_rag" / "pubmed_cache"
+DEFAULT_HUB_README_TEMPLATE = (
+    Path(__file__).resolve().parent / "README.template.md"
+)
+DEFAULT_HUB_README = DEFAULT_OUTPUT_DIR / "README.md"
 
 GOLDEN_FILE_PATTERN = "*_golden.json"
 

@@ -21,6 +21,7 @@ from tesis_unicamp.datasets.preprocessing.rag.bioasq.constants import (
     DEFAULT_CACHE_DIR,
     DEFAULT_DEV_RATIO,
     DEFAULT_GOLDEN_DIR,
+    DEFAULT_HUB_README,
     DEFAULT_OUTPUT_DIR,
     DEFAULT_RANDOM_SEED,
     DEFAULT_TRAINING_PATH,
@@ -101,6 +102,12 @@ def _build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Create a private dataset on the Hub",
     )
+    parser.add_argument(
+        "--readme",
+        type=Path,
+        default=DEFAULT_HUB_README,
+        help="README for Hugging Face (default: datasets/processed/bioasq_rag/README.md)",
+    )
     return parser
 
 
@@ -139,6 +146,10 @@ def main() -> None:
             repo_id=args.push_to_hub,
             token=token,
             private=args.private,
+            readme_path=args.readme,
+            dev_ratio=args.dev_ratio,
+            seed=args.seed,
+            output_dir=args.output_dir,
         )
         print(f"Uploaded to Hugging Face Hub: {args.push_to_hub}")
 
