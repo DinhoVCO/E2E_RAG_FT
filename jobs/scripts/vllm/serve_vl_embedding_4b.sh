@@ -3,14 +3,14 @@
 # Requiere vLLM >= 0.14.0 (ver README del modelo en Hugging Face).
 #
 # Uso (desde la raíz del repo):
-#   ./scripts/vllm/serve_vl_embedding_4b.sh
+#   bash jobs/scripts/vllm/serve_vl_embedding_4b.sh
 #
 # Opcional — sobrescribir modelo, host o puerto:
-#   VLLM_MODEL=Qwen/Qwen3-VL-Embedding-2B VLLM_PORT=8002 ./scripts/vllm/serve_vl_embedding_4b.sh
+#   VLLM_MODEL=Qwen/Qwen3-VL-Embedding-2B VLLM_PORT=8002 bash jobs/scripts/vllm/serve_vl_embedding_4b.sh
 #
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 VENV="${ROOT}/.venv"
 
 if [[ ! -x "${VENV}/bin/vllm" ]]; then
