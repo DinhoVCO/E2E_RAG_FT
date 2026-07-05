@@ -15,7 +15,11 @@ from pathlib import Path
 from dotenv import load_dotenv
 
 from tesis_unicamp.datasets.preprocessing.rag.bioasq.retrieval import (
+    DEFAULT_RESPLIT_RETRIEVED_DOCS_DIR as BIOASQ_RESPLIT_OUTPUT,
+)
+from tesis_unicamp.datasets.preprocessing.rag.bioasq.retrieval import (
     DEFAULT_RETRIEVED_DOCS_DIR as BIOASQ_OUTPUT,
+    push_bioasq_resplit_retrieved_docs_to_hub,
     push_bioasq_retrieved_docs_to_hub,
 )
 from tesis_unicamp.datasets.preprocessing.rag.narrativeqa.retrieval import (
@@ -30,7 +34,10 @@ from tesis_unicamp.datasets.preprocessing.rag.telco_dpr.retrieval import (
     DEFAULT_RETRIEVED_DOCS_DIR as TELCO_OUTPUT,
     push_telco_dpr_retrieved_docs_to_hub,
 )
-from tesis_unicamp.datasets.utils.bioasq_rag import BIOASQ_RAG_DATASET_ID
+from tesis_unicamp.datasets.utils.bioasq_rag import (
+    BIOASQ_RAG_DATASET_ID,
+    BIOASQ_RAG_RESPLIT_DATASET_ID,
+)
 from tesis_unicamp.datasets.utils.narrativeqa_rag import NARRATIVEQA_RAG_DATASET_ID
 from tesis_unicamp.datasets.utils.qasper_rag import QASPER_RAG_DATASET_ID
 from tesis_unicamp.datasets.utils.telco_dpr_rag import TELCO_DPR_RAG_DATASET_ID
@@ -40,6 +47,11 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 PUSH_HANDLERS = {
     "bioasq": (push_bioasq_retrieved_docs_to_hub, BIOASQ_OUTPUT, BIOASQ_RAG_DATASET_ID),
+    "bioasq-resplit": (
+        push_bioasq_resplit_retrieved_docs_to_hub,
+        BIOASQ_RESPLIT_OUTPUT,
+        BIOASQ_RAG_RESPLIT_DATASET_ID,
+    ),
     "qasper": (push_qasper_retrieved_docs_to_hub, QASPER_OUTPUT, QASPER_RAG_DATASET_ID),
     "telco-dpr": (push_telco_dpr_retrieved_docs_to_hub, TELCO_OUTPUT, TELCO_DPR_RAG_DATASET_ID),
     "narrativeqa": (

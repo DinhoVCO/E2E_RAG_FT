@@ -10,9 +10,19 @@ from tesis_unicamp.embeddings.base import BaseEmbedder
 from tesis_unicamp.vector_stores.base import BaseVectorStore
 
 BIOASQ_RAG_DATASET_ID = "DinoStackAI/bioasq-rag-13b"
+BIOASQ_RAG_RESPLIT_DATASET_ID = "dinho1597/bioasq-rag-13b-resplit"
 DEFAULT_RETRIEVAL_TASK = (
     "Given a web search query, retrieve relevant passages that answer the query"
 )
+
+
+def _load_rag_subset(repo_id: str, name: str, *, split: str | None = None) -> Dataset:
+    dataset = load_dataset(repo_id, name)
+    if isinstance(dataset, DatasetDict):
+        if split is None:
+            raise ValueError(f"Subset {name!r} has splits; pass split= explicitly")
+        return dataset[split]
+    return dataset
 
 
 def load_bioasq_rag_corpus(*, split: str = "train") -> Dataset:
@@ -23,12 +33,11 @@ def load_bioasq_rag_corpus(*, split: str = "train") -> Dataset:
 
 
 def load_bioasq_rag_subset(name: str, *, split: str | None = None) -> Dataset:
-    dataset = load_dataset(BIOASQ_RAG_DATASET_ID, name)
-    if isinstance(dataset, DatasetDict):
-        if split is None:
-            raise ValueError(f"Subset {name!r} has splits; pass split= explicitly")
-        return dataset[split]
-    return dataset
+    return _load_rag_subset(BIOASQ_RAG_DATASET_ID, name, split=split)
+
+
+def load_bioasq_rag_resplit_subset(name: str, *, split: str | None = None) -> Dataset:
+    return _load_rag_subset(BIOASQ_RAG_RESPLIT_DATASET_ID, name, split=split)
 
 
 def corpus_row_to_text(row: dict[str, Any]) -> str:

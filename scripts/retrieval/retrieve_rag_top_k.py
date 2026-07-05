@@ -30,7 +30,12 @@ from tesis_unicamp.datasets.preprocessing.rag.bioasq.retrieval import (
     DEFAULT_RETRIEVED_DOCS_DIR as BIOASQ_OUTPUT,
 )
 from tesis_unicamp.datasets.preprocessing.rag.bioasq.retrieval import (
+    DEFAULT_RESPLIT_RETRIEVED_DOCS_DIR as BIOASQ_RESPLIT_OUTPUT,
+)
+from tesis_unicamp.datasets.preprocessing.rag.bioasq.retrieval import (
+    retrieve_bioasq_resplit_top_k,
     retrieve_bioasq_top_k,
+    save_bioasq_resplit_retrieved_docs,
     save_bioasq_retrieved_docs,
 )
 from tesis_unicamp.datasets.preprocessing.rag.narrativeqa.retrieval import (
@@ -64,7 +69,10 @@ from tesis_unicamp.datasets.preprocessing.rag.telco_dpr.retrieval import (
     retrieve_telco_dpr_top_k,
     save_telco_dpr_retrieved_docs,
 )
-from tesis_unicamp.datasets.utils.bioasq_rag import BIOASQ_RAG_DATASET_ID
+from tesis_unicamp.datasets.utils.bioasq_rag import (
+    BIOASQ_RAG_DATASET_ID,
+    BIOASQ_RAG_RESPLIT_DATASET_ID,
+)
 from tesis_unicamp.datasets.utils.narrativeqa_rag import NARRATIVEQA_RAG_DATASET_ID
 from tesis_unicamp.datasets.utils.qasper_rag import QASPER_RAG_DATASET_ID
 from tesis_unicamp.datasets.utils.telco_dpr_rag import TELCO_DPR_RAG_DATASET_ID
@@ -97,6 +105,13 @@ DATASET_SPECS: dict[str, DatasetRetrievalSpec] = {
         default_collection=BIOASQ_COLLECTION,
         default_output_dir=BIOASQ_OUTPUT,
         hub_repo_id=BIOASQ_RAG_DATASET_ID,
+    ),
+    "bioasq-resplit": DatasetRetrievalSpec(
+        retrieve_fn=retrieve_bioasq_resplit_top_k,
+        save_fn=save_bioasq_resplit_retrieved_docs,
+        default_collection=BIOASQ_COLLECTION,
+        default_output_dir=BIOASQ_RESPLIT_OUTPUT,
+        hub_repo_id=BIOASQ_RAG_RESPLIT_DATASET_ID,
     ),
     "qasper": DatasetRetrievalSpec(
         retrieve_fn=retrieve_qasper_top_k,
