@@ -30,7 +30,7 @@ RAG_CORPUS_FILE = "corpus/train-00000-of-00001.parquet"
 
 RAG_DATASET_IDS: dict[str, str] = {
     "bioasq": "DinoStackAI/bioasq-rag-13b",
-    "bioasq-resplit": "DinoStackAI/bioasq-rag-13b-resplit",
+    "bioasq-resplit": "dinho1597/bioasq-rag-13b-resplit",
     "qasper": "DinoStackAI/qasper-rag",
     "telco-dpr": "DinoStackAI/telco-dpr-rag",
     "narrativeqa": "DinoStackAI/narrativeqa-rag",
