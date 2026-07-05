@@ -11,7 +11,7 @@ Usage:
     python scripts/download_hf.py --preset rag-full --datasets qasper
 
     # One repo via snapshot
-    python scripts/download_hf.py --snapshot --repo dinho1597/qasper-rag --repo-type dataset
+    python scripts/download_hf.py --snapshot --repo DinoStackAI/qasper-rag --repo-type dataset
 
     # Full model snapshot (e.g. embedding model for offline indexing)
     python scripts/download_hf.py --snapshot --repo Qwen/Qwen3-Embedding-4B --repo-type model
@@ -29,10 +29,11 @@ from huggingface_hub import hf_hub_download, snapshot_download
 RAG_CORPUS_FILE = "corpus/train-00000-of-00001.parquet"
 
 RAG_DATASET_IDS: dict[str, str] = {
-    "bioasq": "dinho1597/bioasq-rag-13b",
-    "qasper": "dinho1597/qasper-rag",
-    "telco-dpr": "dinho1597/telco-dpr-rag",
-    "narrativeqa": "dinho1597/narrativeqa-rag",
+    "bioasq": "DinoStackAI/bioasq-rag-13b",
+    "bioasq-resplit": "DinoStackAI/bioasq-rag-13b-resplit",
+    "qasper": "DinoStackAI/qasper-rag",
+    "telco-dpr": "DinoStackAI/telco-dpr-rag",
+    "narrativeqa": "DinoStackAI/narrativeqa-rag",
 }
 
 
@@ -104,7 +105,7 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--repo",
-        help="Hub repo id, e.g. dinho1597/narrativeqa-rag or Qwen/Qwen3-Embedding-4B",
+        help="Hub repo id, e.g. DinoStackAI/narrativeqa-rag or Qwen/Qwen3-Embedding-4B",
     )
     parser.add_argument(
         "--file",

@@ -9,7 +9,7 @@ from tesis_unicamp.datasets.utils.indexing import index_dataset
 from tesis_unicamp.embeddings.base import BaseEmbedder
 from tesis_unicamp.vector_stores.base import BaseVectorStore
 
-QASPER_RAG_DATASET_ID = "dinho1597/qasper-rag"
+QASPER_RAG_DATASET_ID = "DinoStackAI/qasper-rag"
 
 
 def load_qasper_rag_corpus(*, split: str = "train") -> Dataset:
