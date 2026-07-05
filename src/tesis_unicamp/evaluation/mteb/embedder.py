@@ -23,12 +23,14 @@ class TesisEmbedderEncoder(AbsEncoder):
         embedder: BaseEmbedder,
         *,
         model_name: str | None = None,
+        model_revision: str,
     ) -> None:
         self.embedder = embedder
         self.model = embedder
         self.mteb_model_meta = ModelMeta.create_empty(
             overwrites={
                 "name": model_name or embedder.model_name,
+                "revision": model_revision,
                 "similarity_fn_name": ScoringFunction.COSINE,
                 "use_instructions": False,
             }

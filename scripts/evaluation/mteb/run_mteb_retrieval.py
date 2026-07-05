@@ -3,17 +3,25 @@
 Usage:
     # Predefined dataset (uses instruct query format by default):
     CUDA_VISIBLE_DEVICES=0 python scripts/evaluation/mteb/run_mteb_retrieval.py \\
-        --dataset qasper --backend offline --splits test
+        --dataset qasper --backend offline --splits test \\
+        --model-revision vllm-offline-b128
 
     # SentenceTransformers model on a built-in MTEB task:
     python scripts/evaluation/mteb/run_mteb_retrieval.py \\
         --mteb-task NFCorpus --backend sentence-transformers \\
-        --model sentence-transformers/all-MiniLM-L6-v2
+        --model sentence-transformers/all-MiniLM-L6-v2 \\
+        --model-revision main
 
     # Custom Hugging Face dataset with corpus/queries/qrels configs:
     python scripts/evaluation/mteb/run_mteb_retrieval.py \\
         --hf-repo-id user/my-rag-dataset --task-name MyRAG \\
-        --backend offline --splits test
+        --backend offline --splits test \\
+        --model-revision vllm-offline-b128
+
+    # Custom results revision folder:
+    python scripts/evaluation/mteb/run_mteb_retrieval.py \\
+        --dataset qasper --backend offline --splits test \\
+        --model-revision vllm-offline-b128
 """
 
 from __future__ import annotations
@@ -92,6 +100,14 @@ def _build_parser() -> argparse.ArgumentParser:
         "--model",
         default=DEFAULT_MODEL,
         help="Embedding model name or Hugging Face repo id.",
+    )
+    parser.add_argument(
+        "--model-revision",
+        required=True,
+        help=(
+            "Label for the model revision in MTEB results (results subfolder name). "
+            "Use a HF commit hash or a custom run tag, e.g. vllm-offline-b128."
+        ),
     )
     parser.add_argument(
         "--batch-size",
@@ -175,11 +191,13 @@ def main(argv: list[str] | None = None) -> None:
         backend=args.backend,
         model=args.model,
         batch_size=args.batch_size,
+        model_revision=args.model_revision,
     )
 
     task_names = [task.metadata.name for task in tasks]
     print(f"backend: {args.backend}")
     print(f"model: {args.model}")
+    print(f"model_revision: {args.model_revision}")
     print(f"tasks: {', '.join(task_names)}")
     print(f"output_dir: {args.output_dir}")
 

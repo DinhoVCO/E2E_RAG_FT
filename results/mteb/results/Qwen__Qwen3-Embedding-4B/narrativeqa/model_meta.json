@@ -1,7 +1,7 @@
 {
     "loader_kwargs": {},
     "name": "Qwen/Qwen3-Embedding-4B",
-    "revision": "no_revision_available",
+    "revision": "narrativeqa",
     "release_date": null,
     "languages": null,
     "n_parameters": null,
