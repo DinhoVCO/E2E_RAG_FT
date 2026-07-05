@@ -43,12 +43,16 @@ def resolve_model(
     *,
     backend: str,
     model: str,
+    model_revision: str,
     batch_size: int = DEFAULT_EMBED_BATCH_SIZE,
     embedder: BaseEmbedder | None = None,
 ) -> Any:
     """Build an MTEB-compatible model wrapper."""
     if backend == "sentence-transformers":
-        return SentenceTransformerEncoderWrapper(model=model)
+        return SentenceTransformerEncoderWrapper(
+            model=model,
+            revision=model_revision,
+        )
 
     if embedder is None:
         if backend == "offline":
@@ -61,7 +65,11 @@ def resolve_model(
     if backend == "offline" and isinstance(embedder, VLLMOfflineEmbedder):
         print("Loading vLLM embedder (warmup)...")
         embedder.warmup()
-    encoder = TesisEmbedderEncoder(embedder, model_name=model)
+    encoder = TesisEmbedderEncoder(
+        embedder,
+        model_name=model,
+        model_revision=model_revision,
+    )
     return SearchEncoderWrapper(encoder)
 
 
