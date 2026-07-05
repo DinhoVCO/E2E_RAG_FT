@@ -13,7 +13,24 @@ dependencies = [
     "python-dotenv>=1.0.0",
     "requests>=2.32.0",
     "tqdm>=4.66.0",
+    "qdrant-client>=1.12.0",
+    "transformers>=4.57.0,<5.0.0",
+    "sentence-transformers>=4.0.0",
+    "torch==2.8.0",
+    "torchvision==0.23.0",
+    "ipykernel>=6.29.0",
+    "openai>=1.0.0",
+    "vllm>=0.11.0",
 ]
+
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cu128" }
+torchvision = { index = "pytorch-cu128" }
 
 [build-system]
 requires = ["uv_build>=0.11.15,<0.12.0"]

@@ -13,3 +13,5 @@ wheels/
 .env
 
 /datasets/
+/images/
+/qdrant_storage/
