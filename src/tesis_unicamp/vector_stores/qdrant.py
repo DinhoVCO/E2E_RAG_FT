@@ -33,6 +33,7 @@ class QdrantVectorStore(BaseVectorStore):
         self._client = client or QdrantClient(
             url=url or os.getenv("QDRANT_URL", "http://localhost:6333"),
             api_key=api_key or os.getenv("QDRANT_API_KEY"),
+            check_compatibility=False,
         )
 
     def ensure_collection(
@@ -89,12 +90,22 @@ class QdrantVectorStore(BaseVectorStore):
                 ]
             )
 
-        hits = self._client.search(
-            collection_name=self.collection_name,
-            query_vector=query_vector,
-            limit=limit,
-            query_filter=query_filter,
-        )
+        if hasattr(self._client, "query_points"):
+            response = self._client.query_points(
+                collection_name=self.collection_name,
+                query=query_vector,
+                limit=limit,
+                query_filter=query_filter,
+            )
+            hits = response.points
+        else:
+            hits = self._client.search(
+                collection_name=self.collection_name,
+                query_vector=query_vector,
+                limit=limit,
+                query_filter=query_filter,
+            )
+
         return [
             {
                 "id": hit.id,
