@@ -29,6 +29,10 @@ class VLLMOfflineEmbedder(BaseEmbedder):
             self._llm = LLM(model=self.model_name, task="embed", **self._llm_kwargs)
         return self._llm
 
+    def warmup(self) -> None:
+        """Load the vLLM engine before any fork-based multiprocessing runs."""
+        self._get_llm()
+
     def embed_texts(self, texts: list[str]) -> list[list[float]]:
         if not texts:
             return []
