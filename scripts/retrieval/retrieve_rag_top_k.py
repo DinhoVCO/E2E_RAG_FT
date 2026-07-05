@@ -126,6 +126,37 @@ def _load_env() -> None:
     load_dotenv(PROJECT_ROOT / ".env")
 
 
+def _validate_cuda_for_offline(mode: str) -> None:
+    if mode != "offline":
+        return
+
+    import torch
+
+    visible = os.getenv("CUDA_VISIBLE_DEVICES")
+    slurm_visible = os.getenv("SLURM_JOB_GPUS") or os.getenv("SLURM_STEP_GPUS")
+    count = torch.cuda.device_count()
+
+    print(f"CUDA_VISIBLE_DEVICES: {visible or '(unset)'}")
+    if slurm_visible:
+        print(f"SLURM allocated GPU(s): {slurm_visible}")
+    print(f"torch.cuda.device_count(): {count}")
+
+    if count == 0:
+        raise SystemExit(
+            "No CUDA device is visible. Request a GPU in your SLURM session and "
+            "avoid overriding CUDA_VISIBLE_DEVICES unless you know the mapped ids."
+        )
+
+    try:
+        print(f"cuda:0 -> {torch.cuda.get_device_name(0)}")
+    except RuntimeError as exc:
+        raise SystemExit(
+            "Cannot access cuda:0. If you set CUDA_VISIBLE_DEVICES manually, "
+            "use an GPU index assigned to your job (usually 0 for the first "
+            f"allocated GPU). Original error: {exc}"
+        ) from exc
+
+
 def _build_embedder(mode: str, model: str, batch_size: int):
     config = EmbeddingConfig(model=model, batch_size=batch_size)
     if mode == "online":
@@ -205,6 +236,7 @@ def main(argv: list[str] | None = None) -> None:
     output_dir = args.output_dir or spec.default_output_dir
     splits = tuple(args.splits)
 
+    _validate_cuda_for_offline(args.mode)
     embedder = _build_embedder(args.mode, args.model, args.batch_size)
     store = QdrantVectorStore(collection, url=args.qdrant_url)
 
