@@ -11,6 +11,12 @@ from tesis_unicamp.datasets.utils.bioasq_rag import (
 )
 from tesis_unicamp.datasets.utils.corpus import batched_map, corpus_id_to_point_id, format_document, iter_batches
 from tesis_unicamp.datasets.utils.indexing import index_dataset
+from tesis_unicamp.datasets.utils.retrieval import (
+    build_relevant_corpus_ids,
+    retrieve_all_splits,
+    retrieve_split,
+    retrieve_top_k_for_queries,
+)
 from tesis_unicamp.datasets.utils.narrativeqa_rag import (
     NARRATIVEQA_RAG_DATASET_ID,
     index_narrativeqa_corpus,
@@ -48,6 +54,10 @@ __all__ = [
     "index_qasper_corpus",
     "index_telco_dpr_corpus",
     "iter_batches",
+    "build_relevant_corpus_ids",
+    "retrieve_all_splits",
+    "retrieve_split",
+    "retrieve_top_k_for_queries",
     "load_bioasq_rag_corpus",
     "load_bioasq_rag_subset",
     "load_narrativeqa_rag_corpus",

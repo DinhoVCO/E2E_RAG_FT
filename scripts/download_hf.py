@@ -4,20 +4,17 @@ Run on the **login node** before interactive GPU sessions on Santos Dumont,
 where compute-node downloads (especially via XET) often hang.
 
 Usage:
-    # All RAG corpus parquet files (for indexing scripts)
-    python scripts/download_hf.py --preset rag-corpus
+    # Corpus parquet only (for indexing scripts)
+    python scripts/download_hf.py --preset rag-corpus --datasets qasper
 
-    # One or more RAG datasets
-    python scripts/download_hf.py --preset rag-corpus --datasets narrativeqa qasper
+    # Full dataset repo (corpus, queries, qrels, answers, retrieved_docs)
+    python scripts/download_hf.py --preset rag-full --datasets qasper
 
-    # Custom file(s)
-    python scripts/download_hf.py \\
-        --repo dinho1597/narrativeqa-rag \\
-        --file corpus/train-00000-of-00001.parquet \\
-        --repo-type dataset
+    # One repo via snapshot
+    python scripts/download_hf.py --snapshot --repo dinho1597/qasper-rag --repo-type dataset
 
     # Full model snapshot (e.g. embedding model for offline indexing)
-    python scripts/download_hf.py --snapshot --repo Qwen/Qwen3-Embedding-4B
+    python scripts/download_hf.py --snapshot --repo Qwen/Qwen3-Embedding-4B --repo-type model
 """
 
 from __future__ import annotations
@@ -29,18 +26,13 @@ from collections.abc import Iterable
 
 from huggingface_hub import hf_hub_download, snapshot_download
 
-from tesis_unicamp.datasets.utils.bioasq_rag import BIOASQ_RAG_DATASET_ID
-from tesis_unicamp.datasets.utils.narrativeqa_rag import NARRATIVEQA_RAG_DATASET_ID
-from tesis_unicamp.datasets.utils.qasper_rag import QASPER_RAG_DATASET_ID
-from tesis_unicamp.datasets.utils.telco_dpr_rag import TELCO_DPR_RAG_DATASET_ID
-
 RAG_CORPUS_FILE = "corpus/train-00000-of-00001.parquet"
 
-RAG_CORPUS_DATASETS: dict[str, str] = {
-    "bioasq": BIOASQ_RAG_DATASET_ID,
-    "qasper": QASPER_RAG_DATASET_ID,
-    "telco-dpr": TELCO_DPR_RAG_DATASET_ID,
-    "narrativeqa": NARRATIVEQA_RAG_DATASET_ID,
+RAG_DATASET_IDS: dict[str, str] = {
+    "bioasq": "dinho1597/bioasq-rag-13b",
+    "qasper": "dinho1597/qasper-rag",
+    "telco-dpr": "dinho1597/telco-dpr-rag",
+    "narrativeqa": "dinho1597/narrativeqa-rag",
 }
 
 
@@ -70,14 +62,25 @@ def download_snapshot(repo_id: str, *, repo_type: str) -> str:
 
 
 def download_rag_corpus(datasets: Iterable[str]) -> None:
-    unknown = sorted(set(datasets) - set(RAG_CORPUS_DATASETS))
-    if unknown:
-        valid = ", ".join(sorted(RAG_CORPUS_DATASETS))
-        raise SystemExit(f"Unknown dataset(s): {', '.join(unknown)}. Valid: {valid}")
-
+    _validate_datasets(datasets)
     for name in datasets:
-        repo_id = RAG_CORPUS_DATASETS[name]
+        repo_id = RAG_DATASET_IDS[name]
         download_files(repo_id, [RAG_CORPUS_FILE], repo_type="dataset")
+
+
+def download_rag_full(datasets: Iterable[str]) -> None:
+    """Download the full Hub dataset repo (all configs and splits)."""
+    _validate_datasets(datasets)
+    for name in datasets:
+        repo_id = RAG_DATASET_IDS[name]
+        download_snapshot(repo_id, repo_type="dataset")
+
+
+def _validate_datasets(datasets: Iterable[str]) -> None:
+    unknown = sorted(set(datasets) - set(RAG_DATASET_IDS))
+    if unknown:
+        valid = ", ".join(sorted(RAG_DATASET_IDS))
+        raise SystemExit(f"Unknown dataset(s): {', '.join(unknown)}. Valid: {valid}")
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -86,17 +89,17 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--preset",
-        choices=("rag-corpus",),
-        help="Download a known bundle of files",
+        choices=("rag-corpus", "rag-full"),
+        help="rag-corpus: corpus parquet only; rag-full: entire dataset repo",
     )
     parser.add_argument(
         "--datasets",
         nargs="+",
-        choices=tuple(RAG_CORPUS_DATASETS),
+        choices=tuple(RAG_DATASET_IDS),
         metavar="DATASET",
         help=(
-            "With --preset rag-corpus: which datasets to fetch "
-            f"(default: all — {', '.join(RAG_CORPUS_DATASETS)})"
+            "With --preset: which datasets to fetch "
+            f"(default: all — {', '.join(RAG_DATASET_IDS)})"
         ),
     )
     parser.add_argument(
@@ -134,12 +137,19 @@ def main(argv: list[str] | None = None) -> None:
     _configure_xet(disable_xet=not args.use_xet)
 
     if args.preset == "rag-corpus":
-        datasets = args.datasets or list(RAG_CORPUS_DATASETS)
+        datasets = args.datasets or list(RAG_DATASET_IDS)
         download_rag_corpus(datasets)
         return
 
+    if args.preset == "rag-full":
+        datasets = args.datasets or list(RAG_DATASET_IDS)
+        download_rag_full(datasets)
+        return
+
     if not args.repo:
-        raise SystemExit("Pass --preset rag-corpus or --repo with --file/--snapshot.")
+        raise SystemExit(
+            "Pass --preset rag-corpus|rag-full, or --repo with --file/--snapshot."
+        )
 
     if args.snapshot:
         download_snapshot(args.repo, repo_type=args.repo_type)

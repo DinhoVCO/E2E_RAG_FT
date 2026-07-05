@@ -42,6 +42,14 @@ configs:
         path: answers/dev*
       - split: test
         path: answers/test*
+  - config_name: retrieved_docs
+    data_files:
+      - split: train
+        path: retrieved_docs/train*
+      - split: dev
+        path: retrieved_docs/dev*
+      - split: test
+        path: retrieved_docs/test*
 ---
 
 # Telco-DPR RAG
@@ -56,6 +64,7 @@ Dataset for Retrieval-Augmented Generation (RAG) based on [Telco-DPR](https://hu
 | `queries` | train, dev, test | Synthetic telecom QA questions |
 | `qrels` | train, dev, test | Relevance judgments (query ↔ passage) |
 | `answers` | train, dev, test | Reference answers |
+| `retrieved_docs` | train, dev, test | Top-k retrieval results with relevance labels |
 
 ## Dataset statistics
 
@@ -103,6 +112,13 @@ The corpus is shared across all splits and concatenates the `small` and `extende
 ```json
 {"query_id": "...", "answer": "..."}
 ```
+
+### retrieved_docs
+```json
+{"query_id": "...", "corpus_id": "...", "rank": 1, "retrieval_score": 0.92, "is_relevant": true}
+```
+
+Top-k documents retrieved from the indexed corpus (`is_relevant` is derived from `qrels`).
 
 ## Usage
 
