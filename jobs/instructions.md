@@ -36,7 +36,33 @@ Replace `<SLURM_JOB_ID>` with your actual ID (e.g. `333831`).
 
 ---
 
-## 3. Containers inside the interactive session
+## 3. Cancel an interactive allocation
+
+To **release the GPU** and end the SLURM job entirely, cancel the allocation by job ID. Run this from the **login node** or from any terminal (including a second shell while your session is still open):
+
+```bash
+# List your running jobs
+squeue -u "$USER"
+
+# Cancel the interactive allocation
+scancel <SLURM_JOB_ID>
+```
+
+Example:
+
+```bash
+scancel 480223
+```
+
+Notes:
+
+- `scancel` stops the whole allocation (all `srun` shells attached to that job ID will lose the session).
+- This is different from `kill <PID>` or `pkill -f qdrant`, which only stop a process **inside** the session (e.g. Qdrant), not the GPU reservation.
+- If you only `exit` the interactive shell, the allocation may still be held until the time limit expires — use `scancel` when you are done with the GPU.
+
+---
+
+## 4. Containers inside the interactive session
 
 Heavy pulls and image builds are usually done on the **login node** (or as documented by your site), not inside the short interactive shell, to avoid wasting GPU reservation time.
 
@@ -51,7 +77,7 @@ singularity pull "$(pwd)/images/qdrant.sif" docker://qdrant/qdrant:latest
 
 ---
 
-## 4. Run Qdrant (`run_qdrant.sh`)
+## 5. Run Qdrant (`run_qdrant.sh`)
 
 **Run this only from inside the interactive session** you opened with `run_ict_h100.sh` (or any node where Singularity and the image are available as you intend).
 
@@ -103,8 +129,11 @@ Notes:
 | New interactive H100 session | `bash jobs/utils/run_ict_h100.sh` |
 | Named job | `JOB_NAME=my_run bash jobs/utils/run_ict_h100.sh` |
 | Second shell in same allocation | `srun --overlap --jobid=<ID> --pty bash` |
+| List your SLURM jobs | `squeue -u $USER` |
+| Cancel interactive allocation | `scancel <SLURM_JOB_ID>` |
 | Pull Qdrant image | `singularity pull "$(pwd)/images/qdrant.sif" docker://qdrant/qdrant:latest` |
 | Start Qdrant (inside session) | `bash jobs/utils/run_qdrant.sh` |
 | List Qdrant processes | `pgrep -af qdrant` (or `ps aux` + `grep qdrant`; see §4) |
 | Stop all Qdrant processes | `pkill -f qdrant` |
 | Stop one process by PID | `kill <PID>` |
+| Qdrant REST API commands | See [qdrant.md](./qdrant.md) |
