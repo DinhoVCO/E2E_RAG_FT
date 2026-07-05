@@ -80,10 +80,10 @@ Pass one of these values to `--dataset`:
 
 | Key | MTEB task name | Hugging Face repo |
 |-----|----------------|-------------------|
-| `bioasq` | BioASQ-RAG | `dinho1597/bioasq-rag-13b` |
-| `qasper` | QASPER-RAG | `dinho1597/qasper-rag` |
-| `telco-dpr` | TelcoDPR-RAG | `dinho1597/telco-dpr-rag` |
-| `narrativeqa` | NarrativeQA-RAG | `dinho1597/narrativeqa-rag` |
+| `bioasq` | BioASQ-RAG | `DinoStackAI/bioasq-rag-13b` |
+| `qasper` | QASPER-RAG | `DinoStackAI/qasper-rag` |
+| `telco-dpr` | TelcoDPR-RAG | `DinoStackAI/telco-dpr-rag` |
+| `narrativeqa` | NarrativeQA-RAG | `DinoStackAI/narrativeqa-rag` |
 
 Each dataset exposes Hub configs: `corpus`, `queries`, `qrels`, and `answers`. Evaluation uses `corpus` + `queries` + `qrels`.
 

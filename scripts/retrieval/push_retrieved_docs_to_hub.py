@@ -96,7 +96,7 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--repo-id",
         default=None,
-        help="Hugging Face dataset repo (default: dinho1597/<dataset>-rag)",
+        help="Hugging Face dataset repo (default: DinoStackAI/<dataset>-rag)",
     )
     parser.add_argument(
         "--output-dir",
