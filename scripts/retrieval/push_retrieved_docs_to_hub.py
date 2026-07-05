@@ -54,6 +54,35 @@ def _load_env() -> None:
     load_dotenv(PROJECT_ROOT / ".env")
 
 
+def _resolve_token(explicit_token: str | None) -> str:
+    token = explicit_token or os.getenv("HF_TOKEN") or os.getenv("HUGGINGFACE_HUB_TOKEN")
+    if not token:
+        raise SystemExit(
+            "Missing Hugging Face token. Set HF_TOKEN in .env or run:\n"
+            "  huggingface-cli login\n"
+            "Then retry with:\n"
+            "  python scripts/retrieval/push_retrieved_docs_to_hub.py --dataset qasper"
+        )
+    return token
+
+
+def _verify_hf_auth(token: str, repo_id: str) -> None:
+    from huggingface_hub import HfApi
+    from huggingface_hub.errors import HfHubHTTPError
+
+    api = HfApi(token=token)
+    try:
+        user = api.whoami()
+        print(f"hf_user: {user.get('name', user.get('fullname', 'unknown'))}")
+        api.repo_info(repo_id, repo_type="dataset")
+    except HfHubHTTPError as exc:
+        raise SystemExit(
+            f"Cannot access dataset repo {repo_id!r}. "
+            "Check that HF_TOKEN is valid (write access) and that you own the repo. "
+            f"Hub error: {exc}"
+        ) from exc
+
+
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Upload retrieved_docs config to Hugging Face Hub.",
@@ -77,8 +106,8 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--token",
-        default=os.getenv("HF_TOKEN"),
-        help="Hugging Face token (default: HF_TOKEN env var)",
+        default=None,
+        help="Hugging Face token (default: HF_TOKEN or HUGGINGFACE_HUB_TOKEN from .env)",
     )
     parser.add_argument(
         "--private",
@@ -95,15 +124,18 @@ def main(argv: list[str] | None = None) -> None:
     push_fn, default_output, default_repo = PUSH_HANDLERS[args.dataset]
     output_dir = args.output_dir or default_output
     repo_id = args.repo_id or default_repo
+    token = _resolve_token(args.token)
 
     print(f"dataset: {args.dataset}")
     print(f"repo_id: {repo_id}")
     print(f"output_dir: {output_dir}")
 
+    _verify_hf_auth(token, repo_id)
+
     push_fn(
         repo_id=repo_id,
         output_dir=output_dir,
-        token=args.token,
+        token=token,
         private=args.private,
     )
     print(f"Pushed retrieved_docs to {repo_id!r}")
