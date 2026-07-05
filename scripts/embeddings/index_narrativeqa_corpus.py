@@ -1,12 +1,12 @@
-"""Index the BioASQ RAG corpus into Qdrant using vLLM embeddings.
+"""Index the NarrativeQA RAG corpus into Qdrant using vLLM embeddings.
 
 Usage:
     # Offline (recommended — single GPU job):
-    python scripts/embeddings/index_bioasq_corpus.py --mode offline
+    python scripts/embeddings/index_narrativeqa_corpus.py --mode offline
 
     # Online (vLLM server must be running):
     bash jobs/scripts/vllm/serve_embedding_4b.sh
-    python scripts/embeddings/index_bioasq_corpus.py --mode online
+    python scripts/embeddings/index_narrativeqa_corpus.py --mode online
 """
 
 from __future__ import annotations
@@ -18,7 +18,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-from tesis_unicamp.datasets.utils import index_bioasq_corpus
+from tesis_unicamp.datasets.utils import index_narrativeqa_corpus
 from tesis_unicamp.embeddings import (
     DEFAULT_EMBED_BATCH_SIZE,
     EmbeddingConfig,
@@ -30,7 +30,7 @@ from tesis_unicamp.vector_stores import QdrantVectorStore
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 
 DEFAULT_MODEL = "Qwen/Qwen3-Embedding-4B"
-DEFAULT_COLLECTION = "bioasq-rag-13b-corpus"
+DEFAULT_COLLECTION = "narrativeqa-rag-corpus"
 
 
 def _load_env() -> None:
@@ -50,7 +50,7 @@ def _build_embedder(mode: str, model: str, batch_size: int):
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Index dinho1597/bioasq-rag-13b corpus into Qdrant.",
+        description="Index dinho1597/narrativeqa-rag corpus into Qdrant.",
     )
     parser.add_argument(
         "--mode",
@@ -105,7 +105,7 @@ def main(argv: list[str] | None = None) -> None:
     print(f"qdrant_url: {args.qdrant_url}")
     print(f"batch_size: {args.batch_size}")
 
-    indexed = index_bioasq_corpus(
+    indexed = index_narrativeqa_corpus(
         embedder,
         store,
         split=args.split,
