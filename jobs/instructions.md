@@ -2,6 +2,8 @@
 
 Short guide for interactive GPU work on the cluster using the helpers in `jobs/utils/`. Paths below assume you run commands from the **repository root** (use `cd` there first so `--chdir` and bind mounts match what you expect).
 
+Cluster web portal (Open OnDemand): [https://ondemand.sdumont2nd.lncc.br/](https://ondemand.sdumont2nd.lncc.br/)
+
 ---
 
 ## 1. Start an interactive GPU session (`run_ict_h100.sh`)

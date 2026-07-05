@@ -1,12 +1,11 @@
 #!/usr/bin/env bash
-# Servidor vLLM para Qwen3-VL-Embedding-4B (multimodal, API /v1/embeddings).
-# Requiere vLLM >= 0.14.0 (ver README del modelo en Hugging Face).
+# Servidor vLLM para Qwen3-Embedding-4B (texto, API /v1/embeddings).
 #
 # Uso (desde la raíz del repo):
-#   bash jobs/scripts/vllm/serve_vl_embedding_4b.sh
+#   bash jobs/scripts/vllm/serve_embedding_4b.sh
 #
 # Opcional — sobrescribir modelo, host o puerto:
-#   VLLM_MODEL=Qwen/Qwen3-VL-Embedding-2B VLLM_PORT=8002 bash jobs/scripts/vllm/serve_vl_embedding_4b.sh
+#   VLLM_MODEL=Qwen/Qwen3-Embedding-8B VLLM_PORT=8002 bash jobs/scripts/vllm/serve_embedding_4b.sh
 #
 set -euo pipefail
 
@@ -19,7 +18,7 @@ if [[ ! -x "${VENV}/bin/vllm" ]]; then
   exit 1
 fi
 
-MODEL="${VLLM_MODEL:-Qwen/Qwen3-VL-Embedding-4B}"
+MODEL="${VLLM_MODEL:-Qwen/Qwen3-Embedding-4B}"
 HOST="${VLLM_HOST:-127.0.0.1}"
 PORT="${VLLM_PORT:-8000}"
 
