@@ -5,11 +5,14 @@ from dataclasses import dataclass
 
 from tqdm import tqdm
 
+# Qwen3-Embedding-4B on 80 GB GPUs; lower if OOM on very long documents.
+DEFAULT_EMBED_BATCH_SIZE = 128
+
 
 @dataclass(frozen=True)
 class EmbeddingConfig:
     model: str
-    batch_size: int = 32
+    batch_size: int = DEFAULT_EMBED_BATCH_SIZE
 
 
 class BaseEmbedder(ABC):
