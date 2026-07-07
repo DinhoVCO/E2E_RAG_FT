@@ -97,6 +97,10 @@ def finetune_qwen3_embedding(
         dataset_config,
         split=config.train_split,
     )
+    eval_dataset = prepare_training_dataset(
+        dataset_config,
+        split=config.eval_split,
+    )
     evaluator: InformationRetrievalEvaluator = build_ir_evaluator(
         dataset_config,
         split=config.eval_split,
@@ -120,6 +124,7 @@ def finetune_qwen3_embedding(
         model=model,
         args=args,
         train_dataset=train_dataset,
+        eval_dataset=eval_dataset,
         loss=loss,
         evaluator=evaluator,
     )

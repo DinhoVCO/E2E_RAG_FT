@@ -132,13 +132,13 @@ Pin **one GPU per job** (`CUDA_VISIBLE_DEVICES=0` for a single run). Use `2>&1 |
 ```bash
 mkdir -p logs
 
-CUDA_VISIBLE_DEVICES=0 python scripts/finetuning/embeddings/finetune_qwen3_embedding.py \
+CUDA_VISIBLE_DEVICES=0,1 python scripts/finetuning/embeddings/finetune_qwen3_embedding.py \
   --dataset telco-dpr \
   --batch-size 128 \
-  --epochs 3 \
+  --epochs 10 \
   --logging-steps 1 \
-  --eval-steps 2 \
-  --save-steps 2 \
+  --eval-steps 8 \
+  --save-steps 8 \
   2>&1 | tee logs/finetune-telco-dpr.log
 ```
 
