@@ -79,6 +79,46 @@ Train all four datasets sequentially:
 bash jobs/scripts/finetuning/finetune_qwen3_embedding_all.sh
 ```
 
+## YAML configs (per dataset)
+
+Each dataset has a YAML file under `scripts/finetuning/embeddings/configs/` with recommended hyperparameters. When you pass `--dataset`, the matching file is loaded automatically if it exists (for example `configs/telco-dpr.yaml`).
+
+| Dataset | Config file |
+|---------|-------------|
+| `telco-dpr` | `configs/telco-dpr.yaml` |
+| `qasper` | `configs/qasper.yaml` |
+| `narrativeqa` | `configs/narrativeqa.yaml` |
+| `bioasq-resplit` | `configs/bioasq-resplit.yaml` |
+
+Example (`configs/telco-dpr.yaml`):
+
+```yaml
+dataset: telco-dpr
+batch_size: 128
+epochs: 10
+logging_steps: 1
+eval_steps: 8
+save_steps: 8
+```
+
+Run with the YAML defaults (CLI flags override YAML values):
+
+```bash
+CUDA_VISIBLE_DEVICES=0,1 python scripts/finetuning/embeddings/finetune_qwen3_embedding.py \
+  --dataset telco-dpr
+```
+
+Or point to a custom config explicitly:
+
+```bash
+python scripts/finetuning/embeddings/finetune_qwen3_embedding.py \
+  --config scripts/finetuning/embeddings/configs/qasper.yaml \
+  --dataset qasper \
+  --epochs 5
+```
+
+Supported YAML keys match the CLI options (snake_case): `model`, `output_dir`, `epochs`, `batch_size`, `learning_rate`, `warmup_ratio`, `eval_steps`, `save_steps`, `logging_steps`, `save_total_limit`, `eval_batch_size`, `mini_batch_size`, `train_split`, `eval_split`, `wandb_project`, `run_name`, `fp16`, `bf16`.
+
 ### Parallel training (4 GPUs, one dataset per GPU)
 
 On a node with 4 GPUs (e.g. Santos Dumont `ict-h100`), fine-tune all four datasets at once by pinning one job to each GPU. See **[Recommended settings (W&B loss curve + IR eval)](#recommended-settings-wb-loss-curve--ir-eval)** below for the full commands with logging, eval, and checkpoints.
@@ -134,24 +174,16 @@ mkdir -p logs
 
 CUDA_VISIBLE_DEVICES=0,1 python scripts/finetuning/embeddings/finetune_qwen3_embedding.py \
   --dataset telco-dpr \
-  --batch-size 128 \
-  --epochs 10 \
-  --logging-steps 1 \
-  --eval-steps 8 \
-  --save-steps 8 \
   2>&1 | tee logs/finetune-telco-dpr.log
 ```
+
+Settings come from `configs/telco-dpr.yaml` (`epochs: 10`, `eval_steps: 8`, etc.).
 
 #### qasper
 
 ```bash
 CUDA_VISIBLE_DEVICES=0 python scripts/finetuning/embeddings/finetune_qwen3_embedding.py \
   --dataset qasper \
-  --batch-size 128 \
-  --epochs 3 \
-  --logging-steps 1 \
-  --eval-steps 2 \
-  --save-steps 2 \
   2>&1 | tee logs/finetune-qasper.log
 ```
 
@@ -160,11 +192,6 @@ CUDA_VISIBLE_DEVICES=0 python scripts/finetuning/embeddings/finetune_qwen3_embed
 ```bash
 CUDA_VISIBLE_DEVICES=0 python scripts/finetuning/embeddings/finetune_qwen3_embedding.py \
   --dataset narrativeqa \
-  --batch-size 128 \
-  --epochs 3 \
-  --logging-steps 1 \
-  --eval-steps 2 \
-  --save-steps 2 \
   2>&1 | tee logs/finetune-narrativeqa.log
 ```
 
@@ -173,11 +200,6 @@ CUDA_VISIBLE_DEVICES=0 python scripts/finetuning/embeddings/finetune_qwen3_embed
 ```bash
 CUDA_VISIBLE_DEVICES=0 python scripts/finetuning/embeddings/finetune_qwen3_embedding.py \
   --dataset bioasq-resplit \
-  --batch-size 128 \
-  --epochs 3 \
-  --logging-steps 1 \
-  --eval-steps 2 \
-  --save-steps 2 \
   2>&1 | tee logs/finetune-bioasq-resplit.log
 ```
 
@@ -192,38 +214,18 @@ mkdir -p logs
 
 CUDA_VISIBLE_DEVICES=0 python scripts/finetuning/embeddings/finetune_qwen3_embedding.py \
   --dataset telco-dpr \
-  --batch-size 128 \
-  --epochs 3 \
-  --logging-steps 1 \
-  --eval-steps 2 \
-  --save-steps 2 \
   > logs/finetune-telco-dpr.log 2>&1 &
 
 CUDA_VISIBLE_DEVICES=1 python scripts/finetuning/embeddings/finetune_qwen3_embedding.py \
   --dataset qasper \
-  --batch-size 128 \
-  --epochs 3 \
-  --logging-steps 1 \
-  --eval-steps 2 \
-  --save-steps 2 \
   > logs/finetune-qasper.log 2>&1 &
 
 CUDA_VISIBLE_DEVICES=2 python scripts/finetuning/embeddings/finetune_qwen3_embedding.py \
   --dataset narrativeqa \
-  --batch-size 128 \
-  --epochs 3 \
-  --logging-steps 1 \
-  --eval-steps 2 \
-  --save-steps 2 \
   > logs/finetune-narrativeqa.log 2>&1 &
 
 CUDA_VISIBLE_DEVICES=3 python scripts/finetuning/embeddings/finetune_qwen3_embedding.py \
   --dataset bioasq-resplit \
-  --batch-size 128 \
-  --epochs 3 \
-  --logging-steps 1 \
-  --eval-steps 2 \
-  --save-steps 2 \
   > logs/finetune-bioasq-resplit.log 2>&1 &
 
 wait
@@ -253,6 +255,7 @@ CUDA_VISIBLE_DEVICES=0 python scripts/finetuning/embeddings/finetune_qwen3_embed
 
 | Option | Default | Description |
 |--------|---------|-------------|
+| `--config` | `configs/<dataset>.yaml` if present | YAML file with training hyperparameters |
 | `--dataset` | *(required)* | One of: `bioasq-resplit`, `qasper`, `telco-dpr`, `narrativeqa` |
 | `--model` | `Qwen/Qwen3-Embedding-4B` | Base embedding model |
 | `--output-dir` | `models/qwen3-embedding-4b-lora/<dataset>` | Checkpoints and final adapter output |
@@ -269,25 +272,39 @@ CUDA_VISIBLE_DEVICES=0 python scripts/finetuning/embeddings/finetune_qwen3_embed
 | `--train-split` | `train` | Split for building training pairs |
 | `--eval-split` | `dev` | Split for IR evaluation |
 | `--wandb-project` | `WANDB_PROJECT` from `.env` | W&B project name |
-| `--run-name` | `qwen3-embedding-4b-lora-<dataset>` | W&B run name |
+| `--run-name` | `qwen3-embedding-4b-lora-<dataset>-b<batch>-e<epochs>` | W&B run name |
 | `--fp16` | off | Enable FP16 training |
 | `--no-bf16` | off | Disable BF16 (BF16 is on by default) |
 
 ## Weights & Biases
 
 - **Project**: `qwen3-embedding-finetuning` (or `WANDB_PROJECT` in `.env`)
-- **Run name** (default): `qwen3-embedding-4b-lora-<dataset>`
+- **Run name** (default): `qwen3-embedding-4b-lora-<dataset>-b<batch_size>-e<epochs>`
+
+The default run name is applied automatically when you do not pass `--run-name`. At startup, the script prints the resolved name to the console:
+
+```
+wandb_run_name: qwen3-embedding-4b-lora-telco-dpr-b128-e10
+```
 
 Examples:
 
-| Dataset | Default W&B run name |
-|---------|----------------------|
-| `bioasq-resplit` | `qwen3-embedding-4b-lora-bioasq-resplit` |
-| `qasper` | `qwen3-embedding-4b-lora-qasper` |
-| `telco-dpr` | `qwen3-embedding-4b-lora-telco-dpr` |
-| `narrativeqa` | `qwen3-embedding-4b-lora-narrativeqa` |
+| Dataset | Command flags | Default W&B run name |
+|---------|---------------|----------------------|
+| `telco-dpr` | `--batch-size 128 --epochs 10` | `qwen3-embedding-4b-lora-telco-dpr-b128-e10` |
+| `qasper` | `--batch-size 128 --epochs 3` | `qwen3-embedding-4b-lora-qasper-b128-e3` |
+| `narrativeqa` | default batch/epochs | `qwen3-embedding-4b-lora-narrativeqa-b128-e1` |
+| `bioasq-resplit` | `--batch-size 64 --epochs 5` | `qwen3-embedding-4b-lora-bioasq-resplit-b64-e5` |
 
-Override with `--run-name` or `--wandb-project`.
+To use a custom run name, pass `--run-name`:
+
+```bash
+python scripts/finetuning/embeddings/finetune_qwen3_embedding.py \
+  --dataset telco-dpr --batch-size 128 --epochs 10 \
+  --run-name mi-experimento-custom
+```
+
+Override the W&B project with `--wandb-project` or `WANDB_PROJECT` in `.env`.
 
 ## Outputs
 

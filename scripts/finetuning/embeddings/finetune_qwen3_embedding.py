@@ -36,10 +36,19 @@ from tesis_unicamp.finetuning.embeddings.config import (
     MINI_BATCH_SIZE,
     TRAIN_BATCH_SIZE,
 )
-from tesis_unicamp.finetuning.embeddings.trainer import FinetuningRunConfig, finetune_qwen3_embedding
+from tesis_unicamp.finetuning.embeddings.trainer import (
+    FinetuningRunConfig,
+    default_wandb_run_name,
+    finetune_qwen3_embedding,
+)
+from tesis_unicamp.finetuning.embeddings.yaml_config import (
+    load_finetuning_yaml,
+    resolve_config_path,
+)
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_OUTPUT_ROOT = PROJECT_ROOT / "models" / "qwen3-embedding-4b-lora"
+CONFIGS_DIR = Path(__file__).resolve().parent / "configs"
 
 
 def _load_env() -> None:
@@ -68,6 +77,15 @@ def _warn_if_multi_gpu() -> None:
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description="Fine-tune Qwen3-Embedding-4B with LoRA on a RAG dataset.",
+    )
+    parser.add_argument(
+        "--config",
+        type=Path,
+        default=None,
+        help=(
+            "YAML file with training hyperparameters. "
+            f"Default: configs/<dataset>.yaml when present ({CONFIGS_DIR})."
+        ),
     )
     parser.add_argument(
         "--dataset",
@@ -167,7 +185,7 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--run-name",
         default=None,
-        help="W&B run name (default: qwen3-embedding-4b-lora-<dataset>).",
+        help="W&B run name (default: qwen3-embedding-4b-lora-<dataset>-b<batch>-e<epochs>).",
     )
     parser.add_argument(
         "--fp16",
@@ -182,10 +200,42 @@ def _build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _parse_args(argv: list[str] | None) -> argparse.Namespace:
+    pre_parser = argparse.ArgumentParser(add_help=False)
+    pre_parser.add_argument("--dataset", choices=sorted(EMBEDDING_FINETUNING_DATASET_IDS))
+    pre_parser.add_argument("--config", type=Path, default=None)
+    pre_args, _ = pre_parser.parse_known_args(argv)
+
+    config_path = resolve_config_path(
+        dataset=pre_args.dataset,
+        config=pre_args.config,
+        configs_dir=CONFIGS_DIR,
+    )
+
+    parser = _build_parser()
+    yaml_defaults: dict = {}
+    if config_path is not None:
+        yaml_defaults = load_finetuning_yaml(config_path)
+        parser.set_defaults(**yaml_defaults)
+
+    args = parser.parse_args(argv)
+
+    if config_path is not None:
+        args.config = config_path
+        yaml_dataset = yaml_defaults.get("dataset")
+        if yaml_dataset is not None and yaml_dataset != args.dataset:
+            parser.error(
+                f"Dataset mismatch: --dataset {args.dataset!r} "
+                f"does not match {yaml_dataset!r} in {config_path}"
+            )
+
+    return args
+
+
 def main(argv: list[str] | None = None) -> None:
     _load_env()
     _warn_if_multi_gpu()
-    args = _build_parser().parse_args(argv)
+    args = _parse_args(argv)
 
     output_dir = args.output_dir or (DEFAULT_OUTPUT_ROOT / args.dataset)
     wandb_project = args.wandb_project or os.getenv(
@@ -217,6 +267,8 @@ def main(argv: list[str] | None = None) -> None:
     )
 
     print(f"dataset: {args.dataset}")
+    if args.config is not None:
+        print(f"config: {args.config}")
     print(f"hub_repo: {EMBEDDING_FINETUNING_DATASET_IDS[args.dataset]}")
     print(f"model: {args.model}")
     print(f"output_dir: {output_dir}")
@@ -226,6 +278,7 @@ def main(argv: list[str] | None = None) -> None:
     print(f"train_split: {args.train_split}")
     print(f"eval_split: {args.eval_split}")
     print(f"wandb_project: {wandb_project}")
+    print(f"wandb_run_name: {args.run_name or default_wandb_run_name(run_config)}")
 
     final_dir = finetune_qwen3_embedding(run_config)
     print(f"Training complete. Final model saved to: {final_dir}")
