@@ -17,8 +17,4 @@ export CUDA_VISIBLE_DEVICES="${CUDA_VISIBLE_DEVICES:-0}"
 
 python scripts/finetuning/embeddings/finetune_qwen3_embedding.py \
   --dataset "$DATASET" \
-  --batch-size 128 \
-  --epochs 1 \
-  --eval-steps 500 \
-  --save-steps 500 \
   "$@"

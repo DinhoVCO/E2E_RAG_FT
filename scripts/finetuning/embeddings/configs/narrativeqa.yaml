@@ -1,0 +1,7 @@
+# Fine-tuning config for narrativeqa.
+dataset: narrativeqa
+batch_size: 128
+epochs: 3
+logging_steps: 1
+eval_steps: 2
+save_steps: 2

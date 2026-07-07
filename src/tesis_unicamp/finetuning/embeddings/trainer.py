@@ -59,8 +59,16 @@ def configure_wandb(*, project: str, run_name: str) -> None:
     os.environ.setdefault("WANDB_RUN_NAME", run_name)
 
 
+def default_wandb_run_name(config: FinetuningRunConfig) -> str:
+    return (
+        f"qwen3-embedding-4b-lora-{config.dataset}"
+        f"-b{config.per_device_train_batch_size}"
+        f"-e{config.num_train_epochs}"
+    )
+
+
 def build_training_arguments(config: FinetuningRunConfig) -> SentenceTransformerTrainingArguments:
-    run_name = config.run_name or f"qwen3-embedding-4b-lora-{config.dataset}"
+    run_name = config.run_name or default_wandb_run_name(config)
     configure_wandb(project=config.wandb_project, run_name=run_name)
 
     return SentenceTransformerTrainingArguments(
