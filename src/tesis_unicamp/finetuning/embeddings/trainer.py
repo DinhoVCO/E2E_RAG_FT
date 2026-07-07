@@ -6,7 +6,9 @@ from pathlib import Path
 
 from sentence_transformers import SentenceTransformerTrainer, SentenceTransformerTrainingArguments
 from sentence_transformers.sentence_transformer.evaluation import InformationRetrievalEvaluator
-from sentence_transformers.sentence_transformer.losses import MultipleNegativesRankingLoss
+from sentence_transformers.sentence_transformer.losses import (
+    CachedMultipleNegativesRankingLoss,
+)
 
 try:
     from sentence_transformers.sentence_transformer.training_args import BatchSamplers
@@ -16,6 +18,7 @@ except ImportError:
 from tesis_unicamp.finetuning.embeddings.config import (
     DEFAULT_BASE_MODEL,
     DEFAULT_WANDB_PROJECT,
+    MINI_BATCH_SIZE,
     TRAIN_BATCH_SIZE,
 )
 from tesis_unicamp.finetuning.embeddings.datasets import (
@@ -42,6 +45,7 @@ class FinetuningRunConfig:
     logging_steps: int = 50
     save_total_limit: int = 3
     eval_batch_size: int = 32
+    mini_batch_size: int = MINI_BATCH_SIZE
     train_split: str | None = None
     eval_split: str | None = None
     wandb_project: str = DEFAULT_WANDB_PROJECT
@@ -106,7 +110,10 @@ def finetune_qwen3_embedding(
         model_name=config.model_name,
         model_card_name=model_card_name,
     )
-    loss = MultipleNegativesRankingLoss(model)
+    loss = CachedMultipleNegativesRankingLoss(
+        model,
+        mini_batch_size=config.mini_batch_size,
+    )
     args = build_training_arguments(config)
 
     trainer = SentenceTransformerTrainer(

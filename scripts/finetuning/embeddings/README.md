@@ -6,7 +6,7 @@ Training uses:
 
 - **LoRA** with `task_type=TaskType.FEATURE_EXTRACTION`, `r=16`, `lora_alpha=32`, `lora_dropout=0.05`
 - **Max sequence length**: 512 tokens
-- **Loss**: `MultipleNegativesRankingLoss`
+- **Loss**: `CachedMultipleNegativesRankingLoss` (effective batch 128, encode mini-batch 32)
 - **Batch sampler**: `BatchSamplers.NO_DUPLICATES`
 - **Evaluator**: `InformationRetrievalEvaluator` (NDCG, MRR, Recall@k on the dev split)
 - **Logging**: Weights & Biases (`wandb`)
@@ -79,6 +79,162 @@ Train all four datasets sequentially:
 bash jobs/scripts/finetuning/finetune_qwen3_embedding_all.sh
 ```
 
+### Parallel training (4 GPUs, one dataset per GPU)
+
+On a node with 4 GPUs (e.g. Santos Dumont `ict-h100`), fine-tune all four datasets at once by pinning one job to each GPU. See **[Recommended settings (W&B loss curve + IR eval)](#recommended-settings-wb-loss-curve--ir-eval)** below for the full commands with logging, eval, and checkpoints.
+
+Quick version (defaults only — may not show W&B curves on small datasets):
+
+```bash
+mkdir -p logs
+
+CUDA_VISIBLE_DEVICES=0 python scripts/finetuning/embeddings/finetune_qwen3_embedding.py \
+  --dataset telco-dpr --batch-size 128 > logs/finetune-telco-dpr.log 2>&1 &
+
+CUDA_VISIBLE_DEVICES=1 python scripts/finetuning/embeddings/finetune_qwen3_embedding.py \
+  --dataset qasper --batch-size 128 > logs/finetune-qasper.log 2>&1 &
+
+CUDA_VISIBLE_DEVICES=2 python scripts/finetuning/embeddings/finetune_qwen3_embedding.py \
+  --dataset narrativeqa --batch-size 128 > logs/finetune-narrativeqa.log 2>&1 &
+
+CUDA_VISIBLE_DEVICES=3 python scripts/finetuning/embeddings/finetune_qwen3_embedding.py \
+  --dataset bioasq-resplit --batch-size 128 > logs/finetune-bioasq-resplit.log 2>&1 &
+
+wait
+```
+
+Each line ends with `> logs/....log 2>&1 &`:
+
+- `> logs/....log` — writes stdout to a separate log file per dataset
+- `2>&1` — redirects stderr to the same file (errors included)
+- `&` — runs the job in the background so all four can start together
+
+**Important:** each job must pin exactly one GPU with `CUDA_VISIBLE_DEVICES=0`, `=1`, etc. Do **not** use `CUDA_VISIBLE_DEVICES=0,1` for a single job — that enables DataParallel and can OOM on H100 80GB.
+
+Monitor a run live:
+
+```bash
+tail -f logs/finetune-qasper.log
+```
+
+W&B still logs metrics independently per dataset. The log files are a local copy of console output only.
+
+When requesting the node via SLURM, increase system RAM and CPUs for four concurrent jobs (for example `--mem=131072M`, `--cpus-per-task=32` in `jobs/scripts/santos_dumont/run_ict_h100.sh`).
+
+### Recommended settings (W&B loss curve + IR eval)
+
+Default `--logging-steps 50` and `--eval-steps 500` skip most metrics on small datasets (e.g. telco-dpr finishes in ~4 steps with 1 epoch). Use **`--epochs 3`**, **`--logging-steps 1`**, **`--eval-steps 2`**, and **`--save-steps 2`** so train loss and `InformationRetrievalEvaluator` metrics appear in W&B.
+
+Pin **one GPU per job** (`CUDA_VISIBLE_DEVICES=0` for a single run). Use `2>&1 | tee logs/....log` to print to the terminal and save a log file.
+
+#### telco-dpr
+
+```bash
+mkdir -p logs
+
+CUDA_VISIBLE_DEVICES=0 python scripts/finetuning/embeddings/finetune_qwen3_embedding.py \
+  --dataset telco-dpr \
+  --batch-size 128 \
+  --epochs 3 \
+  --logging-steps 1 \
+  --eval-steps 2 \
+  --save-steps 2 \
+  2>&1 | tee logs/finetune-telco-dpr.log
+```
+
+#### qasper
+
+```bash
+CUDA_VISIBLE_DEVICES=0 python scripts/finetuning/embeddings/finetune_qwen3_embedding.py \
+  --dataset qasper \
+  --batch-size 128 \
+  --epochs 3 \
+  --logging-steps 1 \
+  --eval-steps 2 \
+  --save-steps 2 \
+  2>&1 | tee logs/finetune-qasper.log
+```
+
+#### narrativeqa
+
+```bash
+CUDA_VISIBLE_DEVICES=0 python scripts/finetuning/embeddings/finetune_qwen3_embedding.py \
+  --dataset narrativeqa \
+  --batch-size 128 \
+  --epochs 3 \
+  --logging-steps 1 \
+  --eval-steps 2 \
+  --save-steps 2 \
+  2>&1 | tee logs/finetune-narrativeqa.log
+```
+
+#### bioasq-resplit
+
+```bash
+CUDA_VISIBLE_DEVICES=0 python scripts/finetuning/embeddings/finetune_qwen3_embedding.py \
+  --dataset bioasq-resplit \
+  --batch-size 128 \
+  --epochs 3 \
+  --logging-steps 1 \
+  --eval-steps 2 \
+  --save-steps 2 \
+  2>&1 | tee logs/finetune-bioasq-resplit.log
+```
+
+For larger datasets (qasper, narrativeqa, bioasq-resplit), you may increase `--eval-steps` and `--save-steps` (e.g. 50–100) to reduce evaluation overhead.
+
+#### All four in parallel (4 GPUs)
+
+Same training flags, one GPU per dataset, background jobs:
+
+```bash
+mkdir -p logs
+
+CUDA_VISIBLE_DEVICES=0 python scripts/finetuning/embeddings/finetune_qwen3_embedding.py \
+  --dataset telco-dpr \
+  --batch-size 128 \
+  --epochs 3 \
+  --logging-steps 1 \
+  --eval-steps 2 \
+  --save-steps 2 \
+  > logs/finetune-telco-dpr.log 2>&1 &
+
+CUDA_VISIBLE_DEVICES=1 python scripts/finetuning/embeddings/finetune_qwen3_embedding.py \
+  --dataset qasper \
+  --batch-size 128 \
+  --epochs 3 \
+  --logging-steps 1 \
+  --eval-steps 2 \
+  --save-steps 2 \
+  > logs/finetune-qasper.log 2>&1 &
+
+CUDA_VISIBLE_DEVICES=2 python scripts/finetuning/embeddings/finetune_qwen3_embedding.py \
+  --dataset narrativeqa \
+  --batch-size 128 \
+  --epochs 3 \
+  --logging-steps 1 \
+  --eval-steps 2 \
+  --save-steps 2 \
+  > logs/finetune-narrativeqa.log 2>&1 &
+
+CUDA_VISIBLE_DEVICES=3 python scripts/finetuning/embeddings/finetune_qwen3_embedding.py \
+  --dataset bioasq-resplit \
+  --batch-size 128 \
+  --epochs 3 \
+  --logging-steps 1 \
+  --eval-steps 2 \
+  --save-steps 2 \
+  > logs/finetune-bioasq-resplit.log 2>&1 &
+
+wait
+```
+
+Monitor any run:
+
+```bash
+tail -f logs/finetune-qasper.log
+```
+
 ## Custom Training Run
 
 ```bash
@@ -109,6 +265,7 @@ CUDA_VISIBLE_DEVICES=0 python scripts/finetuning/embeddings/finetune_qwen3_embed
 | `--save-total-limit` | `3` | Max checkpoints to keep |
 | `--logging-steps` | `50` | Log metrics every N steps |
 | `--eval-batch-size` | `32` | Batch size for `InformationRetrievalEvaluator` |
+| `--mini-batch-size` | `32` | Encode chunk size inside `CachedMultipleNegativesRankingLoss` |
 | `--train-split` | `train` | Split for building training pairs |
 | `--eval-split` | `dev` | Split for IR evaluation |
 | `--wandb-project` | `WANDB_PROJECT` from `.env` | W&B project name |
@@ -155,7 +312,20 @@ embeddings = model.encode(["Instruct: ...\nQuery:What is X?", "Document text..."
 
 ## Memory Notes
 
-Default batch size is **128 per device**. With a 4B model this may require multiple GPUs or a smaller `--batch-size` if you hit OOM. Reduce batch size before disabling BF16.
+Default settings target **1× H100 80GB per job**:
+
+- Model loads in **bf16** (not float32)
+- **Effective batch size** 128 via `CachedMultipleNegativesRankingLoss`
+- **Encode mini-batch** 32 (lower with `--mini-batch-size 16` if OOM persists)
+
+If you see `CUDA out of memory` or `Currently using DataParallel`:
+
+1. Set **one GPU per job**: `CUDA_VISIBLE_DEVICES=0` (not all four visible)
+2. Lower mini-batch: `--mini-batch-size 16`
+3. Lower effective batch: `--batch-size 64`
+4. Lower eval load: `--eval-batch-size 16`
+
+Parallel runs (4 datasets) need **4 separate processes**, each with its own `CUDA_VISIBLE_DEVICES`.
 
 ## Related Scripts
 

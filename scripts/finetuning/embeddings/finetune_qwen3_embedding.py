@@ -1,6 +1,6 @@
 """Fine-tune Qwen3-Embedding-4B with LoRA on a RAG retrieval dataset.
 
-Each dataset is fine-tuned individually using MultipleNegativesRankingLoss,
+Each dataset is fine-tuned individually using CachedMultipleNegativesRankingLoss,
 InformationRetrievalEvaluator, and Weights & Biases logging.
 
 Usage:
@@ -33,6 +33,7 @@ from dotenv import load_dotenv
 from tesis_unicamp.finetuning.embeddings.config import (
     DEFAULT_BASE_MODEL,
     EMBEDDING_FINETUNING_DATASET_IDS,
+    MINI_BATCH_SIZE,
     TRAIN_BATCH_SIZE,
 )
 from tesis_unicamp.finetuning.embeddings.trainer import FinetuningRunConfig, finetune_qwen3_embedding
@@ -43,6 +44,25 @@ DEFAULT_OUTPUT_ROOT = PROJECT_ROOT / "models" / "qwen3-embedding-4b-lora"
 
 def _load_env() -> None:
     load_dotenv(PROJECT_ROOT / ".env")
+
+
+def _warn_if_multi_gpu() -> None:
+    try:
+        import torch
+    except ImportError:
+        return
+    if not torch.cuda.is_available():
+        return
+    gpu_count = torch.cuda.device_count()
+    visible = os.getenv("CUDA_VISIBLE_DEVICES", "(unset)")
+    print(f"visible_gpus: {gpu_count} (CUDA_VISIBLE_DEVICES={visible})")
+    if gpu_count > 1:
+        print(
+            "Warning: multiple GPUs are visible; SentenceTransformerTrainer will "
+            "use DataParallel and increase memory pressure. For one dataset per GPU, "
+            "set CUDA_VISIBLE_DEVICES to a single id (e.g. CUDA_VISIBLE_DEVICES=0).",
+            file=sys.stderr,
+        )
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -121,6 +141,15 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Batch size for InformationRetrievalEvaluator (default: 32).",
     )
     parser.add_argument(
+        "--mini-batch-size",
+        type=int,
+        default=MINI_BATCH_SIZE,
+        help=(
+            "Encode mini-batch size inside CachedMultipleNegativesRankingLoss "
+            f"(default: {MINI_BATCH_SIZE}). Lower this if you hit OOM."
+        ),
+    )
+    parser.add_argument(
         "--train-split",
         default="train",
         help="Split used to build (query, document) training pairs (default: train).",
@@ -155,6 +184,7 @@ def _build_parser() -> argparse.ArgumentParser:
 
 def main(argv: list[str] | None = None) -> None:
     _load_env()
+    _warn_if_multi_gpu()
     args = _build_parser().parse_args(argv)
 
     output_dir = args.output_dir or (DEFAULT_OUTPUT_ROOT / args.dataset)
@@ -177,6 +207,7 @@ def main(argv: list[str] | None = None) -> None:
         logging_steps=args.logging_steps,
         save_total_limit=args.save_total_limit,
         eval_batch_size=args.eval_batch_size,
+        mini_batch_size=args.mini_batch_size,
         train_split=args.train_split,
         eval_split=args.eval_split,
         wandb_project=wandb_project,
@@ -190,6 +221,7 @@ def main(argv: list[str] | None = None) -> None:
     print(f"model: {args.model}")
     print(f"output_dir: {output_dir}")
     print(f"batch_size: {args.batch_size}")
+    print(f"mini_batch_size: {args.mini_batch_size}")
     print(f"epochs: {args.epochs}")
     print(f"train_split: {args.train_split}")
     print(f"eval_split: {args.eval_split}")

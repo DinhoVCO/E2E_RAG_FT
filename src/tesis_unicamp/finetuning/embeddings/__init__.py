@@ -5,6 +5,7 @@ from tesis_unicamp.finetuning.embeddings.config import (
     LORA_DROPOUT,
     LORA_R,
     MAX_SEQ_LENGTH,
+    MINI_BATCH_SIZE,
     TRAIN_BATCH_SIZE,
 )
 from tesis_unicamp.finetuning.embeddings.datasets import (
@@ -23,6 +24,7 @@ __all__ = [
     "LORA_DROPOUT",
     "LORA_R",
     "MAX_SEQ_LENGTH",
+    "MINI_BATCH_SIZE",
     "TRAIN_BATCH_SIZE",
     "build_ir_evaluator",
     "finetune_qwen3_embedding",
