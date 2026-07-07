@@ -35,7 +35,7 @@ def load_qwen3_embedding_with_lora(
             license="apache-2.0",
             model_name=model_card_name or f"{model_name} LoRA finetuned",
         ),
-        model_kwargs={"torch_dtype": "float32"},
+        model_kwargs={"dtype": "bfloat16"},
     )
     model.max_seq_length = max_seq_length
     model.add_adapter(build_lora_config())

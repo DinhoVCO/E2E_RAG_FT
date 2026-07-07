@@ -4,6 +4,8 @@ DEFAULT_BASE_MODEL = "Qwen/Qwen3-Embedding-4B"
 
 MAX_SEQ_LENGTH = 512
 TRAIN_BATCH_SIZE = 128
+# Encode mini-batches inside MNRL to avoid OOM at large per-device batch sizes.
+MINI_BATCH_SIZE = 32
 
 LORA_R = 16
 LORA_ALPHA = 32
