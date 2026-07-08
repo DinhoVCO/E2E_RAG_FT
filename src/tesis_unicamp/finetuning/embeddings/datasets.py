@@ -204,6 +204,26 @@ def prepare_ir_eval_inputs(
     return query_dict, corpus_dict, relevant_docs
 
 
+def ir_evaluator_name(
+    config: EmbeddingFinetuningDatasetConfig,
+    *,
+    split: str | None = None,
+) -> str:
+    return f"{config.name}-{split or config.eval_split}"
+
+
+def default_ir_metric_for_best_model(
+    config: EmbeddingFinetuningDatasetConfig,
+    *,
+    split: str | None = None,
+    ndcg_k: int = 10,
+    score_function: str = "cosine",
+) -> str:
+    """W&B / Trainer metric key for IR-based checkpoint selection."""
+    evaluator_name = ir_evaluator_name(config, split=split)
+    return f"eval_{evaluator_name}_{score_function}_ndcg@{ndcg_k}"
+
+
 def build_ir_evaluator(
     config: EmbeddingFinetuningDatasetConfig,
     *,
@@ -217,5 +237,5 @@ def build_ir_evaluator(
         corpus=corpus,
         relevant_docs=relevant_docs,
         batch_size=batch_size,
-        name=name or f"{config.name}-{split or config.eval_split}",
+        name=name or ir_evaluator_name(config, split=split),
     )

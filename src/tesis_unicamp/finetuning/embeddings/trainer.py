@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+import logging
 import os
 from dataclasses import dataclass
 from pathlib import Path
@@ -24,10 +26,13 @@ from tesis_unicamp.finetuning.embeddings.config import (
 from tesis_unicamp.finetuning.embeddings.datasets import (
     EmbeddingFinetuningDatasetConfig,
     build_ir_evaluator,
+    default_ir_metric_for_best_model,
     get_embedding_finetuning_config,
     prepare_training_dataset,
 )
 from tesis_unicamp.finetuning.embeddings.model import load_qwen3_embedding_with_lora
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -52,6 +57,8 @@ class FinetuningRunConfig:
     run_name: str | None = None
     fp16: bool = False
     bf16: bool = True
+    load_best_model: bool = True
+    metric_for_best_model: str | None = None
 
 
 def configure_wandb(*, project: str, run_name: str) -> None:
@@ -67,9 +74,70 @@ def default_wandb_run_name(config: FinetuningRunConfig) -> str:
     )
 
 
-def build_training_arguments(config: FinetuningRunConfig) -> SentenceTransformerTrainingArguments:
+def resolve_run_name(
+    *,
+    dataset: str,
+    batch_size: int,
+    epochs: int,
+    run_name: str | None,
+) -> str:
+    if run_name:
+        return run_name
+    placeholder = FinetuningRunConfig(
+        dataset=dataset,
+        output_dir=Path("."),
+        num_train_epochs=epochs,
+        per_device_train_batch_size=batch_size,
+    )
+    return default_wandb_run_name(placeholder)
+
+
+def resolve_output_dir(
+    *,
+    run_name: str,
+    output_dir: Path | None,
+    output_root: Path,
+) -> Path:
+    return output_dir or (output_root / run_name)
+
+
+def default_log_path(*, run_name: str, logs_dir: Path) -> Path:
+    return logs_dir / f"{run_name}.log"
+
+
+def build_training_arguments(
+    config: FinetuningRunConfig,
+    *,
+    metric_for_best_model: str | None = None,
+) -> SentenceTransformerTrainingArguments:
     run_name = config.run_name or default_wandb_run_name(config)
     configure_wandb(project=config.wandb_project, run_name=run_name)
+
+    best_model_kwargs: dict[str, object] = {}
+    if config.load_best_model:
+        if config.save_steps % config.eval_steps != 0:
+            raise ValueError(
+                "When load_best_model is enabled, save_steps must be a multiple of "
+                f"eval_steps (got save_steps={config.save_steps}, eval_steps={config.eval_steps}). "
+                "Align them so every saved checkpoint has IR evaluation metrics."
+            )
+        resolved_metric = (
+            config.metric_for_best_model
+            or metric_for_best_model
+        )
+        if not resolved_metric:
+            raise ValueError(
+                "metric_for_best_model is required when load_best_model is enabled."
+            )
+        best_model_kwargs = {
+            "load_best_model_at_end": True,
+            "metric_for_best_model": resolved_metric,
+            "greater_is_better": True,
+        }
+        logger.info(
+            "Best checkpoint selection enabled (metric=%s).",
+            resolved_metric,
+        )
 
     return SentenceTransformerTrainingArguments(
         output_dir=str(config.output_dir),
@@ -90,7 +158,25 @@ def build_training_arguments(config: FinetuningRunConfig) -> SentenceTransformer
         logging_first_step=True,
         report_to="wandb",
         run_name=run_name,
+        **best_model_kwargs,
     )
+
+
+def write_best_model_metadata(
+    *,
+    output_dir: Path,
+    metric_for_best_model: str,
+    best_model_checkpoint: str | None,
+    best_metric: float | None,
+) -> Path:
+    metadata = {
+        "metric_for_best_model": metric_for_best_model,
+        "best_model_checkpoint": best_model_checkpoint,
+        "best_metric": best_metric,
+    }
+    metadata_path = output_dir / "best_model.json"
+    metadata_path.write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
+    return metadata_path
 
 
 def finetune_qwen3_embedding(
@@ -114,6 +200,13 @@ def finetune_qwen3_embedding(
         split=config.eval_split,
         batch_size=config.eval_batch_size,
     )
+    metric_for_best_model = (
+        config.metric_for_best_model
+        or default_ir_metric_for_best_model(
+            dataset_config,
+            split=config.eval_split,
+        )
+    )
 
     model_card_name = (
         f"Qwen3-Embedding-4B LoRA finetuned on {dataset_config.name}"
@@ -126,7 +219,10 @@ def finetune_qwen3_embedding(
         model,
         mini_batch_size=config.mini_batch_size,
     )
-    args = build_training_arguments(config)
+    args = build_training_arguments(
+        config,
+        metric_for_best_model=metric_for_best_model,
+    )
 
     trainer = SentenceTransformerTrainer(
         model=model,
@@ -138,6 +234,24 @@ def finetune_qwen3_embedding(
     )
 
     trainer.train()
+
+    if config.load_best_model:
+        write_best_model_metadata(
+            output_dir=config.output_dir,
+            metric_for_best_model=metric_for_best_model,
+            best_model_checkpoint=trainer.state.best_model_checkpoint,
+            best_metric=trainer.state.best_metric,
+        )
+        if trainer.state.best_model_checkpoint:
+            print(
+                "best_checkpoint: "
+                f"{trainer.state.best_model_checkpoint} "
+                f"({metric_for_best_model}={trainer.state.best_metric})"
+            )
+        else:
+            print(
+                "Warning: load_best_model was enabled but no best checkpoint was recorded.",
+            )
 
     final_dir = config.output_dir / "final"
     model.save_pretrained(str(final_dir))

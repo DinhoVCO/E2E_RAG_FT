@@ -1,8 +1,9 @@
 # Fine-tuning config for telco-dpr (~975 training pairs, ~4 steps/epoch at batch 128).
 # If batch 128 OOMs on one GPU, use: CUDA_VISIBLE_DEVICES=0,1
 dataset: telco-dpr
+run_name: telco-dpr-b128-e20
 batch_size: 128
-epochs: 10
+epochs: 20
 logging_steps: 1
-eval_steps: 8
-save_steps: 8
+eval_steps: 5
+save_steps: 5

@@ -28,6 +28,9 @@ _CONFIG_KEYS = frozenset(
         "run_name",
         "fp16",
         "bf16",
+        "load_best_model",
+        "metric_for_best_model",
+        "log_file",
     }
 )
 
@@ -83,6 +86,9 @@ def load_finetuning_yaml(path: Path) -> dict[str, Any]:
 
     if "output_dir" in defaults and defaults["output_dir"] is not None:
         defaults["output_dir"] = Path(defaults["output_dir"])
+
+    if "log_file" in defaults and defaults["log_file"] is not None:
+        defaults["log_file"] = Path(defaults["log_file"])
 
     if "bf16" in defaults:
         defaults["no_bf16"] = not defaults.pop("bf16")

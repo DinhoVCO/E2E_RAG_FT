@@ -12,7 +12,7 @@ LORA_ALPHA = 32
 LORA_DROPOUT = 0.05
 
 EMBEDDING_FINETUNING_DATASET_IDS: dict[str, str] = {
-    "bioasq-resplit": "dinho1597/bioasq-rag-13b-resplit",
+    "bioasq-resplit": "DinoStackAI/bioasq-rag-13b-resplit",
     "qasper": "DinoStackAI/qasper-rag",
     "telco-dpr": "DinoStackAI/telco-dpr-rag",
     "narrativeqa": "DinoStackAI/narrativeqa-rag",

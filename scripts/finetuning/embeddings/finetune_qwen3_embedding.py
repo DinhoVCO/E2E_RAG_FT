@@ -36,10 +36,16 @@ from tesis_unicamp.finetuning.embeddings.config import (
     MINI_BATCH_SIZE,
     TRAIN_BATCH_SIZE,
 )
+from tesis_unicamp.finetuning.embeddings.datasets import (
+    default_ir_metric_for_best_model,
+    get_embedding_finetuning_config,
+)
 from tesis_unicamp.finetuning.embeddings.trainer import (
     FinetuningRunConfig,
-    default_wandb_run_name,
+    default_log_path,
     finetune_qwen3_embedding,
+    resolve_output_dir,
+    resolve_run_name,
 )
 from tesis_unicamp.finetuning.embeddings.yaml_config import (
     load_finetuning_yaml,
@@ -48,7 +54,35 @@ from tesis_unicamp.finetuning.embeddings.yaml_config import (
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_OUTPUT_ROOT = PROJECT_ROOT / "models" / "qwen3-embedding-4b-lora"
+DEFAULT_LOGS_DIR = PROJECT_ROOT / "logs"
 CONFIGS_DIR = Path(__file__).resolve().parent / "configs"
+
+
+class _Tee:
+    def __init__(self, *files):
+        self.files = files
+
+    def write(self, data: str) -> None:
+        for handle in self.files:
+            handle.write(data)
+            handle.flush()
+
+    def flush(self) -> None:
+        for handle in self.files:
+            handle.flush()
+
+    def isatty(self) -> bool:
+        return self.files[0].isatty() if self.files else False
+
+    def fileno(self) -> int:
+        return self.files[0].fileno()
+
+
+def _setup_log_file(log_path: Path) -> None:
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    log_handle = log_path.open("a", encoding="utf-8")
+    sys.stdout = _Tee(sys.__stdout__, log_handle)
+    sys.stderr = _Tee(sys.__stderr__, log_handle)
 
 
 def _load_env() -> None:
@@ -102,7 +136,10 @@ def _build_parser() -> argparse.ArgumentParser:
         "--output-dir",
         type=Path,
         default=None,
-        help="Directory for checkpoints and final adapter (default: models/qwen3-embedding-4b-lora/<dataset>).",
+        help=(
+            "Directory for checkpoints and final adapter "
+            "(default: models/qwen3-embedding-4b-lora/<run_name>)."
+        ),
     )
     parser.add_argument(
         "--epochs",
@@ -185,7 +222,21 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--run-name",
         default=None,
-        help="W&B run name (default: qwen3-embedding-4b-lora-<dataset>-b<batch>-e<epochs>).",
+        help=(
+            "Run name for W&B, model output folder, and log file "
+            "(default: qwen3-embedding-4b-lora-<dataset>-b<batch>-e<epochs>)."
+        ),
+    )
+    parser.add_argument(
+        "--log-file",
+        type=Path,
+        default=None,
+        help="Log file path (default: logs/<run_name>.log).",
+    )
+    parser.add_argument(
+        "--no-log-file",
+        action="store_true",
+        help="Disable automatic logging to logs/<run_name>.log.",
     )
     parser.add_argument(
         "--fp16",
@@ -196,6 +247,19 @@ def _build_parser() -> argparse.ArgumentParser:
         "--no-bf16",
         action="store_true",
         help="Disable BF16 training (enabled by default on supported GPUs).",
+    )
+    parser.add_argument(
+        "--no-load-best-model",
+        action="store_true",
+        help="Disable automatic best-checkpoint selection (default: pick best by IR NDCG@10).",
+    )
+    parser.add_argument(
+        "--metric-for-best-model",
+        default=None,
+        help=(
+            "Metric for best checkpoint selection (default: eval_<dataset>-dev_cosine_ndcg@10). "
+            "Requires InformationRetrievalEvaluator metrics from training."
+        ),
     )
     return parser
 
@@ -234,10 +298,29 @@ def _parse_args(argv: list[str] | None) -> argparse.Namespace:
 
 def main(argv: list[str] | None = None) -> None:
     _load_env()
-    _warn_if_multi_gpu()
     args = _parse_args(argv)
 
-    output_dir = args.output_dir or (DEFAULT_OUTPUT_ROOT / args.dataset)
+    resolved_run_name = resolve_run_name(
+        dataset=args.dataset,
+        batch_size=args.batch_size,
+        epochs=args.epochs,
+        run_name=args.run_name,
+    )
+    output_dir = resolve_output_dir(
+        run_name=resolved_run_name,
+        output_dir=args.output_dir,
+        output_root=DEFAULT_OUTPUT_ROOT,
+    )
+    log_path = None if args.no_log_file else (
+        args.log_file or default_log_path(
+            run_name=resolved_run_name,
+            logs_dir=DEFAULT_LOGS_DIR,
+        )
+    )
+    if log_path is not None:
+        _setup_log_file(log_path)
+
+    _warn_if_multi_gpu()
     wandb_project = args.wandb_project or os.getenv(
         "WANDB_PROJECT",
         "qwen3-embedding-finetuning",
@@ -261,14 +344,18 @@ def main(argv: list[str] | None = None) -> None:
         train_split=args.train_split,
         eval_split=args.eval_split,
         wandb_project=wandb_project,
-        run_name=args.run_name,
+        run_name=resolved_run_name,
         fp16=args.fp16,
         bf16=not args.no_bf16,
+        load_best_model=not args.no_load_best_model,
+        metric_for_best_model=args.metric_for_best_model,
     )
 
     print(f"dataset: {args.dataset}")
     if args.config is not None:
         print(f"config: {args.config}")
+    if log_path is not None:
+        print(f"log_file: {log_path}")
     print(f"hub_repo: {EMBEDDING_FINETUNING_DATASET_IDS[args.dataset]}")
     print(f"model: {args.model}")
     print(f"output_dir: {output_dir}")
@@ -278,7 +365,15 @@ def main(argv: list[str] | None = None) -> None:
     print(f"train_split: {args.train_split}")
     print(f"eval_split: {args.eval_split}")
     print(f"wandb_project: {wandb_project}")
-    print(f"wandb_run_name: {args.run_name or default_wandb_run_name(run_config)}")
+    print(f"wandb_run_name: {resolved_run_name}")
+    print(f"load_best_model: {run_config.load_best_model}")
+    if run_config.load_best_model:
+        dataset_config = get_embedding_finetuning_config(args.dataset)
+        metric = run_config.metric_for_best_model or default_ir_metric_for_best_model(
+            dataset_config,
+            split=args.eval_split,
+        )
+        print(f"metric_for_best_model: {metric}")
 
     final_dir = finetune_qwen3_embedding(run_config)
     print(f"Training complete. Final model saved to: {final_dir}")
