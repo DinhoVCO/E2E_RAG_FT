@@ -10,7 +10,7 @@ from tesis_unicamp.embeddings.base import BaseEmbedder
 from tesis_unicamp.vector_stores.base import BaseVectorStore
 
 BIOASQ_RAG_DATASET_ID = "DinoStackAI/bioasq-rag-13b"
-BIOASQ_RAG_RESPLIT_DATASET_ID = "dinho1597/bioasq-rag-13b-resplit"
+BIOASQ_RAG_RESPLIT_DATASET_ID = "DinoStackAI/bioasq-rag-13b-resplit"
 DEFAULT_RETRIEVAL_TASK = (
     "Given a web search query, retrieve relevant passages that answer the query"
 )

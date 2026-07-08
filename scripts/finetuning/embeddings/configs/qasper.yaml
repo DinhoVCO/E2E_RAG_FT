@@ -1,7 +1,8 @@
 # Fine-tuning config for qasper (large corpus; IR eval is slower).
 dataset: qasper
+run_name: qasper-b128-e10
 batch_size: 128
-epochs: 3
+epochs: 10
 logging_steps: 1
-eval_steps: 2
-save_steps: 2
+eval_steps: 10
+save_steps: 10

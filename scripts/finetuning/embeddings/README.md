@@ -43,7 +43,7 @@ Each CLI `--dataset` key maps to one Hugging Face repo. Runs are independent (on
 
 | CLI key           | Hugging Face repo                         |
 |-------------------|-------------------------------------------|
-| `bioasq-resplit`  | `dinho1597/bioasq-rag-13b-resplit`        |
+| `bioasq-resplit`  | `DinoStackAI/bioasq-rag-13b-resplit`        |
 | `qasper`          | `DinoStackAI/qasper-rag`                  |
 | `telco-dpr`       | `DinoStackAI/telco-dpr-rag`               |
 | `narrativeqa`     | `DinoStackAI/narrativeqa-rag`             |
@@ -94,12 +94,21 @@ Example (`configs/telco-dpr.yaml`):
 
 ```yaml
 dataset: telco-dpr
+run_name: qwen3-embedding-4b-lora-telco-dpr-b128-e10
 batch_size: 128
 epochs: 10
 logging_steps: 1
-eval_steps: 8
-save_steps: 8
+eval_steps: 4
+save_steps: 4
 ```
+
+The `run_name` drives three paths:
+
+| Purpose | Path |
+|---------|------|
+| W&B run | `run_name` in the W&B UI |
+| Model output | `models/qwen3-embedding-4b-lora/<run_name>/` |
+| Local log | `logs/<run_name>.log` |
 
 Run with the YAML defaults (CLI flags override YAML values):
 
@@ -107,6 +116,8 @@ Run with the YAML defaults (CLI flags override YAML values):
 CUDA_VISIBLE_DEVICES=0,1 python scripts/finetuning/embeddings/finetune_qwen3_embedding.py \
   --dataset telco-dpr
 ```
+
+The script writes console output to `logs/qwen3-embedding-4b-lora-telco-dpr-b128-e10.log` automatically. Use `--no-log-file` to disable, or `--log-file` for a custom path.
 
 Or point to a custom config explicitly:
 
@@ -117,47 +128,41 @@ python scripts/finetuning/embeddings/finetune_qwen3_embedding.py \
   --epochs 5
 ```
 
-Supported YAML keys match the CLI options (snake_case): `model`, `output_dir`, `epochs`, `batch_size`, `learning_rate`, `warmup_ratio`, `eval_steps`, `save_steps`, `logging_steps`, `save_total_limit`, `eval_batch_size`, `mini_batch_size`, `train_split`, `eval_split`, `wandb_project`, `run_name`, `fp16`, `bf16`.
+Supported YAML keys match the CLI options (snake_case): `model`, `output_dir`, `epochs`, `batch_size`, `learning_rate`, `warmup_ratio`, `eval_steps`, `save_steps`, `logging_steps`, `save_total_limit`, `eval_batch_size`, `mini_batch_size`, `train_split`, `eval_split`, `wandb_project`, `run_name`, `log_file`, `fp16`, `bf16`, `load_best_model`, `metric_for_best_model`.
+
+Keep `eval_steps` and `save_steps` aligned (same value) so every saved checkpoint has IR metrics for best-model selection.
 
 ### Parallel training (4 GPUs, one dataset per GPU)
 
 On a node with 4 GPUs (e.g. Santos Dumont `ict-h100`), fine-tune all four datasets at once by pinning one job to each GPU. See **[Recommended settings (W&B loss curve + IR eval)](#recommended-settings-wb-loss-curve--ir-eval)** below for the full commands with logging, eval, and checkpoints.
 
-Quick version (defaults only — may not show W&B curves on small datasets):
+Quick version (YAML configs + automatic logging):
 
 ```bash
-mkdir -p logs
-
 CUDA_VISIBLE_DEVICES=0 python scripts/finetuning/embeddings/finetune_qwen3_embedding.py \
-  --dataset telco-dpr --batch-size 128 > logs/finetune-telco-dpr.log 2>&1 &
+  --dataset telco-dpr &
 
 CUDA_VISIBLE_DEVICES=1 python scripts/finetuning/embeddings/finetune_qwen3_embedding.py \
-  --dataset qasper --batch-size 128 > logs/finetune-qasper.log 2>&1 &
+  --dataset qasper &
 
 CUDA_VISIBLE_DEVICES=2 python scripts/finetuning/embeddings/finetune_qwen3_embedding.py \
-  --dataset narrativeqa --batch-size 128 > logs/finetune-narrativeqa.log 2>&1 &
+  --dataset narrativeqa &
 
 CUDA_VISIBLE_DEVICES=3 python scripts/finetuning/embeddings/finetune_qwen3_embedding.py \
-  --dataset bioasq-resplit --batch-size 128 > logs/finetune-bioasq-resplit.log 2>&1 &
+  --dataset bioasq-resplit &
 
 wait
 ```
 
-Each line ends with `> logs/....log 2>&1 &`:
-
-- `> logs/....log` — writes stdout to a separate log file per dataset
-- `2>&1` — redirects stderr to the same file (errors included)
-- `&` — runs the job in the background so all four can start together
+Each job writes to `logs/<run_name>.log` (from the YAML) and saves models under `models/qwen3-embedding-4b-lora/<run_name>/`.
 
 **Important:** each job must pin exactly one GPU with `CUDA_VISIBLE_DEVICES=0`, `=1`, etc. Do **not** use `CUDA_VISIBLE_DEVICES=0,1` for a single job — that enables DataParallel and can OOM on H100 80GB.
 
 Monitor a run live:
 
 ```bash
-tail -f logs/finetune-qasper.log
+tail -f logs/qwen3-embedding-4b-lora-qasper-b128-e3.log
 ```
-
-W&B still logs metrics independently per dataset. The log files are a local copy of console output only.
 
 When requesting the node via SLURM, increase system RAM and CPUs for four concurrent jobs (for example `--mem=131072M`, `--cpus-per-task=32` in `jobs/scripts/santos_dumont/run_ict_h100.sh`).
 
@@ -165,68 +170,57 @@ When requesting the node via SLURM, increase system RAM and CPUs for four concur
 
 Default `--logging-steps 50` and `--eval-steps 500` skip most metrics on small datasets (e.g. telco-dpr finishes in ~4 steps with 1 epoch). Use **`--epochs 3`**, **`--logging-steps 1`**, **`--eval-steps 2`**, and **`--save-steps 2`** so train loss and `InformationRetrievalEvaluator` metrics appear in W&B.
 
-Pin **one GPU per job** (`CUDA_VISIBLE_DEVICES=0` for a single run). Use `2>&1 | tee logs/....log` to print to the terminal and save a log file.
+Pin **one GPU per job** (`CUDA_VISIBLE_DEVICES=0` for a single run). Logs are written automatically to `logs/<run_name>.log`.
 
 #### telco-dpr
 
 ```bash
-mkdir -p logs
-
 CUDA_VISIBLE_DEVICES=0,1 python scripts/finetuning/embeddings/finetune_qwen3_embedding.py \
-  --dataset telco-dpr \
-  2>&1 | tee logs/finetune-telco-dpr.log
+  --dataset telco-dpr
 ```
 
-Settings come from `configs/telco-dpr.yaml` (`epochs: 10`, `eval_steps: 8`, etc.).
+Output: `models/qwen3-embedding-4b-lora/qwen3-embedding-4b-lora-telco-dpr-b128-e10/`  
+Log: `logs/qwen3-embedding-4b-lora-telco-dpr-b128-e10.log`
 
 #### qasper
 
 ```bash
 CUDA_VISIBLE_DEVICES=0 python scripts/finetuning/embeddings/finetune_qwen3_embedding.py \
-  --dataset qasper \
-  2>&1 | tee logs/finetune-qasper.log
+  --dataset qasper
 ```
 
 #### narrativeqa
 
 ```bash
 CUDA_VISIBLE_DEVICES=0 python scripts/finetuning/embeddings/finetune_qwen3_embedding.py \
-  --dataset narrativeqa \
-  2>&1 | tee logs/finetune-narrativeqa.log
+  --dataset narrativeqa
 ```
 
 #### bioasq-resplit
 
 ```bash
 CUDA_VISIBLE_DEVICES=0 python scripts/finetuning/embeddings/finetune_qwen3_embedding.py \
-  --dataset bioasq-resplit \
-  2>&1 | tee logs/finetune-bioasq-resplit.log
+  --dataset bioasq-resplit
 ```
 
 For larger datasets (qasper, narrativeqa, bioasq-resplit), you may increase `--eval-steps` and `--save-steps` (e.g. 50–100) to reduce evaluation overhead.
 
 #### All four in parallel (4 GPUs)
 
-Same training flags, one GPU per dataset, background jobs:
+One GPU per dataset, background jobs (logs and model paths use `run_name` from each YAML):
 
 ```bash
-mkdir -p logs
-
 CUDA_VISIBLE_DEVICES=0 python scripts/finetuning/embeddings/finetune_qwen3_embedding.py \
-  --dataset telco-dpr \
-  > logs/finetune-telco-dpr.log 2>&1 &
+  --dataset telco-dpr &
 
 CUDA_VISIBLE_DEVICES=1 python scripts/finetuning/embeddings/finetune_qwen3_embedding.py \
-  --dataset qasper \
-  > logs/finetune-qasper.log 2>&1 &
+  --dataset qasper &
 
 CUDA_VISIBLE_DEVICES=2 python scripts/finetuning/embeddings/finetune_qwen3_embedding.py \
-  --dataset narrativeqa \
-  > logs/finetune-narrativeqa.log 2>&1 &
+  --dataset narrativeqa &
 
 CUDA_VISIBLE_DEVICES=3 python scripts/finetuning/embeddings/finetune_qwen3_embedding.py \
-  --dataset bioasq-resplit \
-  > logs/finetune-bioasq-resplit.log 2>&1 &
+  --dataset bioasq-resplit &
 
 wait
 ```
@@ -234,7 +228,7 @@ wait
 Monitor any run:
 
 ```bash
-tail -f logs/finetune-qasper.log
+tail -f logs/qwen3-embedding-4b-lora-qasper-b128-e3.log
 ```
 
 ## Custom Training Run
@@ -242,14 +236,15 @@ tail -f logs/finetune-qasper.log
 ```bash
 CUDA_VISIBLE_DEVICES=0 python scripts/finetuning/embeddings/finetune_qwen3_embedding.py \
   --dataset bioasq-resplit \
-  --output-dir models/qwen3-embedding-4b-lora/bioasq-resplit \
-  --epochs 3 \
+  --run-name qwen3-embedding-4b-lora-bioasq-resplit-b128-e5 \
+  --epochs 5 \
   --batch-size 128 \
   --learning-rate 2e-5 \
   --eval-steps 250 \
-  --save-steps 250 \
-  --run-name qwen3-lora-bioasq-resplit-e3
+  --save-steps 250
 ```
+
+This writes to `models/qwen3-embedding-4b-lora/qwen3-embedding-4b-lora-bioasq-resplit-b128-e5/` and `logs/qwen3-embedding-4b-lora-bioasq-resplit-b128-e5.log`. Override with `--output-dir` or `--log-file` if needed.
 
 ### CLI options
 
@@ -258,7 +253,7 @@ CUDA_VISIBLE_DEVICES=0 python scripts/finetuning/embeddings/finetune_qwen3_embed
 | `--config` | `configs/<dataset>.yaml` if present | YAML file with training hyperparameters |
 | `--dataset` | *(required)* | One of: `bioasq-resplit`, `qasper`, `telco-dpr`, `narrativeqa` |
 | `--model` | `Qwen/Qwen3-Embedding-4B` | Base embedding model |
-| `--output-dir` | `models/qwen3-embedding-4b-lora/<dataset>` | Checkpoints and final adapter output |
+| `--output-dir` | `models/qwen3-embedding-4b-lora/<run_name>` | Checkpoints and final adapter output |
 | `--epochs` | `1` | Training epochs |
 | `--batch-size` | `128` | Per-device train/eval batch size |
 | `--learning-rate` | `2e-5` | Optimizer learning rate |
@@ -272,7 +267,11 @@ CUDA_VISIBLE_DEVICES=0 python scripts/finetuning/embeddings/finetune_qwen3_embed
 | `--train-split` | `train` | Split for building training pairs |
 | `--eval-split` | `dev` | Split for IR evaluation |
 | `--wandb-project` | `WANDB_PROJECT` from `.env` | W&B project name |
-| `--run-name` | `qwen3-embedding-4b-lora-<dataset>-b<batch>-e<epochs>` | W&B run name |
+| `--run-name` | `qwen3-embedding-4b-lora-<dataset>-b<batch>-e<epochs>` | W&B run, model folder, and log file name |
+| `--log-file` | `logs/<run_name>.log` | Local log file path |
+| `--no-log-file` | off | Disable automatic logging to `logs/<run_name>.log` |
+| `--no-load-best-model` | off | Disable IR-based best checkpoint selection |
+| `--metric-for-best-model` | `eval_<dataset>-dev_cosine_ndcg@10` | Metric used to pick the best checkpoint |
 | `--fp16` | off | Enable FP16 training |
 | `--no-bf16` | off | Disable BF16 (BF16 is on by default) |
 
@@ -306,16 +305,48 @@ python scripts/finetuning/embeddings/finetune_qwen3_embedding.py \
 
 Override the W&B project with `--wandb-project` or `WANDB_PROJECT` in `.env`.
 
-## Outputs
+## Best model selection
 
-For dataset `qasper`, artifacts are written under:
+By default, training picks the **best checkpoint by IR NDCG@10** on the dev split (via `InformationRetrievalEvaluator`), not by training loss.
+
+- **Selection metric:** `eval_<dataset>-dev_cosine_ndcg@10` (e.g. `eval_telco-dpr-dev_cosine_ndcg@10`)
+- **Requirement:** `save_steps` must be a multiple of `eval_steps` (the YAML configs use equal values)
+- **At end of training:** the best checkpoint is loaded into memory and saved to `final/`
+- **Metadata:** `best_model.json` records the winning checkpoint path and score
+
+Console output at the end:
 
 ```
-models/qwen3-embedding-4b-lora/qasper/
-├── checkpoint-500/
-├── checkpoint-1000/
-├── ...
-└── final/          # final LoRA adapter + SentenceTransformer config
+best_checkpoint: .../checkpoint-24 (eval_telco-dpr-dev_cosine_ndcg@10=0.7123)
+```
+
+Disable automatic selection:
+
+```bash
+python scripts/finetuning/embeddings/finetune_qwen3_embedding.py \
+  --dataset qasper \
+  --no-load-best-model
+```
+
+Or in YAML:
+
+```yaml
+load_best_model: false
+```
+
+## Outputs
+
+For dataset `qasper` with `run_name: qwen3-embedding-4b-lora-qasper-b128-e3`:
+
+```
+models/qwen3-embedding-4b-lora/qwen3-embedding-4b-lora-qasper-b128-e3/
+├── checkpoint-2/
+├── checkpoint-4/
+├── best_model.json     # best IR metric + checkpoint path
+├── eval/               # IR evaluator CSV logs
+└── final/              # best LoRA adapter (not necessarily the last step)
+
+logs/qwen3-embedding-4b-lora-qasper-b128-e3.log
 ```
 
 Load the fine-tuned model:
@@ -323,7 +354,9 @@ Load the fine-tuned model:
 ```python
 from sentence_transformers import SentenceTransformer
 
-model = SentenceTransformer("models/qwen3-embedding-4b-lora/qasper/final")
+model = SentenceTransformer(
+    "models/qwen3-embedding-4b-lora/qwen3-embedding-4b-lora-qasper-b128-e3/final"
+)
 embeddings = model.encode(["Instruct: ...\nQuery:What is X?", "Document text..."])
 ```
 
