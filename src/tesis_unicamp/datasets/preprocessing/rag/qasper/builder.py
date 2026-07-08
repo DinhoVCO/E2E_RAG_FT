@@ -34,10 +34,16 @@ def _save_json_records(path: Path, records: list[dict]) -> None:
 def build_qasper_rag_dataset(
     hf_dataset_id: str = DEFAULT_HF_DATASET_ID,
     output_dir: Path = DEFAULT_OUTPUT_DIR,
+    *,
+    exact_text_evidence_only: bool = False,
+    readme_template: Path = DEFAULT_HUB_README_TEMPLATE,
 ) -> DatasetDict:
     """Build the QASPER RAG dataset with train, dev and test splits."""
     splits = load_qasper_splits(hf_dataset_id=hf_dataset_id)
-    corpus, processed_splits = process_qasper_splits(splits)
+    corpus, processed_splits = process_qasper_splits(
+        splits,
+        exact_text_evidence_only=exact_text_evidence_only,
+    )
 
     output_dir.mkdir(parents=True, exist_ok=True)
     _save_json_records(output_dir / "corpus.json", corpus)
@@ -63,6 +69,7 @@ def build_qasper_rag_dataset(
         output_dir=output_dir,
         dataset_dict=dataset_dict,
         hf_dataset_id=hf_dataset_id,
+        readme_template=readme_template,
     )
     return dataset_dict
 
@@ -72,9 +79,10 @@ def _write_hub_readme(
     dataset_dict: DatasetDict,
     hf_dataset_id: str,
     repo_id: str = "username/qasper-rag",
+    readme_template: Path = DEFAULT_HUB_README_TEMPLATE,
 ) -> Path:
     readme_content = _render_hub_readme(
-        DEFAULT_HUB_README_TEMPLATE,
+        readme_template,
         repo_id=repo_id,
         dataset_dict=dataset_dict,
         hf_dataset_id=hf_dataset_id,
@@ -139,6 +147,7 @@ def push_qasper_rag_to_hub(
     readme_path: Path | None = None,
     hf_dataset_id: str = DEFAULT_HF_DATASET_ID,
     output_dir: Path = DEFAULT_OUTPUT_DIR,
+    readme_template: Path = DEFAULT_HUB_README_TEMPLATE,
 ) -> None:
     """Upload the QASPER RAG dataset to the Hugging Face Hub."""
     hub_datasets = _build_hub_datasets(dataset_dict)
@@ -155,6 +164,7 @@ def push_qasper_rag_to_hub(
         dataset_dict=dataset_dict,
         hf_dataset_id=hf_dataset_id,
         repo_id=repo_id,
+        readme_template=readme_template,
     )
     if readme_path and readme_path != readme_file:
         readme_content = readme_path.read_text(encoding="utf-8")
