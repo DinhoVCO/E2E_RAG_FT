@@ -131,6 +131,8 @@ def build_paper_index(row: dict) -> PaperIndex:
 def resolve_evidence_to_chunk_ids(
     evidence: list[str],
     paper_index: PaperIndex,
+    *,
+    exact_text_evidence_only: bool = False,
 ) -> set[str]:
     chunk_ids: set[str] = set()
     for item in evidence:
@@ -139,7 +141,10 @@ def resolve_evidence_to_chunk_ids(
             continue
         if normalized in paper_index["text_to_ids"]:
             chunk_ids.update(paper_index["text_to_ids"][normalized])
-        elif normalized in paper_index["section_to_ids"]:
+        elif (
+            not exact_text_evidence_only
+            and normalized in paper_index["section_to_ids"]
+        ):
             chunk_ids.update(paper_index["section_to_ids"][normalized])
     return chunk_ids
 
@@ -148,6 +153,8 @@ def process_paper_qas(
     row: dict,
     paper_index: PaperIndex,
     split_data: SplitData,
+    *,
+    exact_text_evidence_only: bool = False,
 ) -> None:
     qas = row.get("qas") or {}
     questions = qas.get("question") or []
@@ -172,7 +179,11 @@ def process_paper_qas(
             if not filtered_evidence:
                 continue
             chunk_ids.update(
-                resolve_evidence_to_chunk_ids(filtered_evidence, paper_index)
+                resolve_evidence_to_chunk_ids(
+                    filtered_evidence,
+                    paper_index,
+                    exact_text_evidence_only=exact_text_evidence_only,
+                )
             )
         if not chunk_ids:
             continue
@@ -201,6 +212,8 @@ def process_paper_qas(
 
 def process_qasper_splits(
     splits: dict[str, Iterator[dict]],
+    *,
+    exact_text_evidence_only: bool = False,
 ) -> tuple[list[CorpusRecord], dict[str, SplitData]]:
     """Build the shared corpus and query splits from QASPER papers."""
     paper_indexes: dict[str, PaperIndex] = {}
@@ -213,7 +226,12 @@ def process_qasper_splits(
             paper_id = row["id"]
             if paper_id not in paper_indexes:
                 paper_indexes[paper_id] = build_paper_index(row)
-            process_paper_qas(row, paper_indexes[paper_id], processed_splits[split_name])
+            process_paper_qas(
+                row,
+                paper_indexes[paper_id],
+                processed_splits[split_name],
+                exact_text_evidence_only=exact_text_evidence_only,
+            )
 
     corpus: list[CorpusRecord] = []
     for paper_id in sorted(paper_indexes):
