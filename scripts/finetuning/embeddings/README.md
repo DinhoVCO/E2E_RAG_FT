@@ -360,6 +360,37 @@ model = SentenceTransformer(
 embeddings = model.encode(["Instruct: ...\nQuery:What is X?", "Document text..."])
 ```
 
+## Upload adapters to Hugging Face Hub
+
+Upload the LoRA adapter from `final/` to a model repo named `Qwen3-Emb-4b-lora-<dataset>`:
+
+| Dataset | Default Hub repo |
+|---------|------------------|
+| `telco-dpr` | `DinoStackAI/Qwen3-Emb-4b-lora-telco-dpr` |
+| `qasper` | `DinoStackAI/Qwen3-Emb-4b-lora-qasper` |
+| `narrativeqa` | `DinoStackAI/Qwen3-Emb-4b-lora-narrativeqa` |
+| `bioasq-resplit` | `DinoStackAI/Qwen3-Emb-4b-lora-bioasq-resplit` |
+
+Requires `HF_TOKEN` in `.env` with write access to the `DinoStackAI` org. Override the org with `--hub-user` or `HF_ORG` in `.env`.
+
+```bash
+# One dataset (uses newest local run under models/qwen3-embedding-4b-lora/)
+python scripts/finetuning/embeddings/push_lora_adapters_to_hub.py --dataset telco-dpr
+
+# Specific run
+python scripts/finetuning/embeddings/push_lora_adapters_to_hub.py \
+  --dataset telco-dpr \
+  --run-dir models/qwen3-embedding-4b-lora/telco-dpr-b128-e20
+
+# All four datasets
+python scripts/finetuning/embeddings/push_lora_adapters_to_hub.py --all
+
+# Preview without uploading
+python scripts/finetuning/embeddings/push_lora_adapters_to_hub.py --dataset qasper --dry-run
+```
+
+The upload includes adapter weights, Sentence Transformers config, tokenizer files, `best_model.json` (if present), and a generated model card with ST and vLLM loading examples.
+
 ## Memory Notes
 
 Default settings target **1× H100 80GB per job**:

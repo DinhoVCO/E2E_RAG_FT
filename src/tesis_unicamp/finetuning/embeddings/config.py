@@ -19,3 +19,4 @@ EMBEDDING_FINETUNING_DATASET_IDS: dict[str, str] = {
 }
 
 DEFAULT_WANDB_PROJECT = "qwen3-embedding-finetuning"
+DEFAULT_HUB_ORG = "DinoStackAI"
