@@ -1,7 +1,7 @@
 {
     "loader_kwargs": {},
     "name": "Qwen/Qwen3-Embedding-4B",
-    "revision": "bioasq",
+    "revision": "vllm-lora-qasper-b128-e10",
     "release_date": null,
     "languages": null,
     "n_parameters": null,

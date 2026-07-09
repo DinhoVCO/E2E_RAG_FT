@@ -185,7 +185,96 @@ Replace `--model` with the path to `final/`:
 --model models/qwen3-embedding-4b-lora/qasper-b128-e10/final
 ```
 
-The vLLM `offline` backend loads the **base** model only; use `sentence-transformers` for LoRA adapters unless LoRA support is configured in vLLM.
+For faster evaluation, see [Fine-tuned LoRA models with vLLM (offline)](#fine-tuned-lora-models-with-vllm-offline).
+
+---
+
+## Fine-tuned LoRA models with vLLM (offline)
+
+Evaluate each **dataset-specific LoRA adapter** on its matching RAG task with the `offline` backend (vLLM in-process). Use one GPU per run (`CUDA_VISIBLE_DEVICES=0`).
+
+`--model` must be the **base model** (`Qwen/Qwen3-Embedding-4B`). `--lora-path` is the Hub repo or local path to the adapter (`final/`). `--model-revision` is the **MTEB results subfolder** (your run label).
+
+| Dataset | `--dataset` | `--lora-path` |
+|---------|-------------|---------------|
+| telco-dpr | `telco-dpr` | `DinoStackAI/Qwen3-Emb-4b-lora-telco-dpr` |
+| qasper | `qasper` | `DinoStackAI/Qwen3-Emb-4b-lora-qasper` |
+| narrativeqa | `narrativeqa` | `DinoStackAI/Qwen3-Emb-4b-lora-narrativeqa` |
+| bioasq-resplit | `bioasq-resplit` | `DinoStackAI/Qwen3-Emb-4b-lora-bioasq-resplit` |
+
+### telco-dpr
+
+```bash
+CUDA_VISIBLE_DEVICES=0 python scripts/evaluation/mteb/run_mteb_retrieval.py \
+  --dataset telco-dpr \
+  --backend offline \
+  --model Qwen/Qwen3-Embedding-4B \
+  --lora-path DinoStackAI/Qwen3-Emb-4b-lora-telco-dpr \
+  --model-revision vllm-lora-telco-dpr-b128-e20 \
+  --splits test \
+  --batch-size 128
+```
+
+### qasper
+
+```bash
+CUDA_VISIBLE_DEVICES=0 python scripts/evaluation/mteb/run_mteb_retrieval.py \
+  --dataset qasper \
+  --backend offline \
+  --model Qwen/Qwen3-Embedding-4B \
+  --lora-path DinoStackAI/Qwen3-Emb-4b-lora-qasper \
+  --model-revision vllm-lora-qasper-b128-e10 \
+  --splits test \
+  --batch-size 128
+```
+
+### narrativeqa
+
+```bash
+CUDA_VISIBLE_DEVICES=0 python scripts/evaluation/mteb/run_mteb_retrieval.py \
+  --dataset narrativeqa \
+  --backend offline \
+  --model Qwen/Qwen3-Embedding-4B \
+  --lora-path DinoStackAI/Qwen3-Emb-4b-lora-narrativeqa \
+  --model-revision vllm-lora-narrativeqa-b128-e10 \
+  --splits test \
+  --batch-size 128
+```
+
+### bioasq-resplit
+
+```bash
+CUDA_VISIBLE_DEVICES=0 python scripts/evaluation/mteb/run_mteb_retrieval.py \
+  --dataset bioasq-resplit \
+  --backend offline \
+  --model Qwen/Qwen3-Embedding-4B \
+  --lora-path DinoStackAI/Qwen3-Emb-4b-lora-bioasq-resplit \
+  --model-revision vllm-lora-bioasq-resplit-b128-e10 \
+  --splits test \
+  --batch-size 128
+```
+
+### Local adapters (without Hub)
+
+Replace `--lora-path` with the path to `final/`:
+
+```bash
+--lora-path models/qwen3-embedding-4b-lora/qasper-b128-e10/final
+```
+
+Results are written under:
+
+```
+results/mteb/results/Qwen__Qwen3-Embedding-4B/<model-revision>/<TaskName>.json
+```
+
+Example:
+
+```
+results/mteb/results/Qwen__Qwen3-Embedding-4B/vllm-lora-qasper-b128-e10/QASPER-RAG.json
+```
+
+The first run includes vLLM warmup and CUDA graph capture (~1–2 min on H100); inference is faster than the `sentence-transformers` backend.
 
 ---
 
@@ -205,6 +294,8 @@ python scripts/evaluation/mteb/run_mteb_retrieval.py --help
 | `--backend` | `offline` | `offline`, `online`, or `sentence-transformers`. |
 | `--model` | `Qwen/Qwen3-Embedding-4B` | Model name or Hugging Face repo id. |
 | `--model-revision` | *(required)* | MTEB results subfolder name (e.g. `lora-bioasq-resplit-b128-e10`). |
+| `--lora-path` | — | LoRA adapter Hub repo or local path (`offline` backend only). |
+| `--max-lora-rank` | `16` | `max_lora_rank` for vLLM when `--lora-path` is set. |
 | `--hf-revision` | `main` | Hub git revision when loading `--model` from Hugging Face (ST backend). |
 | `--batch-size` | `128` | Embedding batch size (project backends). |
 | `--splits` | `test` | One or more of: `train`, `dev`, `test`. |

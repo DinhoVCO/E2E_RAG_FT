@@ -18,6 +18,13 @@ Usage:
         --backend offline --splits test \\
         --model-revision vllm-offline-b128
 
+    # Fine-tuned LoRA adapter with vLLM offline (base model + adapter):
+    CUDA_VISIBLE_DEVICES=0 python scripts/evaluation/mteb/run_mteb_retrieval.py \\
+        --dataset telco-dpr --backend offline --splits test \\
+        --model Qwen/Qwen3-Embedding-4B \\
+        --lora-path DinoStackAI/Qwen3-Emb-4b-lora-telco-dpr \\
+        --model-revision vllm-lora-telco-dpr-b128-e20
+
     # Custom results revision folder:
     python scripts/evaluation/mteb/run_mteb_retrieval.py \\
         --dataset qasper --backend offline --splits test \\
@@ -118,6 +125,19 @@ def _build_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--lora-path",
+        help=(
+            "LoRA adapter path or Hugging Face repo id. "
+            "Only for --backend offline; --model must be the base model."
+        ),
+    )
+    parser.add_argument(
+        "--max-lora-rank",
+        type=int,
+        default=16,
+        help="max_lora_rank passed to vLLM when --lora-path is set (default: 16).",
+    )
+    parser.add_argument(
         "--batch-size",
         type=int,
         default=DEFAULT_EMBED_BATCH_SIZE,
@@ -193,6 +213,9 @@ def main(argv: list[str] | None = None) -> None:
     if args.hf_repo_id and not args.task_name:
         print(f"Using task name: {args.hf_repo_id.rsplit('/', maxsplit=1)[-1]}")
 
+    if args.lora_path and args.backend != "offline":
+        parser.error("--lora-path requires --backend offline.")
+
     _validate_cuda_for_offline(args.backend)
     tasks = _resolve_tasks(args)
     model = resolve_model(
@@ -201,11 +224,15 @@ def main(argv: list[str] | None = None) -> None:
         batch_size=args.batch_size,
         model_revision=args.model_revision,
         hf_revision=args.hf_revision,
+        lora_path=args.lora_path,
+        max_lora_rank=args.max_lora_rank if args.lora_path else None,
     )
 
     task_names = [task.metadata.name for task in tasks]
     print(f"backend: {args.backend}")
     print(f"model: {args.model}")
+    if args.lora_path:
+        print(f"lora_path: {args.lora_path}")
     print(f"model_revision: {args.model_revision}")
     if args.backend == "sentence-transformers" and not Path(args.model).exists():
         print(f"hf_revision: {args.hf_revision}")
@@ -213,12 +240,23 @@ def main(argv: list[str] | None = None) -> None:
     print(f"output_dir: {args.output_dir}")
 
     args.output_dir.mkdir(parents=True, exist_ok=True)
+    encode_kwargs: dict[str, object] = {"batch_size": args.batch_size}
+    if args.backend == "sentence-transformers":
+        # MTEB's task progress bar stays at 0/1 while the full corpus is encoded;
+        # ST's internal batch bar makes long LoRA runs visible (~3 min for telco-dpr).
+        encode_kwargs["show_progress_bar"] = True
+        print(
+            "Note: sentence-transformers encodes the full retrieval corpus before "
+            "MTEB advances the task bar. Watch the 'Batches:' progress below.",
+            flush=True,
+        )
+
     results = evaluate_retrieval(
         model,
         tasks,
         output_folder=args.output_dir,
         overwrite_strategy=args.overwrite,
-        encode_kwargs={"batch_size": args.batch_size},
+        encode_kwargs=encode_kwargs,
     )
 
     for task_result in results:
