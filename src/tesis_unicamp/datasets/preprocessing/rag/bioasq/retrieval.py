@@ -7,9 +7,7 @@ from tesis_unicamp.datasets.preprocessing.rag.bioasq.constants import PROJECT_RO
 from tesis_unicamp.datasets.preprocessing.rag.retrieval.hub import push_retrieved_docs_to_hub
 from tesis_unicamp.datasets.preprocessing.rag.retrieval.io import (
     RAG_SPLITS,
-    build_retrieved_docs_dataset_dict,
-    save_retrieved_docs_all_splits,
-    save_retrieved_docs_to_hf_disk,
+    save_retrieved_docs_bundle,
 )
 from tesis_unicamp.datasets.utils.bioasq_rag import (
     BIOASQ_RAG_DATASET_ID,
@@ -54,10 +52,7 @@ def save_bioasq_retrieved_docs(
     splits: dict[str, list[RetrievedDocRecord]],
     output_dir: Path = DEFAULT_RETRIEVED_DOCS_DIR,
 ) -> Path:
-    save_retrieved_docs_all_splits(output_dir, splits)
-    dataset_dict = build_retrieved_docs_dataset_dict(output_dir)
-    save_retrieved_docs_to_hf_disk(output_dir, dataset_dict)
-    return output_dir
+    return save_retrieved_docs_bundle(output_dir, splits)
 
 
 def push_bioasq_retrieved_docs_to_hub(
@@ -100,10 +95,7 @@ def save_bioasq_resplit_retrieved_docs(
     splits: dict[str, list[RetrievedDocRecord]],
     output_dir: Path = DEFAULT_RESPLIT_RETRIEVED_DOCS_DIR,
 ) -> Path:
-    save_retrieved_docs_all_splits(output_dir, splits)
-    dataset_dict = build_retrieved_docs_dataset_dict(output_dir)
-    save_retrieved_docs_to_hf_disk(output_dir, dataset_dict)
-    return output_dir
+    return save_retrieved_docs_bundle(output_dir, splits)
 
 
 def push_bioasq_resplit_retrieved_docs_to_hub(
