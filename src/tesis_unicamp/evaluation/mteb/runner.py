@@ -30,10 +30,17 @@ def build_tesis_embedder(
     mode: str,
     model: str,
     batch_size: int = DEFAULT_EMBED_BATCH_SIZE,
+    lora_path: str | None = None,
+    max_lora_rank: int | None = None,
 ) -> BaseEmbedder:
     config = EmbeddingConfig(model=model, batch_size=batch_size)
     if mode == "offline":
-        return VLLMOfflineEmbedder(config)
+        lora_kwargs: dict[str, object] = {}
+        if lora_path is not None:
+            lora_kwargs["lora_path"] = lora_path
+        if max_lora_rank is not None:
+            lora_kwargs["max_lora_rank"] = max_lora_rank
+        return VLLMOfflineEmbedder(config, **lora_kwargs)
     if mode == "online":
         return OpenAIEmbedder(config)
     raise ValueError(f"Unsupported embedder mode {mode!r}. Use 'offline' or 'online'.")
@@ -46,6 +53,8 @@ def resolve_model(
     model_revision: str,
     hf_revision: str | None = None,
     batch_size: int = DEFAULT_EMBED_BATCH_SIZE,
+    lora_path: str | None = None,
+    max_lora_rank: int | None = None,
     embedder: BaseEmbedder | None = None,
 ) -> Any:
     """Build an MTEB-compatible model wrapper."""
@@ -67,6 +76,8 @@ def resolve_model(
             mode=backend,
             model=model,
             batch_size=batch_size,
+            lora_path=lora_path,
+            max_lora_rank=max_lora_rank,
         )
     if backend == "offline" and isinstance(embedder, VLLMOfflineEmbedder):
         print("Loading vLLM embedder (warmup)...")
