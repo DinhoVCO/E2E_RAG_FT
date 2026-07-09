@@ -15,3 +15,8 @@ wheels/
 /datasets/
 /images/
 /qdrant_storage/
+
+# Fine-tuning artifacts (local only)
+/logs/
+/models/
+/wandb/

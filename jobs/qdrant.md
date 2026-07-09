@@ -96,10 +96,10 @@ These names match the defaults in `scripts/embeddings/index_*_corpus.py`:
 
 | Collection | Dataset | Index script |
 |------------|---------|--------------|
-| `bioasq-rag-13b-corpus` | `dinho1597/bioasq-rag-13b` | `scripts/embeddings/index_bioasq_corpus.py` |
-| `qasper-rag-corpus` | `dinho1597/qasper-rag` | `scripts/embeddings/index_qasper_corpus.py` |
-| `telco-dpr-rag-corpus` | `dinho1597/telco-dpr-rag` | `scripts/embeddings/index_telco_dpr_corpus.py` |
-| `narrativeqa-rag-corpus` | `dinho1597/narrativeqa-rag` | `scripts/embeddings/index_narrativeqa_corpus.py` |
+| `bioasq-rag-13b-corpus` | `DinoStackAI/bioasq-rag-13b` | `scripts/embeddings/index_bioasq_corpus.py` |
+| `qasper-rag-corpus` | `DinoStackAI/qasper-rag` | `scripts/embeddings/index_qasper_corpus.py` |
+| `telco-dpr-rag-corpus` | `DinoStackAI/telco-dpr-rag` | `scripts/embeddings/index_telco_dpr_corpus.py` |
+| `narrativeqa-rag-corpus` | `DinoStackAI/narrativeqa-rag` | `scripts/embeddings/index_narrativeqa_corpus.py` |
 
 Example: check whether QASPER indexing finished:
 

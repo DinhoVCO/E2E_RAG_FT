@@ -9,7 +9,7 @@ from tesis_unicamp.datasets.utils.indexing import index_dataset
 from tesis_unicamp.embeddings.base import BaseEmbedder
 from tesis_unicamp.vector_stores.base import BaseVectorStore
 
-NARRATIVEQA_RAG_DATASET_ID = "dinho1597/narrativeqa-rag"
+NARRATIVEQA_RAG_DATASET_ID = "DinoStackAI/narrativeqa-rag"
 
 
 def load_narrativeqa_rag_corpus(*, split: str = "train") -> Dataset:
