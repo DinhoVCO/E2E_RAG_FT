@@ -50,7 +50,7 @@ def _build_embedder(mode: str, model: str, batch_size: int):
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        description="Index dinho1597/narrativeqa-rag corpus into Qdrant.",
+        description="Index DinoStackAI/narrativeqa-rag corpus into Qdrant.",
     )
     parser.add_argument(
         "--mode",

@@ -173,7 +173,7 @@ python scripts/retrieval/push_retrieved_docs_to_hub.py --dataset qasper
 Options:
 
 ```bash
---repo-id dinho1597/qasper-rag   # default: dataset-specific Hub repo
+--repo-id DinoStackAI/qasper-rag   # default: dataset-specific Hub repo
 --output-dir PATH                # default: datasets/retrieved/<dataset>_rag/
 --token TOKEN                    # default: HF_TOKEN env var
 --private                        # upload as private dataset
@@ -183,17 +183,17 @@ Default Hub repos:
 
 | Dataset | Repo id |
 |---------|---------|
-| BioASQ | `dinho1597/bioasq-rag-13b` |
-| QASPER | `dinho1597/qasper-rag` |
-| Telco-DPR | `dinho1597/telco-dpr-rag` |
-| NarrativeQA | `dinho1597/narrativeqa-rag` |
+| BioASQ | `DinoStackAI/bioasq-rag-13b` |
+| QASPER | `DinoStackAI/qasper-rag` |
+| Telco-DPR | `DinoStackAI/telco-dpr-rag` |
+| NarrativeQA | `DinoStackAI/narrativeqa-rag` |
 
 Load after upload:
 
 ```python
 from datasets import load_dataset
 
-retrieved = load_dataset("dinho1597/qasper-rag", "retrieved_docs")
+retrieved = load_dataset("DinoStackAI/qasper-rag", "retrieved_docs")
 test_hits = retrieved["test"]
 ```
 
