@@ -105,8 +105,16 @@ def _build_parser() -> argparse.ArgumentParser:
         "--model-revision",
         required=True,
         help=(
-            "Label for the model revision in MTEB results (results subfolder name). "
-            "Use a HF commit hash or a custom run tag, e.g. vllm-offline-b128."
+            "Label for MTEB results (subfolder name under results/mteb/results/). "
+            "Example: lora-bioasq-resplit-b128-e10 or vllm-offline-b128."
+        ),
+    )
+    parser.add_argument(
+        "--hf-revision",
+        default="main",
+        help=(
+            "Hugging Face git revision used when loading --model from the Hub "
+            "(sentence-transformers backend only; default: main)."
         ),
     )
     parser.add_argument(
@@ -192,12 +200,15 @@ def main(argv: list[str] | None = None) -> None:
         model=args.model,
         batch_size=args.batch_size,
         model_revision=args.model_revision,
+        hf_revision=args.hf_revision,
     )
 
     task_names = [task.metadata.name for task in tasks]
     print(f"backend: {args.backend}")
     print(f"model: {args.model}")
     print(f"model_revision: {args.model_revision}")
+    if args.backend == "sentence-transformers" and not Path(args.model).exists():
+        print(f"hf_revision: {args.hf_revision}")
     print(f"tasks: {', '.join(task_names)}")
     print(f"output_dir: {args.output_dir}")
 

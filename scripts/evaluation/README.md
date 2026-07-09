@@ -81,6 +81,7 @@ Pass one of these values to `--dataset`:
 | Key | MTEB task name | Hugging Face repo |
 |-----|----------------|-------------------|
 | `bioasq` | BioASQ-RAG | `DinoStackAI/bioasq-rag-13b` |
+| `bioasq-resplit` | BioASQ-RAG-Resplit | `DinoStackAI/bioasq-rag-13b-resplit` |
 | `qasper` | QASPER-RAG | `DinoStackAI/qasper-rag` |
 | `telco-dpr` | TelcoDPR-RAG | `DinoStackAI/telco-dpr-rag` |
 | `narrativeqa` | NarrativeQA-RAG | `DinoStackAI/narrativeqa-rag` |
@@ -101,6 +102,93 @@ Each dataset exposes Hub configs: `corpus`, `queries`, `qrels`, and `answers`. E
 
 ---
 
+## Fine-tuned LoRA models (Qwen3-Emb-4b-lora)
+
+Evaluate each **dataset-specific LoRA adapter** on its matching RAG task with the `sentence-transformers` backend. Use one GPU per run (`CUDA_VISIBLE_DEVICES=0`).
+
+Hub repos (default):
+
+| Dataset | `--dataset` | Hub model |
+|---------|-------------|-----------|
+| telco-dpr | `telco-dpr` | `DinoStackAI/Qwen3-Emb-4b-lora-telco-dpr` |
+| qasper | `qasper` | `DinoStackAI/Qwen3-Emb-4b-lora-qasper` |
+| narrativeqa | `narrativeqa` | `DinoStackAI/Qwen3-Emb-4b-lora-narrativeqa` |
+| bioasq-resplit | `bioasq-resplit` | `DinoStackAI/Qwen3-Emb-4b-lora-bioasq-resplit` |
+
+`--model-revision` is the **MTEB results subfolder** (your run label). `--hf-revision` (default: `main`) is only the Hub git revision when loading from Hugging Face.
+
+### telco-dpr
+
+```bash
+CUDA_VISIBLE_DEVICES=0 python scripts/evaluation/mteb/run_mteb_retrieval.py \
+  --dataset telco-dpr \
+  --backend sentence-transformers \
+  --model DinoStackAI/Qwen3-Emb-4b-lora-telco-dpr \
+  --model-revision telco-dpr-b128-e20 \
+  --splits test \
+  --batch-size 128
+```
+
+### qasper
+
+```bash
+CUDA_VISIBLE_DEVICES=0 python scripts/evaluation/mteb/run_mteb_retrieval.py \
+  --dataset qasper \
+  --backend sentence-transformers \
+  --model DinoStackAI/Qwen3-Emb-4b-lora-qasper \
+  --model-revision qasper-b128-e10 \
+  --splits test \
+  --batch-size 128
+```
+
+### narrativeqa
+
+```bash
+CUDA_VISIBLE_DEVICES=0 python scripts/evaluation/mteb/run_mteb_retrieval.py \
+  --dataset narrativeqa \
+  --backend sentence-transformers \
+  --model DinoStackAI/Qwen3-Emb-4b-lora-narrativeqa \
+  --model-revision narrativeqa-b128-e10 \
+  --splits test \
+  --batch-size 128
+```
+
+### bioasq-resplit
+
+```bash
+CUDA_VISIBLE_DEVICES=0 python scripts/evaluation/mteb/run_mteb_retrieval.py \
+  --dataset bioasq-resplit \
+  --backend sentence-transformers \
+  --model DinoStackAI/Qwen3-Emb-4b-lora-bioasq-resplit \
+  --model-revision bioasq-resplit-b128-e10 \
+  --splits test \
+  --batch-size 128
+```
+
+Results are written under:
+
+```
+results/mteb/results/DinoStackAI__Qwen3-Emb-4b-lora-<dataset>/<model-revision>/<TaskName>.json
+```
+
+Example:
+
+```
+results/mteb/results/DinoStackAI__Qwen3-Emb-4b-lora-qasper/qasper-b128-e10/QASPER-RAG.json
+```
+
+### Local adapters (without Hub)
+
+Replace `--model` with the path to `final/`:
+
+```bash
+--model models/qwen3-embedding-4b-lora/qasper-b128-e10/final
+```
+
+The vLLM `offline` backend loads the **base** model only; use `sentence-transformers` for LoRA adapters unless LoRA support is configured in vLLM.
+
+---
+
 ## CLI options
 
 ```bash
@@ -116,7 +204,8 @@ python scripts/evaluation/mteb/run_mteb_retrieval.py --help
 | `--task-description` | generic text | Task description for custom Hub datasets. |
 | `--backend` | `offline` | `offline`, `online`, or `sentence-transformers`. |
 | `--model` | `Qwen/Qwen3-Embedding-4B` | Model name or Hugging Face repo id. |
-| `--model-revision` | *(required)* | Results subfolder name (HF commit hash or custom run tag). |
+| `--model-revision` | *(required)* | MTEB results subfolder name (e.g. `lora-bioasq-resplit-b128-e10`). |
+| `--hf-revision` | `main` | Hub git revision when loading `--model` from Hugging Face (ST backend). |
 | `--batch-size` | `128` | Embedding batch size (project backends). |
 | `--splits` | `test` | One or more of: `train`, `dev`, `test`. |
 | `--output-dir` | `results/mteb` | Directory for MTEB result cache. |

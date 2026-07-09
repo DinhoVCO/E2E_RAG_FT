@@ -36,6 +36,13 @@ def load_bioasq_rag_subset(name: str, *, split: str | None = None) -> Dataset:
     return _load_rag_subset(BIOASQ_RAG_DATASET_ID, name, split=split)
 
 
+def load_bioasq_rag_resplit_corpus(*, split: str = "train") -> Dataset:
+    dataset = load_dataset(BIOASQ_RAG_RESPLIT_DATASET_ID, "corpus")
+    if isinstance(dataset, DatasetDict):
+        return dataset[split]
+    return dataset
+
+
 def load_bioasq_rag_resplit_subset(name: str, *, split: str | None = None) -> Dataset:
     return _load_rag_subset(BIOASQ_RAG_RESPLIT_DATASET_ID, name, split=split)
 

@@ -44,15 +44,21 @@ def resolve_model(
     backend: str,
     model: str,
     model_revision: str,
+    hf_revision: str | None = None,
     batch_size: int = DEFAULT_EMBED_BATCH_SIZE,
     embedder: BaseEmbedder | None = None,
 ) -> Any:
     """Build an MTEB-compatible model wrapper."""
     if backend == "sentence-transformers":
-        return SentenceTransformerEncoderWrapper(
+        load_revision: str | None = None
+        if not Path(model).exists():
+            load_revision = hf_revision or "main"
+        wrapper = SentenceTransformerEncoderWrapper(
             model=model,
-            revision=model_revision,
+            revision=load_revision,
         )
+        wrapper.mteb_model_meta.revision = model_revision
+        return wrapper
 
     if embedder is None:
         if backend == "offline":

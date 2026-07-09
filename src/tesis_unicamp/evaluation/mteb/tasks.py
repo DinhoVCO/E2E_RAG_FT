@@ -12,8 +12,11 @@ from mteb.abstasks.task_metadata import TaskMetadata
 
 from tesis_unicamp.datasets.utils.bioasq_rag import (
     BIOASQ_RAG_DATASET_ID,
+    BIOASQ_RAG_RESPLIT_DATASET_ID,
     corpus_row_to_text as bioasq_corpus_row_to_text,
     load_bioasq_rag_corpus,
+    load_bioasq_rag_resplit_corpus,
+    load_bioasq_rag_resplit_subset,
     load_bioasq_rag_subset,
     query_to_instruct_text,
 )
@@ -200,6 +203,17 @@ RAG_RETRIEVAL_TASK_CONFIGS: dict[str, RagRetrievalTaskConfig] = {
         description="BioASQ RAG retrieval over PubMed passages.",
         load_corpus=load_bioasq_rag_corpus,
         load_subset=load_bioasq_rag_subset,
+        corpus_text_fn=bioasq_corpus_row_to_text,
+        eval_splits=("train", "dev", "test"),
+        domains=("Medical", "Written"),
+        task_subtypes=("Question answering",),
+    ),
+    "bioasq-resplit": RagRetrievalTaskConfig(
+        name="BioASQ-RAG-Resplit",
+        hf_repo_id=BIOASQ_RAG_RESPLIT_DATASET_ID,
+        description="BioASQ RAG retrieval over PubMed passages (resplit train/dev/test).",
+        load_corpus=load_bioasq_rag_resplit_corpus,
+        load_subset=load_bioasq_rag_resplit_subset,
         corpus_text_fn=bioasq_corpus_row_to_text,
         eval_splits=("train", "dev", "test"),
         domains=("Medical", "Written"),
