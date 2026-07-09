@@ -21,6 +21,7 @@ def _split_to_dataset(split_data: SplitData) -> DatasetDict:
             "queries": Dataset.from_list(split_data["queries"]),
             "qrels": Dataset.from_list(split_data["qrels"]),
             "answers": Dataset.from_list(split_data["answers"]),
+            "top_ranked": Dataset.from_list(split_data["top_ranked"]),
         }
     )
 
@@ -52,6 +53,7 @@ def build_qasper_rag_dataset(
         _save_json_records(split_dir / "queries.json", split_data["queries"])
         _save_json_records(split_dir / "qrels.json", split_data["qrels"])
         _save_json_records(split_dir / "answers.json", split_data["answers"])
+        _save_json_records(split_dir / "top_ranked.json", split_data["top_ranked"])
 
     dataset_dict = DatasetDict(
         {
@@ -109,10 +111,22 @@ def _render_hub_readme(
     )
 
 
+def _top_ranked_to_hub_dataset(records: list[dict]) -> Dataset:
+    return Dataset.from_list(
+        [
+            {
+                "query-id": record["query_id"],
+                "corpus-ids": record["corpus_ids"],
+            }
+            for record in records
+        ]
+    )
+
+
 def _build_hub_datasets(
     dataset_dict: DatasetDict,
 ) -> dict[str, Dataset | DatasetDict]:
-    """Organize data into 4 Hub subsets: corpus, queries, qrels, answers."""
+    """Organize data into Hub subsets: corpus, queries, qrels, answers, top_ranked."""
     return {
         "corpus": dataset_dict["corpus"],
         "queries": DatasetDict(
@@ -134,6 +148,17 @@ def _build_hub_datasets(
                 "train": dataset_dict["train"]["answers"],
                 "dev": dataset_dict["dev"]["answers"],
                 "test": dataset_dict["test"]["answers"],
+            }
+        ),
+        "top_ranked": DatasetDict(
+            {
+                "train": _top_ranked_to_hub_dataset(
+                    dataset_dict["train"]["top_ranked"]
+                ),
+                "dev": _top_ranked_to_hub_dataset(dataset_dict["dev"]["top_ranked"]),
+                "test": _top_ranked_to_hub_dataset(
+                    dataset_dict["test"]["top_ranked"]
+                ),
             }
         ),
     }
