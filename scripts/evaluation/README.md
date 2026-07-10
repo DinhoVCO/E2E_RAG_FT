@@ -7,6 +7,7 @@ This folder contains scripts to evaluate **information retrieval** on project RA
 | Pipeline | Script | Index | Metrics |
 |----------|--------|-------|---------|
 | **MTEB evaluation** | `mteb/run_mteb_retrieval.py` | In-memory (dense search) | nDCG@k, MAP@k, Recall@k, MRR, … |
+| **RAGAS answer eval** | `ragas/run_rag_ragas_evaluation.py` | Generated answers + retrieved context | `answer_correctness`, `faithfulness`, `semantic_similarity` |
 | **Qdrant retrieval** | `../retrieval/retrieve_rag_top_k.py` | Qdrant | `retrieved_docs` + `is_relevant` |
 
 MTEB evaluation does **not** use Qdrant. It embeds the full corpus in memory and ranks documents with cosine similarity, then computes standard IR metrics against `qrels`.
@@ -23,6 +24,8 @@ Both pipelines use the same embedding backends, corpus text formatting, and inst
 - Hugging Face access to the dataset repos (public Hub datasets listed below).
 
 No Qdrant instance is required for MTEB evaluation.
+
+See also **[RAGAS answer evaluation](ragas/README.md)** (`ragas/run_rag_ragas_evaluation.py`) for scoring generated answers with vLLM offline.
 
 ---
 
