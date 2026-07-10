@@ -32,6 +32,10 @@ from tesis_unicamp.datasets.utils.qasper_rag import (
     load_qasper_rag_corpus,
     load_qasper_rag_subset,
 )
+from tesis_unicamp.datasets.utils.qasper_top_ranked import (
+    build_top_ranked_from_dataset,
+    build_top_ranked_from_qrels,
+)
 from tesis_unicamp.datasets.utils.telco_dpr_rag import (
     TELCO_DPR_RAG_DATASET_ID,
     corpus_row_to_text as telco_corpus_row_to_text,
@@ -74,47 +78,6 @@ def _build_relevant_docs(qrels: Dataset) -> dict[str, dict[str, int]]:
     return dict(relevant)
 
 
-def _corpus_id_to_paper_id(corpus_id: str) -> str:
-    return corpus_id.rsplit("_", 1)[0]
-
-
-def _build_paper_to_chunk_ids(corpus: Dataset) -> dict[str, list[str]]:
-    paper_to_chunk_ids: dict[str, list[str]] = defaultdict(list)
-    for row in corpus:
-        corpus_id = str(row["id"])
-        paper_id = _corpus_id_to_paper_id(corpus_id)
-        paper_to_chunk_ids[paper_id].append(corpus_id)
-    return {
-        paper_id: sorted(chunk_ids)
-        for paper_id, chunk_ids in paper_to_chunk_ids.items()
-    }
-
-
-def _build_top_ranked_from_dataset(top_ranked: Dataset) -> dict[str, list[str]]:
-    ranked: dict[str, list[str]] = {}
-    for row in top_ranked:
-        query_id = str(row.get("query_id") or row.get("query-id"))
-        corpus_ids = row.get("corpus_ids") or row.get("corpus-ids") or []
-        ranked[query_id] = [str(corpus_id) for corpus_id in corpus_ids]
-    return ranked
-
-
-def _build_top_ranked_from_qrels(
-    qrels: Dataset,
-    corpus: Dataset,
-) -> dict[str, list[str]]:
-    paper_to_chunk_ids = _build_paper_to_chunk_ids(corpus)
-    ranked: dict[str, list[str]] = {}
-    for row in qrels:
-        query_id = str(row.get("query_id") or row.get("query-id"))
-        if query_id in ranked:
-            continue
-        corpus_id = str(row.get("corpus_id") or row.get("corpus-id"))
-        paper_id = _corpus_id_to_paper_id(corpus_id)
-        ranked[query_id] = paper_to_chunk_ids[paper_id]
-    return ranked
-
-
 def _load_top_ranked_split(
     config: RagRetrievalTaskConfig,
     split: str,
@@ -125,8 +88,8 @@ def _load_top_ranked_split(
     try:
         top_ranked = config.load_subset("top_ranked", split=split)
     except (ValueError, FileNotFoundError, OSError):
-        return _build_top_ranked_from_qrels(qrels, corpus)
-    return _build_top_ranked_from_dataset(top_ranked)
+        return build_top_ranked_from_qrels(qrels, corpus)
+    return build_top_ranked_from_dataset(top_ranked)
 
 
 def _prepare_corpus(

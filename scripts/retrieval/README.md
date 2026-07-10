@@ -193,6 +193,29 @@ Use a distinct `--run-label` per embedding model so results do not overwrite eac
 | `--batch-size` | `128` | Embedding batch size. |
 | `--corpus-split` | `train` | Corpus split to embed and index. |
 | `--splits` | `test` | Query splits to retrieve (`train`, `dev`, `test`). |
+| `--paper-scoped` / `--no-paper-scoped` | on for `qasper` | Restrict QASPER retrieval to each query's paper via `top_ranked`. Appends `-paper-scoped` to `--run-label` when enabled. |
+
+#### QASPER paper-scoped retrieval
+
+QASPER questions belong to a single paper. By default, `--dataset qasper` uses **paper-scoped** retrieval: each query searches only the chunks listed in the Hub `top_ranked` subset (all paragraphs of that paper), matching MTEB evaluation with `--paper-scoped`.
+
+```bash
+CUDA_VISIBLE_DEVICES=0 python scripts/retrieval/retrieve_rag_top_k_inmemory.py \
+  --dataset qasper \
+  --mode offline \
+  --run-label vllm-offline-b128
+# Output: datasets/retrieved_inmemory/qasper/vllm-offline-b128-paper-scoped/test/retrieved_docs.json
+```
+
+To use full-corpus retrieval (legacy behavior):
+
+```bash
+CUDA_VISIBLE_DEVICES=0 python scripts/retrieval/retrieve_rag_top_k_inmemory.py \
+  --dataset qasper \
+  --mode offline \
+  --no-paper-scoped \
+  --run-label vllm-offline-b128-full-corpus
+```
 
 #### Output layout
 
@@ -386,7 +409,7 @@ Query:<question text>
 | NarrativeQA | moderate | Full in-memory run is reasonable |
 | BioASQ | moderate | Full in-memory run is reasonable |
 | Telco-DPR | moderate | Full in-memory run is reasonable |
-| QASPER | ~1.3k test queries; ~81k corpus chunks | Start with `--splits test`; corpus embedding takes several minutes |
+| QASPER | ~1.3k test queries; ~81k corpus chunks | Paper-scoped by default (`top_ranked`); start with `--splits test` |
 
 **In-memory script:** embeds the full corpus on every run. Use distinct `--run-label` values to keep results from different models separate.
 

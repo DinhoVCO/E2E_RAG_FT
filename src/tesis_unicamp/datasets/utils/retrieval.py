@@ -76,6 +76,66 @@ def retrieve_top_k_for_queries(
     return records
 
 
+def retrieve_top_k_for_queries_scoped(
+    embedder: BaseEmbedder,
+    store: BaseVectorStore,
+    queries: Dataset,
+    qrels: Dataset,
+    query_candidates: dict[str, list[str]],
+    *,
+    top_k: int = 10,
+    query_to_text: Callable[[str], str],
+    batch_size: int | None = None,
+    show_progress: bool = True,
+) -> list[RetrievedDocRecord]:
+    """Retrieve top-k documents per query within a per-query candidate pool."""
+    if top_k <= 0:
+        raise ValueError("top_k must be positive")
+    if not hasattr(store, "search_candidates"):
+        raise TypeError(
+            f"{type(store).__name__} does not support scoped retrieval "
+            "(missing search_candidates)"
+        )
+
+    relevant = build_relevant_corpus_ids(qrels)
+    batch_size = batch_size or embedder.batch_size
+    query_rows = [queries[i] for i in range(len(queries))]
+    records: list[RetrievedDocRecord] = []
+    search_candidates = store.search_candidates
+
+    batch_iterator = iter_batches(query_rows, batch_size)
+    if show_progress:
+        total_batches = (len(query_rows) + batch_size - 1) // batch_size
+        batch_iterator = tqdm(
+            batch_iterator,
+            desc="Retrieving (paper-scoped)",
+            unit="batch",
+            total=total_batches,
+        )
+
+    for batch in batch_iterator:
+        texts = [query_to_text(row["text"]) for row in batch]
+        vectors = embedder.embed_texts(texts)
+        for row, vector in zip(batch, vectors, strict=True):
+            query_id = row["id"]
+            candidates = query_candidates.get(query_id, [])
+            hits = search_candidates(vector, candidates, limit=top_k)
+            gold = relevant.get(query_id, set())
+            for rank, hit in enumerate(hits, start=1):
+                corpus_id = str((hit.get("payload") or {}).get("corpus_id", ""))
+                records.append(
+                    {
+                        "query_id": query_id,
+                        "corpus_id": corpus_id,
+                        "rank": rank,
+                        "retrieval_score": float(hit["score"]),
+                        "is_relevant": corpus_id in gold,
+                    }
+                )
+
+    return records
+
+
 def retrieve_split(
     embedder: BaseEmbedder,
     store: BaseVectorStore,
@@ -101,6 +161,34 @@ def retrieve_split(
     )
 
 
+def retrieve_split_scoped(
+    embedder: BaseEmbedder,
+    store: BaseVectorStore,
+    *,
+    split: str,
+    load_subset: Callable[..., Dataset],
+    load_top_ranked_for_split: Callable[[str], dict[str, list[str]]],
+    top_k: int = 10,
+    query_to_text: Callable[[str], str],
+    batch_size: int | None = None,
+    show_progress: bool = True,
+) -> list[RetrievedDocRecord]:
+    queries = load_subset("queries", split=split)
+    qrels = load_subset("qrels", split=split)
+    query_candidates = load_top_ranked_for_split(split)
+    return retrieve_top_k_for_queries_scoped(
+        embedder,
+        store,
+        queries,
+        qrels,
+        query_candidates,
+        top_k=top_k,
+        query_to_text=query_to_text,
+        batch_size=batch_size,
+        show_progress=show_progress,
+    )
+
+
 def retrieve_all_splits(
     embedder: BaseEmbedder,
     store: BaseVectorStore,
@@ -118,6 +206,34 @@ def retrieve_all_splits(
             store,
             split=split,
             load_subset=load_subset,
+            top_k=top_k,
+            query_to_text=query_to_text,
+            batch_size=batch_size,
+            show_progress=show_progress,
+        )
+        for split in splits
+    }
+
+
+def retrieve_all_splits_scoped(
+    embedder: BaseEmbedder,
+    store: BaseVectorStore,
+    *,
+    load_subset: Callable[..., Dataset],
+    load_top_ranked_for_split: Callable[[str], dict[str, list[str]]],
+    top_k: int = 10,
+    query_to_text: Callable[[str], str],
+    splits: tuple[str, ...] = RAG_SPLITS,
+    batch_size: int | None = None,
+    show_progress: bool = True,
+) -> dict[str, list[RetrievedDocRecord]]:
+    return {
+        split: retrieve_split_scoped(
+            embedder,
+            store,
+            split=split,
+            load_subset=load_subset,
+            load_top_ranked_for_split=load_top_ranked_for_split,
             top_k=top_k,
             query_to_text=query_to_text,
             batch_size=batch_size,

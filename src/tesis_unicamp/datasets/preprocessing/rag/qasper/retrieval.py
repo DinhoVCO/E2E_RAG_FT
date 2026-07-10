@@ -14,7 +14,11 @@ from tesis_unicamp.datasets.utils.qasper_rag import (
     QASPER_RAG_DATASET_ID,
     load_qasper_rag_subset,
 )
-from tesis_unicamp.datasets.utils.retrieval import retrieve_all_splits
+from tesis_unicamp.datasets.utils.qasper_top_ranked import load_top_ranked_for_split
+from tesis_unicamp.datasets.utils.retrieval import (
+    retrieve_all_splits,
+    retrieve_all_splits_scoped,
+)
 from tesis_unicamp.embeddings.base import BaseEmbedder
 from tesis_unicamp.vector_stores.base import BaseVectorStore
 
@@ -35,6 +39,29 @@ def retrieve_qasper_top_k(
         embedder,
         store,
         load_subset=load_qasper_rag_subset,
+        top_k=top_k,
+        query_to_text=query_to_instruct_text,
+        splits=splits,
+        batch_size=batch_size,
+        show_progress=show_progress,
+    )
+
+
+def retrieve_qasper_paper_scoped_top_k(
+    embedder: BaseEmbedder,
+    store: BaseVectorStore,
+    *,
+    top_k: int = 10,
+    splits: tuple[str, ...] = RAG_SPLITS,
+    batch_size: int | None = None,
+    show_progress: bool = True,
+) -> dict[str, list[RetrievedDocRecord]]:
+    """Retrieve top-k chunks per query, restricted to the query paper via top_ranked."""
+    return retrieve_all_splits_scoped(
+        embedder,
+        store,
+        load_subset=load_qasper_rag_subset,
+        load_top_ranked_for_split=load_top_ranked_for_split,
         top_k=top_k,
         query_to_text=query_to_instruct_text,
         splits=splits,

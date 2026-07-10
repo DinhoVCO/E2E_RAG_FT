@@ -27,12 +27,14 @@ class InMemoryVectorStore(BaseVectorStore):
         self._index: faiss.IndexFlatIP | None = None
         self._ids: list[int | str] = []
         self._payloads: list[dict[str, Any]] = []
+        self._corpus_id_to_index: dict[str, int] = {}
 
     def _reset(self) -> None:
         self._vector_size = None
         self._index = None
         self._ids = []
         self._payloads = []
+        self._corpus_id_to_index = {}
 
     def ensure_collection(
         self,
@@ -74,10 +76,14 @@ class InMemoryVectorStore(BaseVectorStore):
             raise ValueError("All vectors must share the same dimension")
 
         _normalize(matrix)
+        start_idx = self.count()
         self._index.add(matrix)
         self._ids.extend(ids)
         if payloads is not None:
             self._payloads.extend(payloads)
+            for offset, payload in enumerate(payloads):
+                corpus_id = str(payload.get("corpus_id", ids[offset]))
+                self._corpus_id_to_index[corpus_id] = start_idx + offset
         else:
             self._payloads.extend({} for _ in ids)
 
@@ -107,6 +113,51 @@ class InMemoryVectorStore(BaseVectorStore):
                 {
                     "id": self._ids[idx],
                     "score": float(score),
+                    "payload": self._payloads[idx],
+                }
+            )
+        return results
+
+    def search_candidates(
+        self,
+        query_vector: list[float],
+        candidate_corpus_ids: list[str],
+        *,
+        limit: int = 10,
+    ) -> list[dict[str, Any]]:
+        """Return top matches restricted to a subset of corpus ids."""
+        if self._index is None or self.count() == 0 or not candidate_corpus_ids:
+            return []
+
+        indices: list[int] = []
+        seen: set[int] = set()
+        for corpus_id in candidate_corpus_ids:
+            idx = self._corpus_id_to_index.get(str(corpus_id))
+            if idx is None or idx in seen:
+                continue
+            seen.add(idx)
+            indices.append(idx)
+
+        if not indices:
+            return []
+
+        query = np.asarray([query_vector], dtype=np.float32)
+        _normalize(query)
+
+        candidate_vectors = np.vstack(
+            [self._index.reconstruct(idx) for idx in indices]
+        )
+        scores = (candidate_vectors @ query.T).ravel()
+        order = np.argsort(-scores)
+        k = min(limit, len(order))
+
+        results: list[dict[str, Any]] = []
+        for pos in order[:k]:
+            idx = indices[int(pos)]
+            results.append(
+                {
+                    "id": self._ids[idx],
+                    "score": float(scores[int(pos)]),
                     "payload": self._payloads[idx],
                 }
             )

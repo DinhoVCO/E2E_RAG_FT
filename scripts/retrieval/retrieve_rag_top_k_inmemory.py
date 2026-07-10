@@ -36,6 +36,7 @@ from tesis_unicamp.datasets.preprocessing.rag.narrativeqa.retrieval import (
     save_narrativeqa_retrieved_docs,
 )
 from tesis_unicamp.datasets.preprocessing.rag.qasper.retrieval import (
+    retrieve_qasper_paper_scoped_top_k,
     retrieve_qasper_top_k,
     save_qasper_retrieved_docs,
 )
@@ -294,6 +295,15 @@ def _build_parser() -> argparse.ArgumentParser:
         default=list(DEFAULT_SPLITS),
         help="Query splits to retrieve (default: test)",
     )
+    parser.add_argument(
+        "--paper-scoped",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help=(
+            "QASPER only: restrict retrieval to each query's paper chunks via "
+            "top_ranked (default: on for qasper, off for other datasets)."
+        ),
+    )
     return parser
 
 
@@ -302,7 +312,15 @@ def main(argv: list[str] | None = None) -> None:
     args = _build_parser().parse_args(argv)
     spec = DATASET_SPECS[args.dataset]
 
+    paper_scoped = args.paper_scoped
+    if paper_scoped is None:
+        paper_scoped = args.dataset == "qasper"
+    if paper_scoped and args.dataset != "qasper":
+        raise SystemExit("--paper-scoped is only supported for --dataset qasper")
+
     run_label = _sanitize_run_label(args.run_label)
+    if paper_scoped and "paper-scoped" not in run_label.lower():
+        run_label = f"{run_label}-paper-scoped"
     output_dir = args.output_dir or _default_output_dir(args.dataset, run_label)
     splits = tuple(args.splits)
 
@@ -330,6 +348,8 @@ def main(argv: list[str] | None = None) -> None:
     print(f"top_k: {args.top_k}")
     print(f"corpus_split: {args.corpus_split}")
     print(f"splits: {', '.join(splits)}")
+    if args.dataset == "qasper":
+        print(f"paper_scoped: {paper_scoped}")
     print(f"output_dir: {output_dir}")
 
     indexed = spec.index_fn(
@@ -345,13 +365,22 @@ def main(argv: list[str] | None = None) -> None:
     if store.count() == 0:
         raise SystemExit("Corpus index is empty; nothing to retrieve.")
 
-    retrieved = spec.retrieve_fn(
-        embedder,
-        store,
-        top_k=args.top_k,
-        splits=splits,
-        batch_size=args.batch_size,
-    )
+    if paper_scoped:
+        retrieved = retrieve_qasper_paper_scoped_top_k(
+            embedder,
+            store,
+            top_k=args.top_k,
+            splits=splits,
+            batch_size=args.batch_size,
+        )
+    else:
+        retrieved = spec.retrieve_fn(
+            embedder,
+            store,
+            top_k=args.top_k,
+            splits=splits,
+            batch_size=args.batch_size,
+        )
     output_path = spec.save_fn(retrieved, output_dir=output_dir)
 
     for split in splits:
