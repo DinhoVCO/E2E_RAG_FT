@@ -30,7 +30,7 @@ from tesis_unicamp.evaluation.ragas.tokenizer import build_tokenizer_helpers_fro
 from tesis_unicamp.generation.rag.io import load_generated_answers
 
 
-DEFAULT_JUDGE_MODEL = "openai/gpt-oss-20b"
+DEFAULT_JUDGE_MODEL = "mistralai/Mistral-Small-3.1-24B-Instruct-2503"
 DEFAULT_EMBEDDING_MODEL = "Qwen/Qwen3-Embedding-8B"
 DEFAULT_JUDGE_MAX_TOKENS = 1024
 DEFAULT_RAGAS_MAX_WORKERS = 16

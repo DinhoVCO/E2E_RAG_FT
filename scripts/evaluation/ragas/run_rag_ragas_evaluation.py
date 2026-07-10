@@ -2,10 +2,10 @@
 
 Prerequisites:
     1) vLLM judge server (OpenAI chat API), e.g.:
-       vllm serve openai/gpt-oss-20b \\
+       vllm serve mistralai/Mistral-Small-3.1-24B-Instruct-2503 \\
          --host 0.0.0.0 --port 8000 \\
          --tensor-parallel-size 1 \\
-         --served-model-name openai/gpt-oss-20b
+         --served-model-name mistralai/Mistral-Small-3.1-24B-Instruct-2503
 
     2) vLLM embedding server (OpenAI embeddings API), e.g.:
        vllm serve Qwen/Qwen3-Embedding-8B \\

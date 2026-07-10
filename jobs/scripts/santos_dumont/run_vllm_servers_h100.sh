@@ -5,8 +5,8 @@ set -euo pipefail
 #   - Node 1: judge LLM (1 GPU, TP=1) on port 8000
 #   - Node 2: embedding model (1 GPU) on port 8001
 #
-# Default judge: openai/gpt-oss-20b (~16 GB VRAM, 1x H100).
-# gpt-oss needs a vLLM build with gpt-oss support; see README in scripts/evaluation/ragas/.
+# Default judge: mistralai/Mistral-Small-3.1-24B-Instruct-2503 (~48 GB VRAM, 1x H100).
+# For gpt-oss judges, set JUDGE_MODEL=openai/gpt-oss-20b (see README in scripts/evaluation/ragas/).
 #
 # Usage:
 #   bash jobs/scripts/santos_dumont/run_vllm_servers_h100.sh
@@ -23,7 +23,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 SCRIPT="$ROOT/jobs/scripts/santos_dumont/run_vllm_servers_h100.sh"
 
 NODES=2
-GPUS_PER_NODE=4
+GPUS_PER_NODE=1
 CPUS_PER_GPU="${CPUS_PER_GPU:-8}"
 MEM_PER_GPU="${MEM_PER_GPU:-32G}"
 TIME="${TIME:-04:00:00}"
@@ -31,7 +31,7 @@ ACCOUNT="${ACCOUNT:-smartassistant}"
 PARTITION="${PARTITION:-ict-h100}"
 JOB_NAME="${JOB_NAME:-vllm_servers}"
 
-JUDGE_MODEL="${JUDGE_MODEL:-openai/gpt-oss-20b}"
+JUDGE_MODEL="${JUDGE_MODEL:-mistralai/Mistral-Small-3.1-24B-Instruct-2503}"
 EMBEDDING_MODEL="${EMBEDDING_MODEL:-Qwen/Qwen3-Embedding-8B}"
 JUDGE_PORT="${JUDGE_PORT:-8000}"
 EMBEDDING_PORT="${EMBEDDING_PORT:-8001}"
