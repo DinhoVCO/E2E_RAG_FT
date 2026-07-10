@@ -196,6 +196,12 @@ results/ragas/<dataset>/<run_label>/
 
 ## Troubleshooting
 
+### Mistral tokenizer warning
+
+vLLM may log `incorrect regex pattern` for `Mistral-Small-3.1-24B-Instruct-2503`. Do **not** pass `--tokenizer-mode mistral` on vLLM 0.11 with this model — it crashes during multimodal init (`MistralTokenizer` lacks `convert_tokens_to_ids`). The warning is harmless for text-only RAGAS judge use.
+
+RAGAS context truncation uses `fix_mistral_regex=True` in `tokenizer.py` (client side only).
+
 ### Connection refused
 
 Ensure vLLM servers are up and URLs point to the correct host/port (use node hostname from `$SLURM_JOB_NODELIST`, not `localhost`, if eval runs on a different node).

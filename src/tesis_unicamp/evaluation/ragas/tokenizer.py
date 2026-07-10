@@ -13,6 +13,13 @@ DEFAULT_SYSTEM_PROMPT = (
 )
 
 
+def _load_tokenizer(model_name: str, *, trust_remote_code: bool = True):
+    kwargs: dict[str, object] = {"trust_remote_code": trust_remote_code}
+    if "mistral" in model_name.lower():
+        kwargs["fix_mistral_regex"] = True
+    return AutoTokenizer.from_pretrained(model_name, **kwargs)
+
+
 def build_tokenizer_helpers(
     llm,
     *,
@@ -35,10 +42,7 @@ def build_tokenizer_helpers_from_model_name(
     trust_remote_code: bool = True,
 ) -> tuple[Callable[[str], int], Callable[[str, int], str]]:
     """Build tokenizer helpers without loading the full vLLM judge model."""
-    tokenizer = AutoTokenizer.from_pretrained(
-        model_name,
-        trust_remote_code=trust_remote_code,
-    )
+    tokenizer = _load_tokenizer(model_name, trust_remote_code=trust_remote_code)
     return build_tokenizer_helpers_from_tokenizer(
         tokenizer,
         use_chat_template=use_chat_template,
