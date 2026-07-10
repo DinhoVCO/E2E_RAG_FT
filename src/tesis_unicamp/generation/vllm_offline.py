@@ -36,6 +36,7 @@ class VLLMOfflineGenerator(BaseGenerator):
         max_lora_rank: int = DEFAULT_MAX_LORA_RANK,
         system_prompt: str = DEFAULT_SYSTEM_PROMPT,
         use_chat_template: bool = True,
+        enable_thinking: bool = False,
         **llm_kwargs: object,
     ) -> None:
         super().__init__(config)
@@ -46,6 +47,7 @@ class VLLMOfflineGenerator(BaseGenerator):
         self._max_lora_rank = max_lora_rank
         self._system_prompt = system_prompt
         self._use_chat_template = use_chat_template
+        self._enable_thinking = enable_thinking
         self._llm_kwargs = llm_kwargs
         self._lora_request: LoRARequest | None = None
 
@@ -120,13 +122,21 @@ class VLLMOfflineGenerator(BaseGenerator):
                 {"role": "system", "content": self._system_prompt},
                 {"role": "user", "content": content},
             ]
-            prompt = tokenizer.apply_chat_template(
-                messages,
-                tokenize=False,
-                add_generation_prompt=True,
-            )
+            prompt = self._apply_chat_template(tokenizer, messages)
             prompts.append(prompt)
         return prompts
+
+    def _apply_chat_template(self, tokenizer, messages: list[dict[str, str]]) -> str:
+        template_kwargs = {
+            "tokenize": False,
+            "add_generation_prompt": True,
+            "enable_thinking": self._enable_thinking,
+        }
+        try:
+            return tokenizer.apply_chat_template(messages, **template_kwargs)
+        except TypeError:
+            template_kwargs.pop("enable_thinking")
+            return tokenizer.apply_chat_template(messages, **template_kwargs)
 
     def generate_texts(self, prompts: list[str]) -> list[str]:
         if not prompts:

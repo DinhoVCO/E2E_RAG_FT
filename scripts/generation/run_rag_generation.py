@@ -179,6 +179,11 @@ def _build_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--enable-thinking",
+        action="store_true",
+        help="Enable Qwen3 thinking mode in the chat template (disabled by default)",
+    )
+    parser.add_argument(
         "--no-chat-template",
         action="store_true",
         help="Send raw prompts without applying the model chat template",
@@ -212,6 +217,7 @@ def main(argv: list[str] | None = None) -> None:
         lora_path=args.lora_path,
         max_lora_rank=args.max_lora_rank if args.lora_path else None,
         use_chat_template=not args.no_chat_template,
+        enable_thinking=args.enable_thinking,
     )
 
     print(f"dataset: {args.dataset}")
@@ -223,6 +229,7 @@ def main(argv: list[str] | None = None) -> None:
     print(f"split: {args.split}")
     print(f"top_k: {args.top_k}")
     print(f"max_tokens_per_chunk: {args.max_tokens_per_chunk}")
+    print(f"enable_thinking: {args.enable_thinking}")
     print(f"output_dir: {output_dir}")
 
     generator.warmup()
@@ -260,6 +267,7 @@ def main(argv: list[str] | None = None) -> None:
         "max_tokens": args.max_tokens,
         "temperature": args.temperature,
         "use_chat_template": not args.no_chat_template,
+        "enable_thinking": args.enable_thinking,
         "num_answers": len(records),
     }
     save_generated_answers_bundle(
