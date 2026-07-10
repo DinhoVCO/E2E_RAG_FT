@@ -126,8 +126,8 @@ No `CUDA_VISIBLE_DEVICES` is required on the machine running RAGAS.
 | `RAGAS_JUDGE_MODEL` | `mistralai/Mistral-Small-3.1-24B-Instruct-2503` | Must match `--served-model-name` on judge server |
 | `RAGAS_EMBEDDING_MODEL` | Qwen3-Embedding-8B id | Must match embedding server |
 | `RAGAS_TOKENIZER_MODEL` | same as judge | HF id for context truncation only |
-| `RAGAS_MAX_WORKERS` | `16` | Concurrent RAGAS API workers |
-| `RAGAS_JUDGE_MAX_TOKENS` | `1024` | Max tokens per judge completion |
+| `RAGAS_MAX_WORKERS` | `128` | Concurrent RAGAS API workers |
+| `RAGAS_JUDGE_MAX_TOKENS` | `2048` | Max tokens per judge completion |
 | `RAGAS_API_TIMEOUT` | `300` | HTTP timeout (seconds) |
 
 ---
@@ -138,22 +138,22 @@ RAGAS is often **client-bound**: vLLM on H100 can serve many more parallel reque
 
 | Knob | Default (updated) | Effect |
 |------|-------------------|--------|
-| `RAGAS_MAX_WORKERS` / `--max-workers` | `16` | More concurrent HTTP calls to judge + embeddings |
-| `RAGAS_JUDGE_MAX_TOKENS` / `--judge-max-tokens` | `1024` | Shorter judge outputs → faster generation (JSON metrics) |
+| `RAGAS_MAX_WORKERS` / `--max-workers` | `128` | More concurrent HTTP calls to judge + embeddings |
+| `RAGAS_JUDGE_MAX_TOKENS` / `--judge-max-tokens` | `2048` | Max tokens per judge completion (higher reduces JSON truncation) |
 | `JUDGE_MAX_NUM_SEQS` (vLLM server) | `128` | More in-flight sequences on the judge GPU |
 | `EMBEDDING_MAX_NUM_SEQS` | `256` | Higher embedding throughput |
 | `EMBEDDING_MAX_MODEL_LEN` | `8192` | Lower than Qwen default (40k); frees KV cache for batching |
 
-**Suggested fast run** (after restarting vLLM servers with the new script defaults):
+**Suggested fast run** (if vLLM servers keep up):
 
 ```bash
-export RAGAS_MAX_WORKERS=32
-export RAGAS_JUDGE_MAX_TOKENS=512
+export RAGAS_MAX_WORKERS=128
+export RAGAS_JUDGE_MAX_TOKENS=2048
 
 bash jobs/scripts/santos_dumont/run_ragas_eval.sh <generation-dir>
 ```
 
-Increase `RAGAS_MAX_WORKERS` gradually (16 → 32 → 64). If you see HTTP 503 / timeouts, lower workers or raise `--api-timeout`.
+If you see HTTP 503 / timeouts, lower `RAGAS_MAX_WORKERS` (e.g. 64 → 32) or raise `--api-timeout`.
 
 **vLLM server-side** (optional overrides when starting servers):
 

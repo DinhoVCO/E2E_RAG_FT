@@ -153,8 +153,8 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--judge-max-tokens",
         type=int,
-        default=int(os.getenv("RAGAS_JUDGE_MAX_TOKENS", "1024")),
-        help="Maximum tokens for each RAGAS judge completion (default: 1024).",
+        default=int(os.getenv("RAGAS_JUDGE_MAX_TOKENS", "2048")),
+        help="Maximum tokens for each RAGAS judge completion (default: 2048).",
     )
     parser.add_argument(
         "--judge-temperature",
