@@ -2,8 +2,11 @@
 set -euo pipefail
 
 # Reserve 2 nodes on ict-h100 and start vLLM OpenAI servers:
-#   - Node 1: judge LLM (4 GPUs, TP=4) on port 8000
+#   - Node 1: judge LLM (1 GPU, TP=1) on port 8000
 #   - Node 2: embedding model (1 GPU) on port 8001
+#
+# Default judge: openai/gpt-oss-20b (~16 GB VRAM, 1x H100).
+# gpt-oss needs a vLLM build with gpt-oss support; see README in scripts/evaluation/ragas/.
 #
 # Usage:
 #   bash jobs/scripts/santos_dumont/run_vllm_servers_h100.sh
@@ -28,18 +31,46 @@ ACCOUNT="${ACCOUNT:-smartassistant}"
 PARTITION="${PARTITION:-ict-h100}"
 JOB_NAME="${JOB_NAME:-vllm_servers}"
 
-JUDGE_MODEL="${JUDGE_MODEL:-deepseek-ai/DeepSeek-R1-Distill-Llama-70B}"
+JUDGE_MODEL="${JUDGE_MODEL:-openai/gpt-oss-20b}"
 EMBEDDING_MODEL="${EMBEDDING_MODEL:-Qwen/Qwen3-Embedding-8B}"
 JUDGE_PORT="${JUDGE_PORT:-8000}"
 EMBEDDING_PORT="${EMBEDDING_PORT:-8001}"
-JUDGE_TP="${JUDGE_TP:-4}"
+JUDGE_GPUS="${JUDGE_GPUS:-1}"
+JUDGE_TP="${JUDGE_TP:-1}"
 JUDGE_MAX_MODEL_LEN="${JUDGE_MAX_MODEL_LEN:-8192}"
+JUDGE_MAX_NUM_SEQS="${JUDGE_MAX_NUM_SEQS:-128}"
+JUDGE_GPU_MEMORY_UTILIZATION="${JUDGE_GPU_MEMORY_UTILIZATION:-0.95}"
 EMBEDDING_GPUS="${EMBEDDING_GPUS:-1}"
+EMBEDDING_MAX_MODEL_LEN="${EMBEDDING_MAX_MODEL_LEN:-8192}"
+EMBEDDING_MAX_NUM_SEQS="${EMBEDDING_MAX_NUM_SEQS:-256}"
+TIKTOKEN_ENCODINGS_DIR="${TIKTOKEN_ENCODINGS_DIR:-${ROOT}/data/tiktoken_encodings}"
 SERVER_READY_TIMEOUT="${SERVER_READY_TIMEOUT:-600}"
 
 export ROOT SCRIPT \
   JUDGE_MODEL EMBEDDING_MODEL JUDGE_PORT EMBEDDING_PORT \
-  JUDGE_TP JUDGE_MAX_MODEL_LEN EMBEDDING_GPUS SERVER_READY_TIMEOUT
+  JUDGE_GPUS JUDGE_TP JUDGE_MAX_MODEL_LEN JUDGE_MAX_NUM_SEQS JUDGE_GPU_MEMORY_UTILIZATION \
+  EMBEDDING_GPUS EMBEDDING_MAX_MODEL_LEN EMBEDDING_MAX_NUM_SEQS SERVER_READY_TIMEOUT \
+  TIKTOKEN_ENCODINGS_DIR
+
+_ensure_gpt_oss_tiktoken_encodings() {
+  if [[ "${JUDGE_MODEL}" != *"gpt-oss"* ]]; then
+    return 0
+  fi
+  local missing=0
+  for file in o200k_base.tiktoken cl100k_base.tiktoken; do
+    if [[ ! -f "${TIKTOKEN_ENCODINGS_DIR}/${file}" ]]; then
+      echo "Missing: ${TIKTOKEN_ENCODINGS_DIR}/${file}" >&2
+      missing=1
+    fi
+  done
+  if (( missing )); then
+    echo "gpt-oss needs local tiktoken vocab files (compute nodes may block downloads)." >&2
+    echo "On the login node, run:" >&2
+    echo "  bash jobs/scripts/santos_dumont/download_tiktoken_encodings.sh" >&2
+    exit 1
+  fi
+  echo "Using TIKTOKEN_ENCODINGS_BASE=${TIKTOKEN_ENCODINGS_DIR}"
+}
 
 _deploy_servers() {
   mapfile -t NODES_LIST < <(scontrol show hostnames "${SLURM_JOB_NODELIST}")
@@ -53,11 +84,17 @@ _deploy_servers() {
   local log_dir="${ROOT}/logs/vllm/${SLURM_JOB_ID}"
   mkdir -p "$log_dir"
 
-  echo "Judge node:  ${judge_node}  (${JUDGE_TP} GPUs, port ${JUDGE_PORT})"
+  echo "Judge node:  ${judge_node}  (${JUDGE_GPUS} GPU, TP=${JUDGE_TP}, port ${JUDGE_PORT})"
   echo "Embed node:  ${embed_node}  (${EMBEDDING_GPUS} GPU, port ${EMBEDDING_PORT})"
   echo "Logs:        ${log_dir}/"
 
   export VLLM_WORKER_MULTIPROC_METHOD="${VLLM_WORKER_MULTIPROC_METHOD:-spawn}"
+  _ensure_gpt_oss_tiktoken_encodings
+
+  local judge_tiktoken_env=""
+  if [[ "${JUDGE_MODEL}" == *"gpt-oss"* ]]; then
+    judge_tiktoken_env="export TIKTOKEN_ENCODINGS_BASE='${TIKTOKEN_ENCODINGS_DIR}';"
+  fi
 
   echo "Starting embedding server on ${embed_node}..."
   srun --jobid="${SLURM_JOB_ID}" \
@@ -71,6 +108,8 @@ _deploy_servers() {
         --host 0.0.0.0 --port '${EMBEDDING_PORT}' \
         --task embed \
         --tensor-parallel-size 1 \
+        --max-model-len '${EMBEDDING_MAX_MODEL_LEN}' \
+        --max-num-seqs '${EMBEDDING_MAX_NUM_SEQS}' \
         --served-model-name '${EMBEDDING_MODEL}'
     " &
   EMBED_SRUN_PID=$!
@@ -78,15 +117,18 @@ _deploy_servers() {
   echo "Starting judge server on ${judge_node}..."
   srun --jobid="${SLURM_JOB_ID}" \
     --nodes=1 --nodelist="${judge_node}" --ntasks=1 \
-    --gpus-per-node="${JUDGE_TP}" \
+    --gpus-per-node="${JUDGE_GPUS}" \
     --output="${log_dir}/judge.log" \
     --error="${log_dir}/judge.log" \
     bash -lc "
       cd '${ROOT}'
+      ${judge_tiktoken_env}
       exec uv run vllm serve '${JUDGE_MODEL}' \
         --host 0.0.0.0 --port '${JUDGE_PORT}' \
         --tensor-parallel-size '${JUDGE_TP}' \
         --max-model-len '${JUDGE_MAX_MODEL_LEN}' \
+        --max-num-seqs '${JUDGE_MAX_NUM_SEQS}' \
+        --gpu-memory-utilization '${JUDGE_GPU_MEMORY_UTILIZATION}' \
         --served-model-name '${JUDGE_MODEL}'
     " &
   JUDGE_SRUN_PID=$!
@@ -120,7 +162,7 @@ _deploy_servers() {
 
   srun --jobid="${SLURM_JOB_ID}" \
     --nodes=1 --nodelist="${judge_node}" --ntasks=1 \
-    --gpus-per-node="${JUDGE_TP}" \
+    --gpus-per-node="${JUDGE_GPUS}" \
     --pty bash
 }
 

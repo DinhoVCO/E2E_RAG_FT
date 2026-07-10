@@ -12,9 +12,10 @@ shift
 export RAGAS_JUDGE_BASE_URL="${RAGAS_JUDGE_BASE_URL:-http://127.0.0.1:8000/v1}"
 export RAGAS_EMBEDDING_BASE_URL="${RAGAS_EMBEDDING_BASE_URL:-http://127.0.0.1:8001/v1}"
 export RAGAS_OPENAI_API_KEY="${RAGAS_OPENAI_API_KEY:-EMPTY}"
-export RAGAS_JUDGE_MODEL="${RAGAS_JUDGE_MODEL:-deepseek-ai/DeepSeek-R1-Distill-Llama-70B}"
+export RAGAS_JUDGE_MODEL="${RAGAS_JUDGE_MODEL:-openai/gpt-oss-20b}"
 export RAGAS_EMBEDDING_MODEL="${RAGAS_EMBEDDING_MODEL:-Qwen/Qwen3-Embedding-8B}"
-export RAGAS_MAX_WORKERS="${RAGAS_MAX_WORKERS:-4}"
+export RAGAS_JUDGE_MAX_TOKENS="${RAGAS_JUDGE_MAX_TOKENS:-1024}"
+export RAGAS_MAX_WORKERS="${RAGAS_MAX_WORKERS:-16}"
 
 uv run python scripts/evaluation/ragas/run_rag_ragas_evaluation.py \
   --generation-dir "$GENERATION_DIR" \

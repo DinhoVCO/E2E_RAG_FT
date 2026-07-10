@@ -7,7 +7,7 @@ from typing import Any
 
 from ragas import evaluate
 from ragas.dataset_schema import EvaluationResult
-from ragas.metrics import AnswerCorrectness, Faithfulness, SemanticSimilarity
+from ragas.metrics import AnswerCorrectness, SemanticSimilarity
 from ragas.run_config import RunConfig
 
 from tesis_unicamp.evaluation.ragas.dataset import (
@@ -30,14 +30,14 @@ from tesis_unicamp.evaluation.ragas.tokenizer import build_tokenizer_helpers_fro
 from tesis_unicamp.generation.rag.io import load_generated_answers
 
 
-DEFAULT_JUDGE_MODEL = "deepseek-ai/DeepSeek-R1-Distill-Llama-70B"
+DEFAULT_JUDGE_MODEL = "openai/gpt-oss-20b"
 DEFAULT_EMBEDDING_MODEL = "Qwen/Qwen3-Embedding-8B"
 DEFAULT_JUDGE_MAX_TOKENS = 1024
+DEFAULT_RAGAS_MAX_WORKERS = 16
 DEFAULT_JUDGE_TEMPERATURE = 0.0
 DEFAULT_API_TIMEOUT = 300.0
 DEFAULT_METRICS = (
     AnswerCorrectness(),
-    Faithfulness(),
     SemanticSimilarity(),
 )
 
@@ -63,6 +63,7 @@ def evaluate_generated_answers(
     judge_max_tokens: int = DEFAULT_JUDGE_MAX_TOKENS,
     judge_temperature: float = DEFAULT_JUDGE_TEMPERATURE,
     api_timeout: float = DEFAULT_API_TIMEOUT,
+    enable_judge_thinking: bool = False,
     use_chat_template: bool | None = None,
     embedding_batch_size: int = 32,
     retrieved_dir: Path | None = None,
@@ -138,7 +139,10 @@ def evaluate_generated_answers(
         truncate_text_to_tokens=truncate_text_to_tokens,
     )
 
-    bypass_n = any(token in judge_model.lower() for token in ("deepseek", "r1", "reasoning"))
+    bypass_n = any(
+        token in judge_model.lower()
+        for token in ("deepseek", "r1", "reasoning", "gpt-oss")
+    )
     judge_llm = build_openai_judge_llm(
         judge_model,
         base_url=judge_base_url,
@@ -147,6 +151,7 @@ def evaluate_generated_answers(
         temperature=judge_temperature,
         timeout=api_timeout,
         bypass_n=bypass_n,
+        enable_thinking=enable_judge_thinking,
     )
     embeddings = build_openai_ragas_embeddings(
         embedding_model,
@@ -156,7 +161,10 @@ def evaluate_generated_answers(
     )
 
     selected_metrics = list(metrics or build_default_metrics())
-    effective_run_config = run_config or RunConfig(max_workers=4, timeout=int(api_timeout))
+    effective_run_config = run_config or RunConfig(
+        max_workers=DEFAULT_RAGAS_MAX_WORKERS,
+        timeout=int(api_timeout),
+    )
 
     result = evaluate(
         dataset=evaluation_dataset,
@@ -196,6 +204,7 @@ def evaluate_generated_answers(
         "embedding_base_url": embedding_base_url,
         "judge_max_tokens": judge_max_tokens,
         "judge_temperature": judge_temperature,
+        "enable_judge_thinking": enable_judge_thinking,
         "api_timeout": api_timeout,
         "embedding_batch_size": embedding_batch_size,
         "metrics": [metric.name for metric in selected_metrics],

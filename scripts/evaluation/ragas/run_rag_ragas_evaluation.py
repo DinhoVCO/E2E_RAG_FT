@@ -2,9 +2,10 @@
 
 Prerequisites:
     1) vLLM judge server (OpenAI chat API), e.g.:
-       vllm serve deepseek-ai/DeepSeek-R1-Distill-Llama-70B \\
+       vllm serve openai/gpt-oss-20b \\
          --host 0.0.0.0 --port 8000 \\
-         --served-model-name deepseek-ai/DeepSeek-R1-Distill-Llama-70B
+         --tensor-parallel-size 1 \\
+         --served-model-name openai/gpt-oss-20b
 
     2) vLLM embedding server (OpenAI embeddings API), e.g.:
        vllm serve Qwen/Qwen3-Embedding-8B \\
@@ -34,6 +35,7 @@ from tesis_unicamp.evaluation.ragas.openai_client import (
 from tesis_unicamp.evaluation.ragas.runner import (
     DEFAULT_EMBEDDING_MODEL,
     DEFAULT_JUDGE_MODEL,
+    DEFAULT_RAGAS_MAX_WORKERS,
     configure_ragas_runtime,
     evaluate_generated_answers,
 )
@@ -161,6 +163,15 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Sampling temperature for the judge model (default: 0.0).",
     )
     parser.add_argument(
+        "--enable-judge-thinking",
+        action=argparse.BooleanOptionalAction,
+        default=os.getenv("RAGAS_ENABLE_JUDGE_THINKING", "0").lower() in {"1", "true", "yes"},
+        help=(
+            "Enable chain-of-thought / thinking in judge requests (default: off). "
+            "When off, sends chat_template_kwargs enable_thinking=false to vLLM."
+        ),
+    )
+    parser.add_argument(
         "--api-timeout",
         type=float,
         default=float(os.getenv("RAGAS_API_TIMEOUT", "300")),
@@ -181,8 +192,8 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--max-workers",
         type=int,
-        default=int(os.getenv("RAGAS_MAX_WORKERS", "4")),
-        help="Concurrent RAGAS workers (default: 4 for API mode).",
+        default=int(os.getenv("RAGAS_MAX_WORKERS", str(DEFAULT_RAGAS_MAX_WORKERS))),
+        help=f"Concurrent RAGAS workers (default: {DEFAULT_RAGAS_MAX_WORKERS} for API mode).",
     )
     parser.add_argument(
         "--timeout",
@@ -248,6 +259,7 @@ def main(argv: list[str] | None = None) -> None:
         judge_max_tokens=args.judge_max_tokens,
         judge_temperature=args.judge_temperature,
         api_timeout=args.api_timeout,
+        enable_judge_thinking=args.enable_judge_thinking,
         use_chat_template=args.use_chat_template,
         embedding_batch_size=args.embedding_batch_size,
         retrieved_dir=args.retrieved_dir,

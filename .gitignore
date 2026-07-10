@@ -20,3 +20,4 @@ wheels/
 /logs/
 /models/
 /wandb/
+/data/
