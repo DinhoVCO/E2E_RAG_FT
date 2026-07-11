@@ -1,0 +1,286 @@
+from __future__ import annotations
+
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any
+
+import yaml
+
+from tesis_unicamp.generation.rag.datasets import RAG_GENERATION_DATASET_CONFIGS
+
+_EMBEDDING_MODES = frozenset({"base", "lora"})
+_GENERATION_MODES = frozenset({"base", "lora"})
+
+_EXPERIMENT_KEYS = frozenset(
+    {
+        "dataset",
+        "embedding",
+        "generation",
+        "run_label",
+        "retrieval_run_label",
+        "embedding_model",
+        "embedding_lora",
+        "generation_model",
+        "generation_lora",
+        "top_k",
+        "retrieval_top_k",
+        "split",
+        "paper_scoped",
+        "retrieval_batch_size",
+        "generation_batch_size",
+    }
+)
+
+
+@dataclass(frozen=True)
+class ResolvedExperiment:
+    experiment_id: str
+    dataset: str
+    run_label: str
+    retrieval_run_label: str
+    embedding_model: str
+    embedding_lora: str | None
+    generation_model: str
+    generation_lora: str | None
+    top_k: int
+    retrieval_top_k: int
+    split: str
+    paper_scoped: bool
+    retrieval_batch_size: int
+    generation_batch_size: int
+
+
+def default_experiments_path() -> Path:
+    return (
+        Path(__file__).resolve().parents[3]
+        / "scripts"
+        / "generation"
+        / "configs"
+        / "experiments.yaml"
+    )
+
+
+def load_experiments_yaml(path: Path) -> dict[str, Any]:
+    with path.open(encoding="utf-8") as handle:
+        raw = yaml.safe_load(handle) or {}
+
+    if not isinstance(raw, dict):
+        raise ValueError(f"Experiments YAML must be a mapping: {path}")
+
+    experiments = raw.get("experiments")
+    if not isinstance(experiments, dict) or not experiments:
+        raise ValueError(f"Experiments YAML must define a non-empty 'experiments' map: {path}")
+
+    return raw
+
+
+def list_experiment_ids(raw: dict[str, Any]) -> list[str]:
+    experiments = raw["experiments"]
+    return sorted(experiments)
+
+
+def _defaults(raw: dict[str, Any]) -> dict[str, Any]:
+    defaults = raw.get("defaults")
+    if defaults is None:
+        return {}
+    if not isinstance(defaults, dict):
+        raise ValueError("'defaults' must be a mapping.")
+    return defaults
+
+
+def _dataset_options(raw: dict[str, Any], dataset: str) -> dict[str, Any]:
+    datasets = raw.get("datasets")
+    if not isinstance(datasets, dict):
+        return {}
+    options = datasets.get(dataset)
+    if options is None:
+        return {}
+    if not isinstance(options, dict):
+        raise ValueError(f"'datasets.{dataset}' must be a mapping.")
+    return options
+
+
+def _resolve_paper_scoped(
+    *,
+    dataset: str,
+    explicit: bool | None,
+    dataset_options: dict[str, Any],
+) -> bool:
+    if explicit is not None:
+        return explicit
+    if "paper_scoped" in dataset_options:
+        return bool(dataset_options["paper_scoped"])
+    return dataset == "qasper"
+
+
+def _resolve_retrieval_run_label(
+    *,
+    dataset: str,
+    embedding_mode: str,
+    explicit: str | None,
+    defaults: dict[str, Any],
+    paper_scoped: bool,
+) -> str:
+    if explicit is not None:
+        run_label = explicit
+    elif embedding_mode == "base":
+        run_label = str(defaults.get("base_retrieval_run_label", "vllm-offline-b128"))
+    else:
+        template = str(
+            defaults.get("lora_retrieval_run_label_template", "vllm-lora-{dataset}-b128")
+        )
+        run_label = template.format(dataset=dataset)
+
+    if paper_scoped and "paper-scoped" not in run_label.lower():
+        return f"{run_label}-paper-scoped"
+    return run_label
+
+
+def _resolve_lora(
+    *,
+    mode: str,
+    dataset: str,
+    explicit: str | None,
+    defaults_key: str,
+    dataset_options: dict[str, Any],
+) -> str | None:
+    if explicit is not None:
+        return explicit or None
+    if mode == "base":
+        return None
+    if defaults_key in dataset_options:
+        value = dataset_options[defaults_key]
+        return str(value) if value else None
+    raise ValueError(
+        f"embedding/generation mode 'lora' requires "
+        f"'datasets.{dataset}.{defaults_key}' or an explicit path in the experiment."
+    )
+
+
+def resolve_experiment(raw: dict[str, Any], experiment_id: str) -> ResolvedExperiment:
+    experiments = raw["experiments"]
+    if experiment_id not in experiments:
+        available = ", ".join(sorted(experiments))
+        raise ValueError(f"Unknown experiment {experiment_id!r}. Available: {available}")
+
+    spec = experiments[experiment_id]
+    if not isinstance(spec, dict):
+        raise ValueError(f"Experiment {experiment_id!r} must be a mapping.")
+
+    unknown = set(spec) - _EXPERIMENT_KEYS
+    if unknown:
+        raise ValueError(
+            f"Unknown keys in experiment {experiment_id!r}: {', '.join(sorted(unknown))}"
+        )
+
+    defaults = _defaults(raw)
+    dataset = spec.get("dataset")
+    if not dataset:
+        raise ValueError(f"Experiment {experiment_id!r} must define 'dataset'.")
+    if dataset not in RAG_GENERATION_DATASET_CONFIGS:
+        valid = ", ".join(sorted(RAG_GENERATION_DATASET_CONFIGS))
+        raise ValueError(f"Unknown dataset {dataset!r} in {experiment_id!r}. Expected: {valid}")
+
+    embedding_mode = spec.get("embedding")
+    generation_mode = spec.get("generation")
+    if embedding_mode not in _EMBEDDING_MODES:
+        raise ValueError(
+            f"Experiment {experiment_id!r} must define embedding as one of: "
+            f"{', '.join(sorted(_EMBEDDING_MODES))}"
+        )
+    if generation_mode not in _GENERATION_MODES:
+        raise ValueError(
+            f"Experiment {experiment_id!r} must define generation as one of: "
+            f"{', '.join(sorted(_GENERATION_MODES))}"
+        )
+
+    dataset_options = _dataset_options(raw, dataset)
+    paper_scoped = _resolve_paper_scoped(
+        dataset=dataset,
+        explicit=spec.get("paper_scoped"),
+        dataset_options=dataset_options,
+    )
+
+    top_k = int(spec.get("top_k", defaults.get("top_k", 5)))
+    retrieval_top_k = int(spec.get("retrieval_top_k", defaults.get("retrieval_top_k", 10)))
+    if top_k > retrieval_top_k:
+        raise ValueError(
+            f"Experiment {experiment_id!r}: top_k ({top_k}) cannot exceed "
+            f"retrieval_top_k ({retrieval_top_k})."
+        )
+
+    retrieval_run_label = _resolve_retrieval_run_label(
+        dataset=dataset,
+        embedding_mode=embedding_mode,
+        explicit=spec.get("retrieval_run_label"),
+        defaults=defaults,
+        paper_scoped=paper_scoped,
+    )
+
+    return ResolvedExperiment(
+        experiment_id=experiment_id,
+        dataset=dataset,
+        run_label=str(spec.get("run_label", experiment_id)),
+        retrieval_run_label=retrieval_run_label,
+        embedding_model=str(
+            spec.get("embedding_model", defaults.get("embedding_model", "Qwen/Qwen3-Embedding-4B"))
+        ),
+        embedding_lora=_resolve_lora(
+            mode=embedding_mode,
+            dataset=dataset,
+            explicit=spec.get("embedding_lora"),
+            defaults_key="embedding_lora",
+            dataset_options=dataset_options,
+        ),
+        generation_model=str(
+            spec.get("generation_model", defaults.get("generation_model", "Qwen/Qwen3-8B"))
+        ),
+        generation_lora=_resolve_lora(
+            mode=generation_mode,
+            dataset=dataset,
+            explicit=spec.get("generation_lora"),
+            defaults_key="generation_lora",
+            dataset_options=dataset_options,
+        ),
+        top_k=top_k,
+        retrieval_top_k=retrieval_top_k,
+        split=str(spec.get("split", defaults.get("split", "test"))),
+        paper_scoped=paper_scoped,
+        retrieval_batch_size=int(
+            spec.get("retrieval_batch_size", defaults.get("retrieval_batch_size", 128))
+        ),
+        generation_batch_size=int(
+            spec.get("generation_batch_size", defaults.get("generation_batch_size", 8))
+        ),
+    )
+
+
+def resolve_experiments(
+    raw: dict[str, Any],
+    *,
+    experiment_ids: list[str] | None = None,
+    dataset: str | None = None,
+) -> list[ResolvedExperiment]:
+    ids = experiment_ids or list_experiment_ids(raw)
+    resolved = [resolve_experiment(raw, experiment_id) for experiment_id in ids]
+    if dataset is not None:
+        resolved = [item for item in resolved if item.dataset == dataset]
+    return resolved
+
+
+def retrieved_docs_path(
+    *,
+    project_root: Path,
+    dataset: str,
+    retrieval_run_label: str,
+    split: str,
+) -> Path:
+    return (
+        project_root
+        / "datasets"
+        / "retrieved_inmemory"
+        / dataset
+        / retrieval_run_label
+        / split
+        / "retrieved_docs.json"
+    )

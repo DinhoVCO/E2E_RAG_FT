@@ -108,7 +108,7 @@ From the repo root:
 bash jobs/scripts/santos_dumont/run_finetune_generative_h100.sh narrativeqa
 ```
 
-Defaults: partition `ict-h100`, 1 GPU, 8 CPUs, 128 GB RAM, 12 h wall time, account `smartassistant`. SLURM stdout/stderr go to `logs/slurm/ft-<dataset>-<job_id>.out` (and `.err`).
+Defaults: partition `ict-h100`, 1 GPU, 4 CPUs, 64 GB RAM, 12 h wall time, account `smartassistant`. SLURM stdout/stderr go to `logs/slurm/ft-<dataset>-<job_id>.out` (and `.err`). Override with `CPUS_PER_TASK` / `MEM` if needed.
 
 Monitor and manage the job:
 

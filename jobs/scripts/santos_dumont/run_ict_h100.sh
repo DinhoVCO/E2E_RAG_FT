@@ -6,8 +6,8 @@ salloc \
   --account=smartassistant \
   --partition=ict-h100 \
   --time=12:00:00 \
-  --cpus-per-task=8 \
-  --mem=131072M \
+  --cpus-per-task=4 \
+  --mem=65536M \
   --gres=gpu:1 \
   --chdir="$PWD" \
   bash -c 'echo "SLURM_JOB_ID=$SLURM_JOB_ID"; exec srun --jobid="$SLURM_JOB_ID" --pty bash'

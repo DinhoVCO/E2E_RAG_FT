@@ -15,6 +15,7 @@ source .venv/bin/activate
 | Script | Purpose |
 |--------|---------|
 | `run_rag_generation.py` | Generate answers for one dataset |
+| `run_rag_experiment.py` | Run retrieval + generation from YAML experiment config |
 | `run_all_rag_generation.sh` | Run base-model generation for all four datasets sequentially |
 
 Generation is a **downstream step** after retrieval. It does **not** re-embed or re-retrieve documents. It reads local `retrieved_docs`, joins them with corpus text from Hugging Face, builds a RAG prompt, and generates answers with an LLM.
@@ -95,6 +96,77 @@ cd /path/to/E2E_RAG_FT
 source .venv/bin/activate
 CUDA_VISIBLE_DEVICES=0 bash scripts/generation/run_all_rag_generation.sh
 ```
+
+---
+
+## Experiment matrix (YAML)
+
+`scripts/generation/configs/experiments.yaml` defines **16 experiments** (4 datasets × 4 combinations):
+
+| Embedding | Generation | Example id |
+|-----------|------------|------------|
+| base | base | `telco-dpr-emb-base-gen-base-top5` |
+| lora | base | `telco-dpr-emb-lora-gen-base-top5` |
+| base | lora | `telco-dpr-emb-base-gen-lora-top5` |
+| lora | lora | `telco-dpr-emb-lora-gen-lora-top5` |
+
+Each experiment configures:
+
+- **dataset**
+- **embedding** (`base` or `lora`) → retrieval model and `retrieval_run_label`
+- **generation** (`base` or `lora`) → generation model and optional `--lora-path`
+- **run_label** → output folder under `datasets/generated/<dataset>/`
+- **top_k** → documents used in the generation prompt (default: 5)
+
+LoRA repo ids per dataset live under `datasets:` in the YAML. Defaults (`embedding_model`, `generation_model`, `retrieval_top_k`, etc.) live under `defaults:`.
+
+```bash
+# List experiments
+python scripts/generation/run_rag_experiment.py --list
+
+# One experiment (retrieval if missing, then generation)
+CUDA_VISIBLE_DEVICES=0 python scripts/generation/run_rag_experiment.py \
+  --experiment telco-dpr-emb-lora-gen-lora-top5
+
+# All 4 experiments for one dataset
+CUDA_VISIBLE_DEVICES=0 python scripts/generation/run_rag_experiment.py --dataset telco-dpr
+
+# All 16 experiments
+CUDA_VISIBLE_DEVICES=0 python scripts/generation/run_rag_experiment.py --all
+
+# Generation only (retrieval already done)
+CUDA_VISIBLE_DEVICES=0 python scripts/generation/run_rag_experiment.py \
+  --experiment telco-dpr-emb-base-gen-lora-top5 --skip-retrieval
+
+# Preview commands
+python scripts/generation/run_rag_experiment.py \
+  --experiment qasper-emb-lora-gen-lora-top5 --dry-run
+```
+
+Retrieval and generation run as **separate subprocesses** so vLLM reloads cleanly between the embedding and generation models.
+
+Output example:
+
+```
+datasets/generated/telco-dpr/telco-dpr-emb-lora-gen-lora-top5/test/generated_answers.json
+```
+
+Override any field per experiment in the YAML, e.g. custom `run_label`, `top_k`, `embedding_lora`, or `retrieval_run_label`.
+
+### Cluster (SLURM batch)
+
+Submit a non-interactive job on `ict-h100` (same pattern as fine-tuning):
+
+```bash
+bash jobs/scripts/santos_dumont/run_rag_experiment_h100.sh \
+  --experiment telco-dpr-emb-lora-gen-lora-top5
+
+bash jobs/scripts/santos_dumont/run_rag_experiment_h100.sh --dataset telco-dpr
+
+TIME=24:00:00 bash jobs/scripts/santos_dumont/run_rag_experiment_h100.sh --all
+```
+
+Logs go to `logs/slurm/rag-<experiment>-<job_id>.out`.
 
 ---
 
