@@ -4,8 +4,10 @@ from transformers import PreTrainedTokenizerBase
 
 from tesis_unicamp.finetuning.generative.config import (
     DEFAULT_INSTRUCTION,
+    DEFAULT_QA_INSTRUCTION,
     MAX_ANSWER_TOKENS,
     MAX_DOC_TOKENS,
+    MAX_QA_SEQ_LENGTH,
     MAX_QUERY_TOKENS,
     MAX_SEQ_LENGTH,
 )
@@ -167,3 +169,68 @@ def build_training_text(
         user_content=messages[0]["content"],
         answer=messages[1]["content"],
     )
+
+
+def build_qa_user_content(
+    *,
+    query: str,
+    instruction: str = DEFAULT_QA_INSTRUCTION,
+) -> str:
+    query = query.strip()
+    instruction = instruction.strip()
+    return "\n".join(
+        [
+            instruction,
+            "## Query:",
+            query,
+            "## Response:",
+        ]
+    )
+
+
+def build_qa_training_messages(
+    tokenizer: PreTrainedTokenizerBase,
+    *,
+    query: str,
+    answer: str,
+    instruction: str = DEFAULT_QA_INSTRUCTION,
+    max_query_tokens: int = MAX_QUERY_TOKENS,
+    max_answer_tokens: int = MAX_ANSWER_TOKENS,
+    max_seq_length: int = MAX_QA_SEQ_LENGTH,
+) -> dict[str, object] | None:
+    truncated_query = truncate_to_tokens(tokenizer, query, max_query_tokens)
+    truncated_answer = truncate_to_tokens(tokenizer, answer, max_answer_tokens)
+
+    while True:
+        user_content = build_qa_user_content(
+            query=truncated_query,
+            instruction=instruction,
+        )
+        text = apply_chat_template_for_training(
+            tokenizer,
+            user_content=user_content,
+            answer=truncated_answer,
+        )
+        if count_tokens(tokenizer, text) <= max_seq_length:
+            return {
+                "messages": [
+                    {"role": "user", "content": user_content},
+                    {"role": "assistant", "content": truncated_answer},
+                ],
+                "chat_template_kwargs": {"enable_thinking": False},
+            }
+        if len(truncated_answer) > 1:
+            token_ids = tokenizer.encode(truncated_answer, add_special_tokens=False)
+            truncated_answer = tokenizer.decode(
+                token_ids[: max(1, len(token_ids) // 2)],
+                skip_special_tokens=True,
+            )
+            continue
+        if len(truncated_query) > 1:
+            token_ids = tokenizer.encode(truncated_query, add_special_tokens=False)
+            truncated_query = tokenizer.decode(
+                token_ids[: max(1, len(token_ids) // 2)],
+                skip_special_tokens=True,
+            )
+            continue
+        return None

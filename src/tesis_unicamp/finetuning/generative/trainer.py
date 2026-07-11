@@ -15,13 +15,16 @@ from tesis_unicamp.finetuning.generative.config import (
     DEFAULT_WANDB_PROJECT,
     EARLY_STOPPING_PATIENCE,
     GRADIENT_ACCUMULATION_STEPS,
+    MAX_QA_SEQ_LENGTH,
     MAX_SEQ_LENGTH,
     TRAIN_BATCH_SIZE,
 )
 from tesis_unicamp.finetuning.generative.datasets import (
     GenerativeFinetuningDatasetConfig,
     get_generative_finetuning_config,
+    prepare_qa_training_dataset,
     prepare_training_dataset,
+    summarize_qa_training_dataset,
     summarize_training_dataset,
 )
 from tesis_unicamp.finetuning.generative.model import load_qwen3_generative_with_lora
@@ -57,6 +60,7 @@ class GenerativeFinetuningRunConfig:
     greater_is_better: bool = False
     early_stopping: bool = True
     early_stopping_patience: int = EARLY_STOPPING_PATIENCE
+    qa_only: bool = False
 
 
 def configure_wandb(*, project: str, run_name: str) -> None:
@@ -67,8 +71,9 @@ def configure_wandb(*, project: str, run_name: str) -> None:
 
 
 def default_wandb_run_name(config: GenerativeFinetuningRunConfig) -> str:
+    prefix = "qwen3-8b-lora-qa" if config.qa_only else "qwen3-8b-lora"
     return (
-        f"qwen3-8b-lora-{config.dataset}"
+        f"{prefix}-{config.dataset}"
         f"-b{config.per_device_train_batch_size}"
         f"-e{config.num_train_epochs}"
     )
@@ -80,6 +85,7 @@ def resolve_run_name(
     batch_size: int,
     epochs: int,
     run_name: str | None,
+    qa_only: bool = False,
 ) -> str:
     if run_name:
         return run_name
@@ -88,6 +94,7 @@ def resolve_run_name(
         output_dir=Path("."),
         num_train_epochs=epochs,
         per_device_train_batch_size=batch_size,
+        qa_only=qa_only,
     )
     return default_wandb_run_name(placeholder)
 
@@ -149,7 +156,9 @@ def build_training_arguments(config: GenerativeFinetuningRunConfig) -> SFTConfig
         run_name=run_name,
         remove_unused_columns=False,
         gradient_checkpointing=True,
-        max_length=config.max_seq_length,
+        max_length=(
+            MAX_QA_SEQ_LENGTH if config.qa_only else config.max_seq_length
+        ),
         assistant_only_loss=True,
         **best_model_kwargs,
     )
@@ -205,31 +214,52 @@ def finetune_qwen3_generative(
 
     model, tokenizer = load_qwen3_generative_with_lora(model_name=config.model_name)
 
-    train_dataset = prepare_training_dataset(
-        dataset_config,
-        tokenizer,
-        split=config.train_split,
-        seed=config.dataset_seed,
-    )
-    eval_dataset = prepare_training_dataset(
-        dataset_config,
-        tokenizer,
-        split=config.eval_split,
-        seed=config.dataset_seed + 1,
-    )
-
-    train_summary = summarize_training_dataset(
-        dataset_config,
-        tokenizer,
-        split=config.train_split,
-        seed=config.dataset_seed,
-    )
-    eval_summary = summarize_training_dataset(
-        dataset_config,
-        tokenizer,
-        split=config.eval_split,
-        seed=config.dataset_seed + 1,
-    )
+    if config.qa_only:
+        train_dataset = prepare_qa_training_dataset(
+            dataset_config,
+            tokenizer,
+            split=config.train_split,
+        )
+        eval_dataset = prepare_qa_training_dataset(
+            dataset_config,
+            tokenizer,
+            split=config.eval_split,
+        )
+        train_summary = summarize_qa_training_dataset(
+            dataset_config,
+            tokenizer,
+            split=config.train_split,
+        )
+        eval_summary = summarize_qa_training_dataset(
+            dataset_config,
+            tokenizer,
+            split=config.eval_split,
+        )
+    else:
+        train_dataset = prepare_training_dataset(
+            dataset_config,
+            tokenizer,
+            split=config.train_split,
+            seed=config.dataset_seed,
+        )
+        eval_dataset = prepare_training_dataset(
+            dataset_config,
+            tokenizer,
+            split=config.eval_split,
+            seed=config.dataset_seed + 1,
+        )
+        train_summary = summarize_training_dataset(
+            dataset_config,
+            tokenizer,
+            split=config.train_split,
+            seed=config.dataset_seed,
+        )
+        eval_summary = summarize_training_dataset(
+            dataset_config,
+            tokenizer,
+            split=config.eval_split,
+            seed=config.dataset_seed + 1,
+        )
     logger.info("Train dataset summary: %s", train_summary)
     logger.info("Eval dataset summary: %s", eval_summary)
     print(f"train_dataset: {train_summary}")

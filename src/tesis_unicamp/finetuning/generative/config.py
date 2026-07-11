@@ -24,6 +24,10 @@ DEFAULT_INSTRUCTION = (
     "responder desde tu conocimiento."
 )
 
+DEFAULT_QA_INSTRUCTION = "Responde a la siguiente pregunta."
+
+MAX_QA_SEQ_LENGTH = 1536
+
 RELEVANT_DOC_RATIO = 0.7
 DEFAULT_DATASET_SEED = 42
 

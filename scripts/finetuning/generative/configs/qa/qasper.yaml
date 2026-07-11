@@ -1,0 +1,10 @@
+# QA-only fine-tuning for qasper (no context).
+dataset: qasper
+run_name: qasper-qa-b5-e4
+batch_size: 5
+gradient_accumulation_steps: 2
+epochs: 4
+learning_rate: 2.0e-4
+logging_steps: 10
+eval_steps: 10
+save_steps: 10

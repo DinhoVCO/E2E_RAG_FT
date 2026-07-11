@@ -40,14 +40,17 @@ from tesis_unicamp.finetuning.embeddings.datasets import (
 from tesis_unicamp.finetuning.generative.config import (
     DEFAULT_DATASET_SEED,
     DEFAULT_INSTRUCTION,
+    DEFAULT_QA_INSTRUCTION,
     MAX_ANSWER_TOKENS,
     MAX_CONTEXT_DOCS,
     MAX_DOC_TOKENS,
+    MAX_QA_SEQ_LENGTH,
     MAX_QUERY_TOKENS,
     MAX_SEQ_LENGTH,
     RELEVANT_DOC_RATIO,
 )
 from tesis_unicamp.finetuning.generative.formatting import (
+    build_qa_training_messages,
     build_training_messages,
     build_training_text,
 )
@@ -258,6 +261,48 @@ def build_generative_training_examples(
     return examples
 
 
+def build_qa_training_examples(
+    *,
+    config: GenerativeFinetuningDatasetConfig,
+    tokenizer: PreTrainedTokenizerBase,
+    split: str,
+    instruction: str = DEFAULT_QA_INSTRUCTION,
+    max_query_tokens: int = MAX_QUERY_TOKENS,
+    max_answer_tokens: int = MAX_ANSWER_TOKENS,
+    max_seq_length: int = MAX_QA_SEQ_LENGTH,
+) -> list[dict[str, object]]:
+    queries = config.load_subset("queries", split=split)
+    answers = config.load_subset("answers", split=split)
+
+    query_lookup = {str(row["id"]): str(row["text"]) for row in queries}
+    answer_lookup = {str(row["query_id"]): str(row["answer"]) for row in answers}
+
+    examples: list[dict[str, object]] = []
+    for query_id, answer in answer_lookup.items():
+        query_text = query_lookup.get(query_id)
+        if not query_text or not answer.strip():
+            continue
+
+        example = build_qa_training_messages(
+            tokenizer,
+            query=query_text,
+            answer=answer,
+            instruction=instruction,
+            max_query_tokens=max_query_tokens,
+            max_answer_tokens=max_answer_tokens,
+            max_seq_length=max_seq_length,
+        )
+        if example is not None:
+            examples.append(example)
+
+    if not examples:
+        raise ValueError(
+            f"No QA training examples could be built for split {split!r} "
+            f"on dataset {config.name!r}."
+        )
+    return examples
+
+
 def prepare_training_dataset(
     config: GenerativeFinetuningDatasetConfig,
     tokenizer: PreTrainedTokenizerBase,
@@ -271,6 +316,21 @@ def prepare_training_dataset(
         tokenizer=tokenizer,
         split=split,
         seed=seed,
+    )
+    return Dataset.from_list(examples)
+
+
+def prepare_qa_training_dataset(
+    config: GenerativeFinetuningDatasetConfig,
+    tokenizer: PreTrainedTokenizerBase,
+    *,
+    split: str | None = None,
+) -> Dataset:
+    split = split or config.train_split
+    examples = build_qa_training_examples(
+        config=config,
+        tokenizer=tokenizer,
+        split=split,
     )
     return Dataset.from_list(examples)
 
@@ -309,6 +369,36 @@ def summarize_training_dataset(
         "num_examples": len(examples),
         "num_with_context": with_context,
         "num_without_context": len(examples) - with_context,
+        "avg_tokens": sum(token_counts) / len(token_counts),
+        "max_tokens": max(token_counts),
+    }
+
+
+def summarize_qa_training_dataset(
+    config: GenerativeFinetuningDatasetConfig,
+    tokenizer: PreTrainedTokenizerBase,
+    *,
+    split: str | None = None,
+) -> dict[str, int | float]:
+    split = split or config.train_split
+    examples = build_qa_training_examples(
+        config=config,
+        tokenizer=tokenizer,
+        split=split,
+    )
+    token_counts = [
+        len(
+            tokenizer.apply_chat_template(
+                example["messages"],
+                tokenize=True,
+                add_generation_prompt=False,
+                enable_thinking=False,
+            )
+        )
+        for example in examples
+    ]
+    return {
+        "num_examples": len(examples),
         "avg_tokens": sum(token_counts) / len(token_counts),
         "max_tokens": max(token_counts),
     }

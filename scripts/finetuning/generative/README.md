@@ -193,3 +193,44 @@ python scripts/finetuning/generative/push_lora_adapters_to_hub.py --dataset qasp
 ```
 
 The upload includes adapter weights, tokenizer files, `best_model.json` (if present), and a generated model card with PEFT and vLLM loading examples.
+
+## QA-only fine-tuning (no context)
+
+For training on **question + answer pairs only** (no retrieved documents), use a separate script that reuses the same trainer and LoRA setup:
+
+```bash
+CUDA_VISIBLE_DEVICES=0 python scripts/finetuning/generative/finetune_qwen3_generative_qa.py \
+  --dataset qasper
+```
+
+| | RAG (`finetune_qwen3_generative.py`) | QA (`finetune_qwen3_generative_qa.py`) |
+|---|--------------------------------------|----------------------------------------|
+| Data | queries + answers + retrieved_docs + corpus + qrels | **queries + answers only** |
+| Format | instruction + query + context + response | instruction + query + response |
+| Max seq length | 3712 | 1536 |
+| Output dir | `models/qwen3-8b-lora/` | `models/qwen3-8b-lora-qa/` |
+| Configs | `configs/<dataset>.yaml` | `configs/qa/<dataset>.yaml` |
+
+User message format (QA):
+
+```
+Responde a la siguiente pregunta.
+## Query:
+{query}
+## Response:
+```
+
+Assistant message: `{answer}`
+
+```bash
+bash jobs/scripts/finetuning/finetune_qwen3_generative_qa.sh narrativeqa
+bash jobs/scripts/finetuning/finetune_qwen3_generative_qa_all.sh
+```
+
+### Santos Dumont (SLURM batch, QA)
+
+```bash
+bash jobs/scripts/santos_dumont/run_finetune_generative_qa_h100.sh narrativeqa
+```
+
+Same defaults as the RAG batch helper (`ict-h100`, 1 GPU, 12 h). Logs: `logs/slurm/ft-qa-<dataset>-<job_id>.out`.

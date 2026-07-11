@@ -1,0 +1,10 @@
+# QA-only fine-tuning for narrativeqa (no context).
+dataset: narrativeqa
+run_name: narrativeqa-qa-b8-e2
+batch_size: 8
+gradient_accumulation_steps: 4
+epochs: 2
+learning_rate: 2.0e-4
+logging_steps: 10
+eval_steps: 30
+save_steps: 30
