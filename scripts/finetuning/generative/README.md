@@ -98,6 +98,41 @@ Train all four datasets sequentially:
 bash jobs/scripts/finetuning/finetune_qwen3_generative_all.sh
 ```
 
+## Santos Dumont (SLURM batch)
+
+On the Santos Dumont cluster (`ict-h100`), submit a **non-interactive** batch job with 1 GPU so training keeps running after you disconnect. The helper uses `sbatch` (SLURM runs the command on the allocated node via `srun` internally).
+
+From the repo root:
+
+```bash
+bash jobs/scripts/santos_dumont/run_finetune_generative_h100.sh narrativeqa
+```
+
+Defaults: partition `ict-h100`, 1 GPU, 8 CPUs, 128 GB RAM, 12 h wall time, account `smartassistant`. SLURM stdout/stderr go to `logs/slurm/ft-<dataset>-<job_id>.out` (and `.err`).
+
+Monitor and manage the job:
+
+```bash
+squeue -u "$USER"
+tail -f logs/slurm/ft-narrativeqa-<JOB_ID>.out
+scancel <JOB_ID>
+```
+
+Variants:
+
+```bash
+# Longer wall time
+TIME=24:00:00 bash jobs/scripts/santos_dumont/run_finetune_generative_h100.sh narrativeqa
+
+# Custom job name in squeue
+JOB_NAME=narrativeqa-v2 bash jobs/scripts/santos_dumont/run_finetune_generative_h100.sh narrativeqa
+
+# Extra CLI flags forwarded to finetune_qwen3_generative.py
+bash jobs/scripts/santos_dumont/run_finetune_generative_h100.sh narrativeqa --epochs 3
+```
+
+For an **interactive** GPU shell on the same partition (e.g. debugging), use `bash jobs/scripts/santos_dumont/run_ict_h100.sh` instead.
+
 ## YAML configs
 
 Per-dataset defaults live in `scripts/finetuning/generative/configs/`:
