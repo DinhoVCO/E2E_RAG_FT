@@ -15,7 +15,7 @@ export RAGAS_OPENAI_API_KEY="${RAGAS_OPENAI_API_KEY:-EMPTY}"
 export RAGAS_JUDGE_MODEL="${RAGAS_JUDGE_MODEL:-mistralai/Mistral-Small-3.1-24B-Instruct-2503}"
 export RAGAS_EMBEDDING_MODEL="${RAGAS_EMBEDDING_MODEL:-Qwen/Qwen3-Embedding-8B}"
 export RAGAS_JUDGE_MAX_TOKENS="${RAGAS_JUDGE_MAX_TOKENS:-2048}"
-export RAGAS_MAX_WORKERS="${RAGAS_MAX_WORKERS:-128}"
+export RAGAS_MAX_WORKERS="${RAGAS_MAX_WORKERS:-64}"
 
 uv run python scripts/evaluation/ragas/run_rag_ragas_evaluation.py \
   --generation-dir "$GENERATION_DIR" \
