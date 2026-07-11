@@ -1,0 +1,10 @@
+# Fine-tuning config for telco-dpr (6 epochs).
+dataset: telco-dpr
+run_name: telco-dpr-b2-e6
+batch_size: 2
+gradient_accumulation_steps: 4
+epochs: 6
+learning_rate: 2.0e-4
+logging_steps: 5
+eval_steps: 10
+save_steps: 10

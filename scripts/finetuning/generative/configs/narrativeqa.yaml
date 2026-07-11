@@ -1,0 +1,10 @@
+# Fine-tuning config for narrativeqa (3 epochs).
+dataset: narrativeqa
+run_name: narrativeqa-b2-e3
+batch_size: 2
+gradient_accumulation_steps: 4
+epochs: 3
+learning_rate: 2.0e-4
+logging_steps: 10
+eval_steps: 100
+save_steps: 100
