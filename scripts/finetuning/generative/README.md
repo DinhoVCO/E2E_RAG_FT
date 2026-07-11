@@ -162,3 +162,34 @@ models/qwen3-8b-lora/<run_name>/best_model.json
 Keep `eval_steps` and `save_steps` aligned (same value) so every saved checkpoint has eval metrics.
 
 Logs are written to `logs/<run_name>.log` unless `--no-log-file` is passed.
+
+## Upload adapters to Hugging Face Hub
+
+Upload the LoRA adapter from `final/` to a model repo named `Qwen3-8b-lora-<dataset>`:
+
+| Dataset | Default Hub repo |
+|---------|------------------|
+| `telco-dpr` | `DinoStackAI/Qwen3-8b-lora-telco-dpr` |
+| `qasper` | `DinoStackAI/Qwen3-8b-lora-qasper` |
+| `narrativeqa` | `DinoStackAI/Qwen3-8b-lora-narrativeqa` |
+| `bioasq-resplit` | `DinoStackAI/Qwen3-8b-lora-bioasq-resplit` |
+
+Requires `HF_TOKEN` in `.env` with write access to the `DinoStackAI` org. Override the org with `--hub-user` or `HF_ORG` in `.env`.
+
+```bash
+# One dataset (uses newest local run under models/qwen3-8b-lora/)
+python scripts/finetuning/generative/push_lora_adapters_to_hub.py --dataset telco-dpr
+
+# Specific run
+python scripts/finetuning/generative/push_lora_adapters_to_hub.py \
+  --dataset telco-dpr \
+  --run-dir models/qwen3-8b-lora/telco-dpr-b4-e6
+
+# All four datasets
+python scripts/finetuning/generative/push_lora_adapters_to_hub.py --all
+
+# Preview without uploading
+python scripts/finetuning/generative/push_lora_adapters_to_hub.py --dataset qasper --dry-run
+```
+
+The upload includes adapter weights, tokenizer files, `best_model.json` (if present), and a generated model card with PEFT and vLLM loading examples.
