@@ -101,12 +101,13 @@ CUDA_VISIBLE_DEVICES=0 bash scripts/generation/run_all_rag_generation.sh
 
 ## Experiment matrix (YAML)
 
-`scripts/generation/configs/experiments.yaml` defines **28 experiments** per dataset group:
+`scripts/generation/configs/experiments.yaml` defines **32 experiments**:
 
 | Type | Example id |
 |------|------------|
 | RAG matrix (emb × gen) | `telco-dpr-emb-base-gen-lora-top5` |
 | Base emb + QA LoRA + top 5 | `telco-dpr-emb-base-gen-qa-top5` |
+| Base gen, no retrieval | `telco-dpr-gen-base-noretrieval` |
 | QA LoRA, no retrieval | `telco-dpr-gen-qa-noretrieval` |
 | RAG LoRA, no retrieval | `telco-dpr-gen-lora-noretrieval` |
 

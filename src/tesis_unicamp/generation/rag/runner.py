@@ -23,6 +23,7 @@ from tesis_unicamp.generation.rag.datasets import (
     load_corpus_subset,
     load_queries_subset,
 )
+from tesis_unicamp.generation.rag.prompts import build_rag_user_prompt
 from tesis_unicamp.generation.rag.schemas import GeneratedAnswerRecord
 
 PromptMode = Literal["inference", "qa", "rag-finetune"]
@@ -249,10 +250,9 @@ def _generate_answers_without_retrieval(
     show_progress: bool,
     prompt_mode: PromptMode,
 ) -> list[GeneratedAnswerRecord]:
-    if prompt_mode not in {"qa", "rag-finetune"}:
+    if prompt_mode not in {"qa", "rag-finetune", "inference"}:
         raise ValueError(
-            f"prompt_mode {prompt_mode!r} requires retrieved docs. "
-            "Use 'qa' or 'rag-finetune' for no-retrieval generation."
+            f"Unsupported prompt_mode {prompt_mode!r} for no-retrieval generation."
         )
 
     queries = load_queries_subset(config, split=split)
@@ -284,8 +284,10 @@ def _generate_answers_without_retrieval(
             question = query_lookup[query_id]
             if prompt_mode == "qa":
                 user_prompts.append(build_qa_user_content(query=question))
-            else:
+            elif prompt_mode == "rag-finetune":
                 user_prompts.append(build_user_content(query=question, doc_texts=[]))
+            else:
+                user_prompts.append(build_rag_user_prompt(question, ""))
 
         generated_answers = generator.generate_texts(user_prompts)
         for query_id, generated_answer in zip(batch, generated_answers, strict=True):

@@ -1,6 +1,6 @@
 # RAG experiment matrix:
 #   - 16 RAG runs: embedding (base|lora) x generation (base|lora), top 5
-#   - 12 extensions: QA LoRA + no-retrieval baselines
+#   - 16 extensions: QA LoRA + no-retrieval baselines (base / lora / qa)
 #
 # Run one experiment:
 #   python scripts/generation/run_rag_experiment.py --experiment telco-dpr-emb-base-gen-base-top5
@@ -167,6 +167,13 @@ experiments:
     use_retrieval: false
     run_label: telco-dpr-gen-lora-noretrieval
 
+  telco-dpr-gen-base-noretrieval:
+    dataset: telco-dpr
+    embedding: none
+    generation: base
+    use_retrieval: false
+    run_label: telco-dpr-gen-base-noretrieval
+
   # --- QA / no-retrieval extensions (qasper) ---
   qasper-emb-base-gen-qa-top5:
     dataset: qasper
@@ -187,6 +194,13 @@ experiments:
     generation: lora
     use_retrieval: false
     run_label: qasper-gen-lora-noretrieval
+
+  qasper-gen-base-noretrieval:
+    dataset: qasper
+    embedding: none
+    generation: base
+    use_retrieval: false
+    run_label: qasper-gen-base-noretrieval
 
   # --- QA / no-retrieval extensions (narrativeqa) ---
   narrativeqa-emb-base-gen-qa-top5:
@@ -209,6 +223,13 @@ experiments:
     use_retrieval: false
     run_label: narrativeqa-gen-lora-noretrieval
 
+  narrativeqa-gen-base-noretrieval:
+    dataset: narrativeqa
+    embedding: none
+    generation: base
+    use_retrieval: false
+    run_label: narrativeqa-gen-base-noretrieval
+
   # --- QA / no-retrieval extensions (bioasq-resplit) ---
   bioasq-resplit-emb-base-gen-qa-top5:
     dataset: bioasq-resplit
@@ -229,3 +250,10 @@ experiments:
     generation: lora
     use_retrieval: false
     run_label: bioasq-resplit-gen-lora-noretrieval
+
+  bioasq-resplit-gen-base-noretrieval:
+    dataset: bioasq-resplit
+    embedding: none
+    generation: base
+    use_retrieval: false
+    run_label: bioasq-resplit-gen-base-noretrieval

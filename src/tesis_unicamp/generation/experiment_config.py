@@ -198,7 +198,11 @@ def _resolve_prompt_mode(
         return explicit
 
     if not use_retrieval:
-        return "qa" if generation_mode == "qa" else "rag-finetune"
+        if generation_mode == "qa":
+            return "qa"
+        if generation_mode == "base":
+            return "inference"
+        return "rag-finetune"
     if generation_mode == "qa":
         return "rag-finetune"
     return "inference"
