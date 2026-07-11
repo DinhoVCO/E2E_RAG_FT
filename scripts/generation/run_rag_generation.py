@@ -184,6 +184,20 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Enable Qwen3 thinking mode in the chat template (disabled by default)",
     )
     parser.add_argument(
+        "--no-retrieval",
+        action="store_true",
+        help="Generate answers from queries only (no retrieved_docs required)",
+    )
+    parser.add_argument(
+        "--prompt-mode",
+        choices=("inference", "qa", "rag-finetune"),
+        default=os.getenv("GENERATION_PROMPT_MODE", "inference"),
+        help=(
+            "Prompt format: inference (legacy RAG), qa (QA-only fine-tune), "
+            "or rag-finetune (RAG fine-tune user template)"
+        ),
+    )
+    parser.add_argument(
         "--no-chat-template",
         action="store_true",
         help="Send raw prompts without applying the model chat template",
@@ -200,8 +214,18 @@ def main(argv: list[str] | None = None) -> None:
         fallback=DEFAULT_RETRIEVAL_RUN_LABEL,
     )
     run_label = _sanitize_label(args.run_label, fallback=DEFAULT_RUN_LABEL)
-    retrieved_dir = args.retrieved_dir or _default_retrieved_dir(args.dataset, retrieval_run_label)
-    output_dir = args.output_dir or _default_output_dir(args.dataset, run_label)
+    retrieved_dir = None
+    if not args.no_retrieval:
+        retrieved_dir = args.retrieved_dir or _default_retrieved_dir(
+            args.dataset,
+            retrieval_run_label,
+        )
+
+    system_prompt = None
+    if args.prompt_mode == "inference":
+        from tesis_unicamp.generation.vllm_offline import DEFAULT_SYSTEM_PROMPT
+
+        system_prompt = DEFAULT_SYSTEM_PROMPT
 
     _validate_cuda()
     configure_vllm_multiprocessing()
@@ -216,6 +240,7 @@ def main(argv: list[str] | None = None) -> None:
         ),
         lora_path=args.lora_path,
         max_lora_rank=args.max_lora_rank if args.lora_path else None,
+        system_prompt=system_prompt,
         use_chat_template=not args.no_chat_template,
         enable_thinking=args.enable_thinking,
     )
@@ -225,9 +250,13 @@ def main(argv: list[str] | None = None) -> None:
     if args.lora_path:
         print(f"lora_path: {args.lora_path}")
         print(f"max_lora_rank: {args.max_lora_rank}")
-    print(f"retrieved_dir: {retrieved_dir}")
+    print(f"no_retrieval: {args.no_retrieval}")
+    print(f"prompt_mode: {args.prompt_mode}")
+    if retrieved_dir is not None:
+        print(f"retrieved_dir: {retrieved_dir}")
     print(f"split: {args.split}")
     print(f"top_k: {args.top_k}")
+    output_dir = args.output_dir or _default_output_dir(args.dataset, run_label)
     print(f"max_tokens_per_chunk: {args.max_tokens_per_chunk}")
     print(f"enable_thinking: {args.enable_thinking}")
     print(f"output_dir: {output_dir}")
@@ -251,13 +280,16 @@ def main(argv: list[str] | None = None) -> None:
         max_prompt_tokens=max_prompt_tokens,
         max_tokens_per_chunk=max_tokens_per_chunk,
         batch_size=args.batch_size,
+        prompt_mode=args.prompt_mode,
     )
     run_settings = {
         "dataset": args.dataset,
         "model": args.model,
         "lora_path": args.lora_path,
+        "no_retrieval": args.no_retrieval,
+        "prompt_mode": args.prompt_mode,
         "retrieval_run_label": retrieval_run_label,
-        "retrieved_dir": str(retrieved_dir),
+        "retrieved_dir": str(retrieved_dir) if retrieved_dir is not None else None,
         "run_label": run_label,
         "split": args.split,
         "top_k": args.top_k,

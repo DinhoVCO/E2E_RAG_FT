@@ -7,15 +7,19 @@ from typing import Any
 import yaml
 
 from tesis_unicamp.generation.rag.datasets import RAG_GENERATION_DATASET_CONFIGS
+from tesis_unicamp.generation.rag.runner import PromptMode
 
-_EMBEDDING_MODES = frozenset({"base", "lora"})
-_GENERATION_MODES = frozenset({"base", "lora"})
+_EMBEDDING_MODES = frozenset({"base", "lora", "none"})
+_GENERATION_MODES = frozenset({"base", "lora", "qa"})
+_PROMPT_MODES = frozenset({"inference", "qa", "rag-finetune"})
 
 _EXPERIMENT_KEYS = frozenset(
     {
         "dataset",
         "embedding",
         "generation",
+        "use_retrieval",
+        "prompt_mode",
         "run_label",
         "retrieval_run_label",
         "embedding_model",
@@ -37,6 +41,9 @@ class ResolvedExperiment:
     experiment_id: str
     dataset: str
     run_label: str
+    use_retrieval: bool
+    prompt_mode: PromptMode
+    generation_mode: str
     retrieval_run_label: str
     embedding_model: str
     embedding_lora: str | None
@@ -136,25 +143,65 @@ def _resolve_retrieval_run_label(
     return run_label
 
 
-def _resolve_lora(
+def _resolve_generation_lora(
     *,
-    mode: str,
+    generation_mode: str,
     dataset: str,
     explicit: str | None,
-    defaults_key: str,
     dataset_options: dict[str, Any],
 ) -> str | None:
     if explicit is not None:
         return explicit or None
-    if mode == "base":
+    if generation_mode == "base":
         return None
+    defaults_key = "generation_lora_qa" if generation_mode == "qa" else "generation_lora"
     if defaults_key in dataset_options:
         value = dataset_options[defaults_key]
         return str(value) if value else None
     raise ValueError(
-        f"embedding/generation mode 'lora' requires "
-        f"'datasets.{dataset}.{defaults_key}' or an explicit path in the experiment."
+        f"generation mode {generation_mode!r} requires "
+        f"'datasets.{dataset}.{defaults_key}' or an explicit generation_lora path."
     )
+
+
+def _resolve_embedding_lora(
+    *,
+    embedding_mode: str,
+    dataset: str,
+    explicit: str | None,
+    dataset_options: dict[str, Any],
+) -> str | None:
+    if explicit is not None:
+        return explicit or None
+    if embedding_mode in {"base", "none"}:
+        return None
+    if "embedding_lora" in dataset_options:
+        value = dataset_options["embedding_lora"]
+        return str(value) if value else None
+    raise ValueError(
+        f"embedding mode 'lora' requires "
+        f"'datasets.{dataset}.embedding_lora' or an explicit path in the experiment."
+    )
+
+
+def _resolve_prompt_mode(
+    *,
+    spec: dict[str, Any],
+    use_retrieval: bool,
+    generation_mode: str,
+) -> PromptMode:
+    explicit = spec.get("prompt_mode")
+    if explicit is not None:
+        if explicit not in _PROMPT_MODES:
+            valid = ", ".join(sorted(_PROMPT_MODES))
+            raise ValueError(f"prompt_mode must be one of: {valid}")
+        return explicit
+
+    if not use_retrieval:
+        return "qa" if generation_mode == "qa" else "rag-finetune"
+    if generation_mode == "qa":
+        return "rag-finetune"
+    return "inference"
 
 
 def resolve_experiment(raw: dict[str, Any], experiment_id: str) -> ResolvedExperiment:
@@ -181,7 +228,8 @@ def resolve_experiment(raw: dict[str, Any], experiment_id: str) -> ResolvedExper
         valid = ", ".join(sorted(RAG_GENERATION_DATASET_CONFIGS))
         raise ValueError(f"Unknown dataset {dataset!r} in {experiment_id!r}. Expected: {valid}")
 
-    embedding_mode = spec.get("embedding")
+    use_retrieval = bool(spec.get("use_retrieval", True))
+    embedding_mode = spec.get("embedding", "none" if not use_retrieval else "base")
     generation_mode = spec.get("generation")
     if embedding_mode not in _EMBEDDING_MODES:
         raise ValueError(
@@ -193,6 +241,14 @@ def resolve_experiment(raw: dict[str, Any], experiment_id: str) -> ResolvedExper
             f"Experiment {experiment_id!r} must define generation as one of: "
             f"{', '.join(sorted(_GENERATION_MODES))}"
         )
+    if not use_retrieval and embedding_mode not in {"none", "base", "lora"}:
+        raise ValueError(
+            f"Experiment {experiment_id!r}: use_retrieval=false ignores embedding mode."
+        )
+    if use_retrieval and embedding_mode == "none":
+        raise ValueError(
+            f"Experiment {experiment_id!r}: embedding cannot be 'none' when use_retrieval=true."
+        )
 
     dataset_options = _dataset_options(raw, dataset)
     paper_scoped = _resolve_paper_scoped(
@@ -203,7 +259,7 @@ def resolve_experiment(raw: dict[str, Any], experiment_id: str) -> ResolvedExper
 
     top_k = int(spec.get("top_k", defaults.get("top_k", 5)))
     retrieval_top_k = int(spec.get("retrieval_top_k", defaults.get("retrieval_top_k", 10)))
-    if top_k > retrieval_top_k:
+    if use_retrieval and top_k > retrieval_top_k:
         raise ValueError(
             f"Experiment {experiment_id!r}: top_k ({top_k}) cannot exceed "
             f"retrieval_top_k ({retrieval_top_k})."
@@ -211,35 +267,41 @@ def resolve_experiment(raw: dict[str, Any], experiment_id: str) -> ResolvedExper
 
     retrieval_run_label = _resolve_retrieval_run_label(
         dataset=dataset,
-        embedding_mode=embedding_mode,
+        embedding_mode=embedding_mode if use_retrieval else "base",
         explicit=spec.get("retrieval_run_label"),
         defaults=defaults,
         paper_scoped=paper_scoped,
+    )
+    prompt_mode = _resolve_prompt_mode(
+        spec=spec,
+        use_retrieval=use_retrieval,
+        generation_mode=generation_mode,
     )
 
     return ResolvedExperiment(
         experiment_id=experiment_id,
         dataset=dataset,
         run_label=str(spec.get("run_label", experiment_id)),
+        use_retrieval=use_retrieval,
+        prompt_mode=prompt_mode,
+        generation_mode=generation_mode,
         retrieval_run_label=retrieval_run_label,
         embedding_model=str(
             spec.get("embedding_model", defaults.get("embedding_model", "Qwen/Qwen3-Embedding-4B"))
         ),
-        embedding_lora=_resolve_lora(
-            mode=embedding_mode,
+        embedding_lora=_resolve_embedding_lora(
+            embedding_mode=embedding_mode,
             dataset=dataset,
             explicit=spec.get("embedding_lora"),
-            defaults_key="embedding_lora",
             dataset_options=dataset_options,
         ),
         generation_model=str(
             spec.get("generation_model", defaults.get("generation_model", "Qwen/Qwen3-8B"))
         ),
-        generation_lora=_resolve_lora(
-            mode=generation_mode,
+        generation_lora=_resolve_generation_lora(
+            generation_mode=generation_mode,
             dataset=dataset,
             explicit=spec.get("generation_lora"),
-            defaults_key="generation_lora",
             dataset_options=dataset_options,
         ),
         top_k=top_k,

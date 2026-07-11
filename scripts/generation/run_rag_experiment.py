@@ -120,27 +120,33 @@ def _print_experiment_summary(experiment: ResolvedExperiment) -> None:
     print(f"experiment: {experiment.experiment_id}")
     print(f"dataset: {experiment.dataset}")
     print(f"run_label: {experiment.run_label}")
-    print(f"retrieval_run_label: {experiment.retrieval_run_label}")
+    print(f"use_retrieval: {experiment.use_retrieval}")
+    print(f"prompt_mode: {experiment.prompt_mode}")
+    if experiment.use_retrieval:
+        print(f"retrieval_run_label: {experiment.retrieval_run_label}")
     print(f"embedding_model: {experiment.embedding_model}")
     print(f"embedding_lora: {_format_lora(experiment.embedding_lora)}")
     print(f"generation_model: {experiment.generation_model}")
     print(f"generation_lora: {_format_lora(experiment.generation_lora)}")
     print(f"top_k: {experiment.top_k}")
-    print(f"retrieval_top_k: {experiment.retrieval_top_k}")
+    if experiment.use_retrieval:
+        print(f"retrieval_top_k: {experiment.retrieval_top_k}")
     print(f"split: {experiment.split}")
-    if experiment.dataset == "qasper":
+    if experiment.dataset == "qasper" and experiment.use_retrieval:
         print(f"paper_scoped: {experiment.paper_scoped}")
 
 
 def _list_experiments(raw: dict) -> None:
     for experiment_id in list_experiment_ids(raw):
         experiment = resolve_experiment(raw, experiment_id)
+        retrieval = experiment.retrieval_run_label if experiment.use_retrieval else "none"
         print(
             f"{experiment_id}\t"
             f"dataset={experiment.dataset}\t"
             f"emb={'lora' if experiment.embedding_lora else 'base'}\t"
-            f"gen={'lora' if experiment.generation_lora else 'base'}\t"
-            f"retrieval={experiment.retrieval_run_label}\t"
+            f"gen={experiment.generation_mode}\t"
+            f"retrieval={retrieval}\t"
+            f"prompt={experiment.prompt_mode}\t"
             f"run={experiment.run_label}"
         )
 
@@ -181,17 +187,26 @@ def _generation_command(experiment: ResolvedExperiment) -> list[str]:
         experiment.dataset,
         "--model",
         experiment.generation_model,
-        "--retrieval-run-label",
-        experiment.retrieval_run_label,
         "--run-label",
         experiment.run_label,
         "--split",
         experiment.split,
-        "--top-k",
-        str(experiment.top_k),
         "--batch-size",
         str(experiment.generation_batch_size),
+        "--prompt-mode",
+        experiment.prompt_mode,
     ]
+    if experiment.use_retrieval:
+        command.extend(
+            [
+                "--retrieval-run-label",
+                experiment.retrieval_run_label,
+                "--top-k",
+                str(experiment.top_k),
+            ]
+        )
+    else:
+        command.append("--no-retrieval")
     if experiment.generation_lora:
         command.extend(["--lora-path", experiment.generation_lora])
     return command
@@ -245,21 +260,27 @@ def _run_experiment(
         split=experiment.split,
     )
 
-    run_retrieval = not generation_only and _needs_retrieval(
-        experiment,
-        force_retrieval=force_retrieval,
-        skip_retrieval=skip_retrieval,
+    run_retrieval = (
+        experiment.use_retrieval
+        and not generation_only
+        and _needs_retrieval(
+            experiment,
+            force_retrieval=force_retrieval,
+            skip_retrieval=skip_retrieval,
+        )
     )
     run_generation = not retrieval_only
 
-    if run_retrieval:
+    if not experiment.use_retrieval:
+        print(">>> skipping retrieval (use_retrieval=false)")
+    elif run_retrieval:
         print(">>> retrieval")
         _run_command(_retrieval_command(experiment), dry_run=dry_run)
     else:
         print(f">>> skipping retrieval (using {retrieved_path})")
 
     if run_generation:
-        if not run_retrieval and not retrieved_path.is_file():
+        if experiment.use_retrieval and not run_retrieval and not retrieved_path.is_file():
             raise FileNotFoundError(
                 f"Missing retrieved docs for generation: {retrieved_path}. "
                 "Run retrieval first or drop --skip-retrieval."

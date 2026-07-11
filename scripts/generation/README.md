@@ -101,20 +101,24 @@ CUDA_VISIBLE_DEVICES=0 bash scripts/generation/run_all_rag_generation.sh
 
 ## Experiment matrix (YAML)
 
-`scripts/generation/configs/experiments.yaml` defines **16 experiments** (4 datasets × 4 combinations):
+`scripts/generation/configs/experiments.yaml` defines **28 experiments** per dataset group:
 
-| Embedding | Generation | Example id |
-|-----------|------------|------------|
-| base | base | `telco-dpr-emb-base-gen-base-top5` |
-| lora | base | `telco-dpr-emb-lora-gen-base-top5` |
-| base | lora | `telco-dpr-emb-base-gen-lora-top5` |
-| lora | lora | `telco-dpr-emb-lora-gen-lora-top5` |
+| Type | Example id |
+|------|------------|
+| RAG matrix (emb × gen) | `telco-dpr-emb-base-gen-lora-top5` |
+| Base emb + QA LoRA + top 5 | `telco-dpr-emb-base-gen-qa-top5` |
+| QA LoRA, no retrieval | `telco-dpr-gen-qa-noretrieval` |
+| RAG LoRA, no retrieval | `telco-dpr-gen-lora-noretrieval` |
+
+QA adapters are loaded from `models/qwen3-8b-lora-qa/<run>/final` (see `generation_lora_qa` per dataset in the YAML).
 
 Each experiment configures:
 
 - **dataset**
 - **embedding** (`base` or `lora`) → retrieval model and `retrieval_run_label`
-- **generation** (`base` or `lora`) → generation model and optional `--lora-path`
+- **generation** (`base`, `lora`, or `qa`) → generation model and LoRA path
+- **use_retrieval** (`true` / `false`) → whether to run retrieval and include docs in the prompt
+- **prompt_mode** (auto): `inference` for legacy RAG runs, `qa` for QA-only, `rag-finetune` for fine-tune template
 - **run_label** → output folder under `datasets/generated/<dataset>/`
 - **top_k** → documents used in the generation prompt (default: 5)
 

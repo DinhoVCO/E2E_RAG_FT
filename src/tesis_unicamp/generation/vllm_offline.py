@@ -34,7 +34,7 @@ class VLLMOfflineGenerator(BaseGenerator):
         lora_name: str = "adapter",
         lora_int_id: int = 1,
         max_lora_rank: int = DEFAULT_MAX_LORA_RANK,
-        system_prompt: str = DEFAULT_SYSTEM_PROMPT,
+        system_prompt: str | None = DEFAULT_SYSTEM_PROMPT,
         use_chat_template: bool = True,
         enable_thinking: bool = False,
         **llm_kwargs: object,
@@ -118,10 +118,13 @@ class VLLMOfflineGenerator(BaseGenerator):
         tokenizer = llm.get_tokenizer()
         prompts: list[str] = []
         for content in user_contents:
-            messages = [
-                {"role": "system", "content": self._system_prompt},
-                {"role": "user", "content": content},
-            ]
+            if self._system_prompt is None:
+                messages = [{"role": "user", "content": content}]
+            else:
+                messages = [
+                    {"role": "system", "content": self._system_prompt},
+                    {"role": "user", "content": content},
+                ]
             prompt = self._apply_chat_template(tokenizer, messages)
             prompts.append(prompt)
         return prompts

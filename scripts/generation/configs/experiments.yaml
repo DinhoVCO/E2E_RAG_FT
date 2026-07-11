@@ -1,4 +1,6 @@
-# RAG end-to-end experiment matrix: embedding (base|lora) x generation (base|lora).
+# RAG experiment matrix:
+#   - 16 RAG runs: embedding (base|lora) x generation (base|lora), top 5
+#   - 12 extensions: QA LoRA + no-retrieval baselines
 #
 # Run one experiment:
 #   python scripts/generation/run_rag_experiment.py --experiment telco-dpr-emb-base-gen-base-top5
@@ -12,6 +14,7 @@
 defaults:
   embedding_model: Qwen/Qwen3-Embedding-4B
   generation_model: Qwen/Qwen3-8B
+  qa_adapter_root: models/qwen3-8b-lora-qa
   top_k: 5
   retrieval_top_k: 10
   split: test
@@ -24,19 +27,23 @@ datasets:
   telco-dpr:
     embedding_lora: DinoStackAI/Qwen3-Emb-4b-lora-telco-dpr
     generation_lora: DinoStackAI/Qwen3-8b-lora-telco-dpr
+    generation_lora_qa: models/qwen3-8b-lora-qa/telco-dpr-qa-b4-e6/final
 
   qasper:
     paper_scoped: true
     embedding_lora: DinoStackAI/Qwen3-Emb-4b-lora-qasper
     generation_lora: DinoStackAI/Qwen3-8b-lora-qasper
+    generation_lora_qa: models/qwen3-8b-lora-qa/qasper-qa-b5-e4/final
 
   narrativeqa:
     embedding_lora: DinoStackAI/Qwen3-Emb-4b-lora-narrativeqa
     generation_lora: DinoStackAI/Qwen3-8b-lora-narrativeqa
+    generation_lora_qa: models/qwen3-8b-lora-qa/narrativeqa-qa-b8-e2/final
 
   bioasq-resplit:
     embedding_lora: DinoStackAI/Qwen3-Emb-4b-lora-bioasq-resplit
     generation_lora: DinoStackAI/Qwen3-8b-lora-bioasq-resplit
+    generation_lora_qa: models/qwen3-8b-lora-qa/bioasq-resplit-qa-b5-e4/final
 
 experiments:
   # --- telco-dpr ---
@@ -138,3 +145,87 @@ experiments:
     embedding: lora
     generation: lora
     run_label: bioasq-resplit-emb-lora-gen-lora-top5
+
+  # --- QA / no-retrieval extensions (telco-dpr) ---
+  telco-dpr-emb-base-gen-qa-top5:
+    dataset: telco-dpr
+    embedding: base
+    generation: qa
+    run_label: telco-dpr-emb-base-gen-qa-top5
+
+  telco-dpr-gen-qa-noretrieval:
+    dataset: telco-dpr
+    embedding: none
+    generation: qa
+    use_retrieval: false
+    run_label: telco-dpr-gen-qa-noretrieval
+
+  telco-dpr-gen-lora-noretrieval:
+    dataset: telco-dpr
+    embedding: none
+    generation: lora
+    use_retrieval: false
+    run_label: telco-dpr-gen-lora-noretrieval
+
+  # --- QA / no-retrieval extensions (qasper) ---
+  qasper-emb-base-gen-qa-top5:
+    dataset: qasper
+    embedding: base
+    generation: qa
+    run_label: qasper-emb-base-gen-qa-top5
+
+  qasper-gen-qa-noretrieval:
+    dataset: qasper
+    embedding: none
+    generation: qa
+    use_retrieval: false
+    run_label: qasper-gen-qa-noretrieval
+
+  qasper-gen-lora-noretrieval:
+    dataset: qasper
+    embedding: none
+    generation: lora
+    use_retrieval: false
+    run_label: qasper-gen-lora-noretrieval
+
+  # --- QA / no-retrieval extensions (narrativeqa) ---
+  narrativeqa-emb-base-gen-qa-top5:
+    dataset: narrativeqa
+    embedding: base
+    generation: qa
+    run_label: narrativeqa-emb-base-gen-qa-top5
+
+  narrativeqa-gen-qa-noretrieval:
+    dataset: narrativeqa
+    embedding: none
+    generation: qa
+    use_retrieval: false
+    run_label: narrativeqa-gen-qa-noretrieval
+
+  narrativeqa-gen-lora-noretrieval:
+    dataset: narrativeqa
+    embedding: none
+    generation: lora
+    use_retrieval: false
+    run_label: narrativeqa-gen-lora-noretrieval
+
+  # --- QA / no-retrieval extensions (bioasq-resplit) ---
+  bioasq-resplit-emb-base-gen-qa-top5:
+    dataset: bioasq-resplit
+    embedding: base
+    generation: qa
+    run_label: bioasq-resplit-emb-base-gen-qa-top5
+
+  bioasq-resplit-gen-qa-noretrieval:
+    dataset: bioasq-resplit
+    embedding: none
+    generation: qa
+    use_retrieval: false
+    run_label: bioasq-resplit-gen-qa-noretrieval
+
+  bioasq-resplit-gen-lora-noretrieval:
+    dataset: bioasq-resplit
+    embedding: none
+    generation: lora
+    use_retrieval: false
+    run_label: bioasq-resplit-gen-lora-noretrieval
