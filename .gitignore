@@ -21,3 +21,9 @@ wheels/
 /models/
 /wandb/
 /data/
+
+# RAGAS results (local artifacts; only summaries tracked in git)
+results/ragas/**/*
+!results/ragas/**/
+!results/ragas/**/test/
+!results/ragas/**/test/ragas_summary.json
