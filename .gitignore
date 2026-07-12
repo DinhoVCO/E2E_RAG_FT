@@ -27,3 +27,4 @@ results/ragas/**/*
 !results/ragas/**/
 !results/ragas/**/test/
 !results/ragas/**/test/ragas_summary.json
+/wandb/

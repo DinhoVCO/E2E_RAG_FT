@@ -179,13 +179,6 @@
       "end": 198.17366395302815,
       "split": "test",
       "subset": "default"
-    },
-    {
-      "name": "Scoring",
-      "start": 198.17368796700612,
-      "end": 198.30455714202253,
-      "split": "test",
-      "subset": "default"
     }
   ]
 }
