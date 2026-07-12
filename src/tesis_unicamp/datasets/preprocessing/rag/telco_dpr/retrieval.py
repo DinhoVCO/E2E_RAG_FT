@@ -6,9 +6,7 @@ from tesis_unicamp.datasets.preprocessing.rag.retrieval.schemas import Retrieved
 from tesis_unicamp.datasets.preprocessing.rag.retrieval.hub import push_retrieved_docs_to_hub
 from tesis_unicamp.datasets.preprocessing.rag.retrieval.io import (
     RAG_SPLITS,
-    build_retrieved_docs_dataset_dict,
-    save_retrieved_docs_all_splits,
-    save_retrieved_docs_to_hf_disk,
+    save_retrieved_docs_bundle,
 )
 from tesis_unicamp.datasets.preprocessing.rag.telco_dpr.constants import PROJECT_ROOT
 from tesis_unicamp.datasets.utils.bioasq_rag import query_to_instruct_text
@@ -49,10 +47,7 @@ def save_telco_dpr_retrieved_docs(
     splits: dict[str, list[RetrievedDocRecord]],
     output_dir: Path = DEFAULT_RETRIEVED_DOCS_DIR,
 ) -> Path:
-    save_retrieved_docs_all_splits(output_dir, splits)
-    dataset_dict = build_retrieved_docs_dataset_dict(output_dir)
-    save_retrieved_docs_to_hf_disk(output_dir, dataset_dict)
-    return output_dir
+    return save_retrieved_docs_bundle(output_dir, splits)
 
 
 def push_telco_dpr_retrieved_docs_to_hub(

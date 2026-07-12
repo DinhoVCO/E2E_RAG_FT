@@ -24,10 +24,16 @@ class AnswerRecord(TypedDict):
     answer: str
 
 
+class TopRankedRecord(TypedDict):
+    query_id: str
+    corpus_ids: list[str]
+
+
 class SplitData(TypedDict):
     queries: list[QueryRecord]
     qrels: list[QrelRecord]
     answers: list[AnswerRecord]
+    top_ranked: list[TopRankedRecord]
 
 
 class PaperIndex(TypedDict):

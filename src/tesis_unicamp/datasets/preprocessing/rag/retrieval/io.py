@@ -31,6 +31,20 @@ def save_retrieved_docs_all_splits(
         save_retrieved_docs(output_dir, split_name, records)
 
 
+def save_retrieved_docs_bundle(
+    output_dir: Path,
+    splits: dict[str, list[RetrievedDocRecord]],
+) -> Path:
+    """Save JSON per split and export only the splits present in ``splits``."""
+    save_retrieved_docs_all_splits(output_dir, splits)
+    dataset_dict = build_retrieved_docs_dataset_dict(
+        output_dir,
+        splits=tuple(splits.keys()),
+    )
+    save_retrieved_docs_to_hf_disk(output_dir, dataset_dict)
+    return output_dir
+
+
 def build_retrieved_docs_dataset_dict(
     output_dir: Path,
     *,

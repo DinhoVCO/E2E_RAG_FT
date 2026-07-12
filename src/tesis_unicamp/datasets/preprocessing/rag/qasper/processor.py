@@ -20,7 +20,7 @@ def make_chunk_id(paper_id: str, chunk_index: int) -> str:
 
 
 def _empty_split_data() -> SplitData:
-    return {"queries": [], "qrels": [], "answers": []}
+    return {"queries": [], "qrels": [], "answers": [], "top_ranked": []}
 
 
 def is_valid_answer(answer: dict) -> bool:
@@ -194,6 +194,12 @@ def process_paper_qas(
             query_id = f"{row['id']}_{question_index:04d}"
 
         split_data["queries"].append({"id": query_id, "text": question_text})
+        split_data["top_ranked"].append(
+            {
+                "query_id": query_id,
+                "corpus_ids": [chunk["id"] for chunk in paper_index["chunks"]],
+            }
+        )
         for corpus_id in sorted(chunk_ids):
             split_data["qrels"].append(
                 {

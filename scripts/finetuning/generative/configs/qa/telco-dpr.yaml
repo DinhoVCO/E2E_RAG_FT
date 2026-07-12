@@ -1,0 +1,10 @@
+# QA-only fine-tuning for telco-dpr (no context).
+dataset: telco-dpr
+run_name: telco-dpr-qa-b4-e6
+batch_size: 4
+gradient_accumulation_steps: 2
+epochs: 6
+learning_rate: 2.0e-4
+logging_steps: 5
+eval_steps: 10
+save_steps: 10

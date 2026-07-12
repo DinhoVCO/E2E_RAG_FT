@@ -161,6 +161,17 @@ def _build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Do not apply the instruct query format used by project retrieval scripts.",
     )
+    search_scope = parser.add_mutually_exclusive_group()
+    search_scope.add_argument(
+        "--paper-scoped",
+        action="store_true",
+        help="Restrict retrieval to each query's paper chunks via top_ranked.",
+    )
+    search_scope.add_argument(
+        "--full-corpus",
+        action="store_true",
+        help="Search the full shared corpus instead of paper-scoped top_ranked.",
+    )
     parser.add_argument(
         "--overwrite",
         choices=("always", "never", "only-missing", "only-cache"),
@@ -170,12 +181,23 @@ def _build_parser() -> argparse.ArgumentParser:
     return parser
 
 
+def _resolve_use_top_ranked(args: argparse.Namespace) -> bool | None:
+    if args.paper_scoped:
+        return True
+    if args.full_corpus:
+        return False
+    return None
+
+
 def _resolve_tasks(args: argparse.Namespace):
+    use_top_ranked = _resolve_use_top_ranked(args)
+
     if args.dataset:
         return [
             get_rag_retrieval_task(
                 args.dataset,
                 eval_splits=tuple(args.splits),
+                use_top_ranked=use_top_ranked,
             )
         ]
 
@@ -197,6 +219,7 @@ def _resolve_tasks(args: argparse.Namespace):
             description=args.task_description,
             eval_splits=tuple(args.splits),
             query_text_fn=None if args.raw_queries else query_to_instruct_text,
+            use_top_ranked=bool(use_top_ranked),
         )
     ]
 

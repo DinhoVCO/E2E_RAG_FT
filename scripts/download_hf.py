@@ -15,6 +15,10 @@ Usage:
 
     # Full model snapshot (e.g. embedding model for offline indexing)
     python scripts/download_hf.py --snapshot --repo Qwen/Qwen3-Embedding-4B --repo-type model
+
+    # RAGAS judge + embedding models (before run_vllm_servers_h100.sh)
+    python scripts/download_hf.py --preset ragas-models
+    python scripts/download_hf.py --preset ragas-models --models judge
 """
 
 from __future__ import annotations
@@ -34,6 +38,11 @@ RAG_DATASET_IDS: dict[str, str] = {
     "qasper": "DinoStackAI/qasper-rag",
     "telco-dpr": "DinoStackAI/telco-dpr-rag",
     "narrativeqa": "DinoStackAI/narrativeqa-rag",
+}
+
+RAGAS_MODEL_IDS: dict[str, str] = {
+    "judge": "mistralai/Mistral-Small-3.1-24B-Instruct-2503",
+    "embedding": "Qwen/Qwen3-Embedding-8B",
 }
 
 
@@ -77,11 +86,26 @@ def download_rag_full(datasets: Iterable[str]) -> None:
         download_snapshot(repo_id, repo_type="dataset")
 
 
+def download_ragas_models(models: Iterable[str]) -> None:
+    """Download RAGAS judge and/or embedding model snapshots."""
+    _validate_ragas_models(models)
+    for name in models:
+        repo_id = RAGAS_MODEL_IDS[name]
+        download_snapshot(repo_id, repo_type="model")
+
+
 def _validate_datasets(datasets: Iterable[str]) -> None:
     unknown = sorted(set(datasets) - set(RAG_DATASET_IDS))
     if unknown:
         valid = ", ".join(sorted(RAG_DATASET_IDS))
         raise SystemExit(f"Unknown dataset(s): {', '.join(unknown)}. Valid: {valid}")
+
+
+def _validate_ragas_models(models: Iterable[str]) -> None:
+    unknown = sorted(set(models) - set(RAGAS_MODEL_IDS))
+    if unknown:
+        valid = ", ".join(sorted(RAGAS_MODEL_IDS))
+        raise SystemExit(f"Unknown RAGAS model(s): {', '.join(unknown)}. Valid: {valid}")
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -90,8 +114,11 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--preset",
-        choices=("rag-corpus", "rag-full"),
-        help="rag-corpus: corpus parquet only; rag-full: entire dataset repo",
+        choices=("rag-corpus", "rag-full", "ragas-models"),
+        help=(
+            "rag-corpus: corpus parquet only; rag-full: entire dataset repo; "
+            "ragas-models: judge + embedding models for RAGAS/vLLM"
+        ),
     )
     parser.add_argument(
         "--datasets",
@@ -99,8 +126,18 @@ def _build_parser() -> argparse.ArgumentParser:
         choices=tuple(RAG_DATASET_IDS),
         metavar="DATASET",
         help=(
-            "With --preset: which datasets to fetch "
+            "With --preset rag-corpus|rag-full: which datasets to fetch "
             f"(default: all — {', '.join(RAG_DATASET_IDS)})"
+        ),
+    )
+    parser.add_argument(
+        "--models",
+        nargs="+",
+        choices=tuple(RAGAS_MODEL_IDS),
+        metavar="MODEL",
+        help=(
+            "With --preset ragas-models: which models to fetch "
+            f"(default: all — {', '.join(RAGAS_MODEL_IDS)})"
         ),
     )
     parser.add_argument(
@@ -145,6 +182,11 @@ def main(argv: list[str] | None = None) -> None:
     if args.preset == "rag-full":
         datasets = args.datasets or list(RAG_DATASET_IDS)
         download_rag_full(datasets)
+        return
+
+    if args.preset == "ragas-models":
+        models = args.models or list(RAGAS_MODEL_IDS)
+        download_ragas_models(models)
         return
 
     if not args.repo:

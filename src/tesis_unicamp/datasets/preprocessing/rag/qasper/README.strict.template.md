@@ -42,6 +42,14 @@ configs:
         path: answers/dev*
       - split: test
         path: answers/test*
+  - config_name: top_ranked
+    data_files:
+      - split: train
+        path: top_ranked/train*
+      - split: dev
+        path: top_ranked/dev*
+      - split: test
+        path: top_ranked/test*
   - config_name: retrieved_docs
     data_files:
       - split: train
@@ -66,6 +74,7 @@ Unlike the default `qasper-rag` build, this version only keeps evidence that mat
 | `queries` | train, dev, test | Information-seeking questions over scientific papers |
 | `qrels` | train, dev, test | Relevance judgments (query ↔ paragraph chunk) |
 | `answers` | train, dev, test | Reference answers (longest valid free-form answer) |
+| `top_ranked` | train, dev, test | Paper-scoped candidate pool (all chunks of the query paper) |
 | `retrieved_docs` | train, dev, test | Top-k retrieval results with relevance labels |
 
 ## Dataset statistics

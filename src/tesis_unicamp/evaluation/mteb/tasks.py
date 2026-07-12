@@ -32,6 +32,10 @@ from tesis_unicamp.datasets.utils.qasper_rag import (
     load_qasper_rag_corpus,
     load_qasper_rag_subset,
 )
+from tesis_unicamp.datasets.utils.qasper_top_ranked import (
+    build_top_ranked_from_dataset,
+    build_top_ranked_from_qrels,
+)
 from tesis_unicamp.datasets.utils.telco_dpr_rag import (
     TELCO_DPR_RAG_DATASET_ID,
     corpus_row_to_text as telco_corpus_row_to_text,
@@ -61,6 +65,7 @@ class RagRetrievalTaskConfig:
     task_subtypes: tuple[str, ...] = ("Question answering",)
     domains: tuple[str, ...] = ("Written",)
     bibtex_citation: str = ""
+    use_top_ranked: bool = False
 
 
 def _build_relevant_docs(qrels: Dataset) -> dict[str, dict[str, int]]:
@@ -71,6 +76,20 @@ def _build_relevant_docs(qrels: Dataset) -> dict[str, dict[str, int]]:
         score = int(row.get("score", 1))
         relevant[query_id][corpus_id] = score
     return dict(relevant)
+
+
+def _load_top_ranked_split(
+    config: RagRetrievalTaskConfig,
+    split: str,
+    *,
+    qrels: Dataset,
+    corpus: Dataset,
+) -> dict[str, list[str]] | None:
+    try:
+        top_ranked = config.load_subset("top_ranked", split=split)
+    except (ValueError, FileNotFoundError, OSError):
+        return build_top_ranked_from_qrels(qrels, corpus)
+    return build_top_ranked_from_dataset(top_ranked)
 
 
 def _prepare_corpus(
@@ -122,20 +141,34 @@ def load_rag_retrieval_split(
     num_proc: int | None = None,
 ) -> RetrievalSplitData:
     """Load one split from a RAG dataset and convert it to MTEB v2 retrieval format."""
-    corpus = config.load_corpus()
+    raw_corpus = config.load_corpus()
     queries = config.load_subset("queries", split=split)
     qrels = config.load_subset("qrels", split=split)
 
-    corpus = _prepare_corpus(corpus, config.corpus_text_fn, num_proc=num_proc)
+    corpus = _prepare_corpus(raw_corpus, config.corpus_text_fn, num_proc=num_proc)
     queries = _prepare_queries(queries, config.query_text_fn, num_proc=num_proc)
     relevant_docs = _build_relevant_docs(qrels)
     relevant_docs, queries = _filter_queries_without_positives(relevant_docs, queries)
+
+    top_ranked = None
+    if config.use_top_ranked:
+        top_ranked = _load_top_ranked_split(
+            config,
+            split,
+            qrels=qrels,
+            corpus=raw_corpus,
+        )
+        top_ranked = {
+            query_id: ranked_ids
+            for query_id, ranked_ids in top_ranked.items()
+            if query_id in relevant_docs
+        }
 
     return RetrievalSplitData(
         corpus=corpus,
         queries=queries,
         relevant_docs=relevant_docs,
-        top_ranked=None,
+        top_ranked=top_ranked,
     )
 
 
@@ -229,6 +262,7 @@ RAG_RETRIEVAL_TASK_CONFIGS: dict[str, RagRetrievalTaskConfig] = {
         eval_splits=("train", "dev", "test"),
         domains=("Academic", "Written"),
         task_subtypes=("Question answering",),
+        use_top_ranked=True,
     ),
     "telco-dpr": RagRetrievalTaskConfig(
         name="TelcoDPR-RAG",
@@ -259,6 +293,7 @@ def get_rag_retrieval_task(
     dataset: str,
     *,
     eval_splits: tuple[str, ...] | None = None,
+    use_top_ranked: bool | None = None,
 ) -> AbsTaskRetrieval:
     """Return a predefined project RAG task by dataset key."""
     try:
@@ -271,6 +306,8 @@ def get_rag_retrieval_task(
 
     if eval_splits is not None:
         config = replace(config, eval_splits=eval_splits)
+    if use_top_ranked is not None:
+        config = replace(config, use_top_ranked=use_top_ranked)
     return create_rag_retrieval_task(config)
 
 
@@ -285,6 +322,7 @@ def create_custom_rag_retrieval_task(
     query_text_fn: QueryTextFn | None = query_to_instruct_text,
     corpus_config: str = "corpus",
     corpus_split: str | None = None,
+    use_top_ranked: bool = False,
 ) -> AbsTaskRetrieval:
     """Create a retrieval task from any Hugging Face repo with corpus/queries/qrels configs."""
 
@@ -328,5 +366,6 @@ def create_custom_rag_retrieval_task(
         eval_splits=eval_splits,
         revision=revision,
         query_text_fn=query_text_fn,
+        use_top_ranked=use_top_ranked,
     )
     return create_rag_retrieval_task(config)

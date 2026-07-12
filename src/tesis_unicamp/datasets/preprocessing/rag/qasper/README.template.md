@@ -41,6 +41,14 @@ configs:
         path: answers/dev*
       - split: test
         path: answers/test*
+  - config_name: top_ranked
+    data_files:
+      - split: train
+        path: top_ranked/train*
+      - split: dev
+        path: top_ranked/dev*
+      - split: test
+        path: top_ranked/test*
   - config_name: retrieved_docs
     data_files:
       - split: train
@@ -63,6 +71,7 @@ Dataset for Retrieval-Augmented Generation (RAG) based on [QASPER](https://huggi
 | `queries` | train, dev, test | Information-seeking questions over scientific papers |
 | `qrels` | train, dev, test | Relevance judgments (query ↔ paragraph chunk) |
 | `answers` | train, dev, test | Reference answers (longest valid free-form answer) |
+| `top_ranked` | train, dev, test | Paper-scoped candidate pool (all chunks of the query paper) |
 | `retrieved_docs` | train, dev, test | Top-k retrieval results with relevance labels |
 
 ## Dataset statistics
@@ -89,6 +98,7 @@ The corpus is shared across all splits and contains paragraph-level chunks from 
 | Corpus | `abstract` + `full_text.paragraphs` |
 | Queries | `qas.question` |
 | Qrels | `qas.answers[*].answer[*].evidence` matched to corpus chunks |
+| Top ranked | All paragraph chunks from the query paper (paper-scoped retrieval pool) |
 | Answers | Longest valid answer per question (`free_form_answer`, joined `extractive_spans`, or `Yes`/`No`) |
 
 ## Filtering
@@ -121,6 +131,11 @@ Evidence items containing `FLOAT SELECTED` are removed individually. Questions a
 ### answers
 ```json
 {"query_id": "...", "answer": "..."}
+```
+
+### top_ranked
+```json
+{"query-id": "...", "corpus-ids": ["paper_00000", "paper_00001"]}
 ```
 
 ### retrieved_docs
