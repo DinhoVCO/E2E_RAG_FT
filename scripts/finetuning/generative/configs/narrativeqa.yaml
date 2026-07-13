@@ -6,5 +6,6 @@ gradient_accumulation_steps: 4
 epochs: 2
 learning_rate: 2.0e-4
 logging_steps: 10
-eval_steps: 30
-save_steps: 30
+eval_steps: 50
+save_steps: 50
+early_stopping_patience: 8
