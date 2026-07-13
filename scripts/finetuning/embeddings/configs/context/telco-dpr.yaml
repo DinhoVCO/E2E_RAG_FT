@@ -1,8 +1,8 @@
 # Context embedding fine-tuning config for telco-dpr.
 dataset: telco-dpr
-run_name: telco-dpr-ctx-b128-e20
-batch_size: 128
-mini_batch_size: 32
+run_name: telco-dpr-ctx-b32-e20
+batch_size: 32
+mini_batch_size: 8
 epochs: 20
 logging_steps: 1
 eval_steps: 5

@@ -1,8 +1,8 @@
 # Context embedding fine-tuning config for bioasq-resplit.
 dataset: bioasq-resplit
-run_name: bioasq-resplit-ctx-b128-e10
-batch_size: 128
-mini_batch_size: 32
+run_name: bioasq-resplit-ctx-b32-e10
+batch_size: 32
+mini_batch_size: 8
 epochs: 10
 logging_steps: 1
 eval_steps: 50
