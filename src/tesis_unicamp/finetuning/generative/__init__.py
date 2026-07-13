@@ -12,12 +12,6 @@ from tesis_unicamp.finetuning.generative.config import (
     MAX_SEQ_LENGTH,
     TRAIN_BATCH_SIZE,
 )
-from tesis_unicamp.finetuning.generative.datasets import (
-    GenerativeFinetuningDatasetConfig,
-    get_generative_finetuning_config,
-    prepare_training_dataset,
-)
-from tesis_unicamp.finetuning.generative.trainer import finetune_qwen3_generative
 
 __all__ = [
     "DEFAULT_BASE_MODEL",
@@ -37,3 +31,21 @@ __all__ = [
     "get_generative_finetuning_config",
     "prepare_training_dataset",
 ]
+
+
+def __getattr__(name: str):
+    if name == "GenerativeFinetuningDatasetConfig":
+        from tesis_unicamp.finetuning.generative.datasets import (
+            GenerativeFinetuningDatasetConfig,
+        )
+
+        return GenerativeFinetuningDatasetConfig
+    if name in {"get_generative_finetuning_config", "prepare_training_dataset"}:
+        from tesis_unicamp.finetuning.generative import datasets
+
+        return getattr(datasets, name)
+    if name == "finetune_qwen3_generative":
+        from tesis_unicamp.finetuning.generative.trainer import finetune_qwen3_generative
+
+        return finetune_qwen3_generative
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

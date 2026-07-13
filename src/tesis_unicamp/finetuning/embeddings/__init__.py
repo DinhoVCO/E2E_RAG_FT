@@ -8,13 +8,6 @@ from tesis_unicamp.finetuning.embeddings.config import (
     MINI_BATCH_SIZE,
     TRAIN_BATCH_SIZE,
 )
-from tesis_unicamp.finetuning.embeddings.datasets import (
-    EmbeddingFinetuningDatasetConfig,
-    build_ir_evaluator,
-    get_embedding_finetuning_config,
-    prepare_training_dataset,
-)
-from tesis_unicamp.finetuning.embeddings.trainer import finetune_qwen3_embedding
 
 __all__ = [
     "DEFAULT_BASE_MODEL",
@@ -31,3 +24,25 @@ __all__ = [
     "get_embedding_finetuning_config",
     "prepare_training_dataset",
 ]
+
+
+def __getattr__(name: str):
+    if name == "EmbeddingFinetuningDatasetConfig":
+        from tesis_unicamp.finetuning.embeddings.datasets import (
+            EmbeddingFinetuningDatasetConfig,
+        )
+
+        return EmbeddingFinetuningDatasetConfig
+    if name in {
+        "build_ir_evaluator",
+        "get_embedding_finetuning_config",
+        "prepare_training_dataset",
+    }:
+        from tesis_unicamp.finetuning.embeddings import datasets
+
+        return getattr(datasets, name)
+    if name == "finetune_qwen3_embedding":
+        from tesis_unicamp.finetuning.embeddings.trainer import finetune_qwen3_embedding
+
+        return finetune_qwen3_embedding
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
