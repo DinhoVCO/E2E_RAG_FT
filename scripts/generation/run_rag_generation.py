@@ -190,11 +190,11 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--prompt-mode",
-        choices=("inference", "qa", "rag-finetune"),
-        default=os.getenv("GENERATION_PROMPT_MODE", "inference"),
+        choices=("qa", "rag-finetune"),
+        default=None,
         help=(
-            "Prompt format: inference (legacy RAG), qa (QA-only fine-tune), "
-            "or rag-finetune (RAG fine-tune user template)"
+            "Prompt format: qa (no retrieval) or rag-finetune (with retrieval). "
+            "Default: qa if --no-retrieval, else rag-finetune."
         ),
     )
     parser.add_argument(
@@ -221,11 +221,9 @@ def main(argv: list[str] | None = None) -> None:
             retrieval_run_label,
         )
 
-    system_prompt = None
-    if args.prompt_mode == "inference":
-        from tesis_unicamp.generation.vllm_offline import DEFAULT_SYSTEM_PROMPT
-
-        system_prompt = DEFAULT_SYSTEM_PROMPT
+    prompt_mode = args.prompt_mode or os.getenv("GENERATION_PROMPT_MODE")
+    if prompt_mode is None:
+        prompt_mode = "qa" if args.no_retrieval else "rag-finetune"
 
     _validate_cuda()
     configure_vllm_multiprocessing()
@@ -240,7 +238,6 @@ def main(argv: list[str] | None = None) -> None:
         ),
         lora_path=args.lora_path,
         max_lora_rank=args.max_lora_rank if args.lora_path else None,
-        system_prompt=system_prompt,
         use_chat_template=not args.no_chat_template,
         enable_thinking=args.enable_thinking,
     )
@@ -251,7 +248,7 @@ def main(argv: list[str] | None = None) -> None:
         print(f"lora_path: {args.lora_path}")
         print(f"max_lora_rank: {args.max_lora_rank}")
     print(f"no_retrieval: {args.no_retrieval}")
-    print(f"prompt_mode: {args.prompt_mode}")
+    print(f"prompt_mode: {prompt_mode}")
     if retrieved_dir is not None:
         print(f"retrieved_dir: {retrieved_dir}")
     print(f"split: {args.split}")
@@ -280,14 +277,14 @@ def main(argv: list[str] | None = None) -> None:
         max_prompt_tokens=max_prompt_tokens,
         max_tokens_per_chunk=max_tokens_per_chunk,
         batch_size=args.batch_size,
-        prompt_mode=args.prompt_mode,
+        prompt_mode=prompt_mode,
     )
     run_settings = {
         "dataset": args.dataset,
         "model": args.model,
         "lora_path": args.lora_path,
         "no_retrieval": args.no_retrieval,
-        "prompt_mode": args.prompt_mode,
+        "prompt_mode": prompt_mode,
         "retrieval_run_label": retrieval_run_label,
         "retrieved_dir": str(retrieved_dir) if retrieved_dir is not None else None,
         "run_label": run_label,

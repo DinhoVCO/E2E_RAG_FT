@@ -6,10 +6,6 @@ from typing import TYPE_CHECKING
 from tesis_unicamp.generation.base import BaseGenerator, GenerationConfig
 
 DEFAULT_MAX_LORA_RANK = 16
-DEFAULT_SYSTEM_PROMPT = (
-    "Answer the question based only on the provided context. "
-    "If the context does not contain enough information, say so briefly."
-)
 
 
 def configure_vllm_multiprocessing() -> None:
@@ -34,7 +30,7 @@ class VLLMOfflineGenerator(BaseGenerator):
         lora_name: str = "adapter",
         lora_int_id: int = 1,
         max_lora_rank: int = DEFAULT_MAX_LORA_RANK,
-        system_prompt: str | None = DEFAULT_SYSTEM_PROMPT,
+        system_prompt: str | None = None,
         use_chat_template: bool = True,
         enable_thinking: bool = False,
         **llm_kwargs: object,

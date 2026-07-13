@@ -5,12 +5,7 @@ from typing import Any
 
 from transformers import AutoTokenizer
 
-from tesis_unicamp.generation.rag.prompts import build_rag_user_prompt
-
-DEFAULT_SYSTEM_PROMPT = (
-    "Answer the question based only on the provided context. "
-    "If the context does not contain enough information, say so briefly."
-)
+from tesis_unicamp.finetuning.generative.formatting import build_user_content
 
 
 def _load_tokenizer(model_name: str, *, trust_remote_code: bool = True):
@@ -24,7 +19,7 @@ def build_tokenizer_helpers(
     llm,
     *,
     use_chat_template: bool = False,
-    system_prompt: str = DEFAULT_SYSTEM_PROMPT,
+    system_prompt: str | None = None,
 ) -> tuple[Callable[[str], int], Callable[[str, int], str]]:
     """Build tokenizer helpers from a loaded vLLM engine."""
     return build_tokenizer_helpers_from_tokenizer(
@@ -38,7 +33,7 @@ def build_tokenizer_helpers_from_model_name(
     model_name: str,
     *,
     use_chat_template: bool = False,
-    system_prompt: str = DEFAULT_SYSTEM_PROMPT,
+    system_prompt: str | None = None,
     trust_remote_code: bool = True,
 ) -> tuple[Callable[[str], int], Callable[[str, int], str]]:
     """Build tokenizer helpers without loading the full vLLM judge model."""
@@ -54,16 +49,19 @@ def build_tokenizer_helpers_from_tokenizer(
     tokenizer,
     *,
     use_chat_template: bool = False,
-    system_prompt: str = DEFAULT_SYSTEM_PROMPT,
+    system_prompt: str | None = None,
 ) -> tuple[Callable[[str], int], Callable[[str, int], str]]:
     """Build tokenizer helpers aligned with the RAG generation pipeline."""
 
     def count_prompt_tokens(user_content: str) -> int:
         if use_chat_template:
-            messages = [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_content},
-            ]
+            if system_prompt is None:
+                messages = [{"role": "user", "content": user_content}]
+            else:
+                messages = [
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_content},
+                ]
             try:
                 formatted = tokenizer.apply_chat_template(
                     messages,
@@ -90,10 +88,13 @@ def build_tokenizer_helpers_from_tokenizer(
     return count_prompt_tokens, truncate_text_to_tokens
 
 
-def count_rag_prompt_tokens(
+def count_rag_finetune_prompt_tokens(
     question: str,
-    context: str,
+    doc_texts: list[str],
     *,
     count_prompt_tokens: Callable[[str], int],
 ) -> int:
-    return count_prompt_tokens(build_rag_user_prompt(question, context))
+    """Count tokens for the rag-finetune user template used in generation."""
+    return count_prompt_tokens(
+        build_user_content(query=question, doc_texts=doc_texts),
+    )

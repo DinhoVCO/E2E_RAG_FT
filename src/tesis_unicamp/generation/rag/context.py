@@ -7,6 +7,7 @@ from typing import Any
 from datasets import Dataset
 
 from tesis_unicamp.datasets.preprocessing.rag.retrieval.schemas import RetrievedDocRecord
+from tesis_unicamp.finetuning.generative.formatting import build_user_content
 from tesis_unicamp.generation.rag.prompts import build_rag_user_prompt
 
 DEFAULT_MIN_TOKENS_PER_CHUNK = 64
@@ -60,7 +61,7 @@ def estimate_tokens_per_chunk(
         return max_tokens_per_chunk
 
     question = question.strip()
-    overhead = count_prompt_tokens(build_rag_user_prompt(question, ""))
+    overhead = count_prompt_tokens(build_user_content(query=question, doc_texts=[]))
     context_budget = max(0, max_prompt_tokens - overhead)
     separator_reserve = max_docs * DOC_PREFIX_TOKEN_RESERVE
     body_budget = max(0, context_budget - separator_reserve)

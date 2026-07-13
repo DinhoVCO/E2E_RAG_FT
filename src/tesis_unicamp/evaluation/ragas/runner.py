@@ -120,7 +120,11 @@ def evaluate_generated_answers(
         if use_chat_template is not None
         else bool(resolved["use_chat_template"])
     )
-    effective_tokenizer_model = tokenizer_model or judge_model
+    effective_tokenizer_model = (
+        tokenizer_model
+        or resolved.get("generation_model")
+        or judge_model
+    )
 
     count_prompt_tokens, truncate_text_to_tokens = build_tokenizer_helpers_from_model_name(
         effective_tokenizer_model,

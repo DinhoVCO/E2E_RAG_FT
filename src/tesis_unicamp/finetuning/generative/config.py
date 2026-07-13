@@ -19,12 +19,12 @@ DEFAULT_NUM_TRAIN_EPOCHS = 3
 TELCO_DPR_NUM_TRAIN_EPOCHS = 6
 
 DEFAULT_INSTRUCTION = (
-    "Responde a la query, utilizando los documentos como fundamento, "
-    "caso los documentos no proporcienen informacion relevante intenta "
-    "responder desde tu conocimiento."
+    "Answer the query using the documents as support. "
+    "If the documents do not provide relevant information, "
+    "try to answer from your own knowledge."
 )
 
-DEFAULT_QA_INSTRUCTION = "Responde a la siguiente pregunta."
+DEFAULT_QA_INSTRUCTION = "Answer the following question."
 
 MAX_QA_SEQ_LENGTH = 1536
 

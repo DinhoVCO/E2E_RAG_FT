@@ -11,7 +11,7 @@ from tesis_unicamp.generation.rag.runner import PromptMode
 
 _EMBEDDING_MODES = frozenset({"base", "lora", "none"})
 _GENERATION_MODES = frozenset({"base", "lora", "qa"})
-_PROMPT_MODES = frozenset({"inference", "qa", "rag-finetune"})
+_PROMPT_MODES = frozenset({"qa", "rag-finetune"})
 
 _EXPERIMENT_KEYS = frozenset(
     {
@@ -198,14 +198,8 @@ def _resolve_prompt_mode(
         return explicit
 
     if not use_retrieval:
-        if generation_mode == "qa":
-            return "qa"
-        if generation_mode == "base":
-            return "inference"
-        return "rag-finetune"
-    if generation_mode == "qa":
-        return "rag-finetune"
-    return "inference"
+        return "qa"
+    return "rag-finetune"
 
 
 def resolve_experiment(raw: dict[str, Any], experiment_id: str) -> ResolvedExperiment:
