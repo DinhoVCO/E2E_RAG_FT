@@ -226,7 +226,8 @@ def _resolve_tasks(args: argparse.Namespace):
 
 def main(argv: list[str] | None = None) -> None:
     _load_env()
-    args = _build_parser().parse_args(argv)
+    parser = _build_parser()
+    args = parser.parse_args(argv)
 
     if args.backend == "offline":
         from tesis_unicamp.evaluation.mteb.runner import configure_vllm_multiprocessing
