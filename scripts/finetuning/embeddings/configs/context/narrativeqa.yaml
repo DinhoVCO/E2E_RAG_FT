@@ -1,0 +1,9 @@
+# Context embedding fine-tuning config for narrativeqa.
+dataset: narrativeqa
+run_name: narrativeqa-ctx-b128-e10
+batch_size: 128
+mini_batch_size: 32
+epochs: 10
+logging_steps: 1
+eval_steps: 50
+save_steps: 50

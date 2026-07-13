@@ -1,0 +1,9 @@
+# Context embedding fine-tuning config for qasper (large corpus; IR eval is slower).
+dataset: qasper
+run_name: qasper-ctx-b128-e10
+batch_size: 128
+mini_batch_size: 32
+epochs: 10
+logging_steps: 1
+eval_steps: 10
+save_steps: 10

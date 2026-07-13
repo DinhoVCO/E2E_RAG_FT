@@ -1,0 +1,99 @@
+from __future__ import annotations
+
+from transformers import PreTrainedTokenizerBase
+
+from tesis_unicamp.datasets.utils.bioasq_rag import DEFAULT_RETRIEVAL_TASK
+from tesis_unicamp.finetuning.embeddings.context.config import (
+    MAX_DOC_TOKENS,
+    MAX_POSITIVE_TOKENS,
+    MAX_QUERY_TOKENS,
+    MAX_SEQ_LENGTH,
+)
+
+
+def truncate_to_tokens(
+    tokenizer: PreTrainedTokenizerBase,
+    text: str,
+    max_tokens: int,
+) -> str:
+    text = text.strip()
+    if not text or max_tokens <= 0:
+        return ""
+    token_ids = tokenizer.encode(text, add_special_tokens=False)
+    if len(token_ids) <= max_tokens:
+        return text
+    return tokenizer.decode(token_ids[:max_tokens], skip_special_tokens=True)
+
+
+def count_tokens(tokenizer: PreTrainedTokenizerBase, text: str) -> int:
+    if not text:
+        return 0
+    return len(tokenizer.encode(text, add_special_tokens=False))
+
+
+def build_anchor_text(
+    *,
+    query: str,
+    doc_texts: list[str],
+    task: str = DEFAULT_RETRIEVAL_TASK,
+) -> str:
+    query = query.strip()
+    parts = [
+        f"Instruct: {task}",
+        f"Query:{query}",
+    ]
+    if doc_texts:
+        parts.append("## Context:")
+        for index, doc_text in enumerate(doc_texts, start=1):
+            doc_text = doc_text.strip()
+            if doc_text:
+                parts.append(f"doc {index} :")
+                parts.append(doc_text)
+    return "\n".join(parts)
+
+
+def build_positive_text(
+    tokenizer: PreTrainedTokenizerBase,
+    *,
+    text: str,
+    max_positive_tokens: int = MAX_POSITIVE_TOKENS,
+) -> str:
+    return truncate_to_tokens(tokenizer, text, max_positive_tokens)
+
+
+def build_context_anchor_text(
+    tokenizer: PreTrainedTokenizerBase,
+    *,
+    query: str,
+    doc_texts: list[str],
+    task: str = DEFAULT_RETRIEVAL_TASK,
+    max_query_tokens: int = MAX_QUERY_TOKENS,
+    max_doc_tokens: int = MAX_DOC_TOKENS,
+    max_seq_length: int = MAX_SEQ_LENGTH,
+) -> str | None:
+    truncated_query = truncate_to_tokens(tokenizer, query, max_query_tokens)
+    truncated_docs = [
+        truncate_to_tokens(tokenizer, doc_text, max_doc_tokens)
+        for doc_text in doc_texts
+        if doc_text.strip()
+    ]
+
+    while True:
+        anchor = build_anchor_text(
+            query=truncated_query,
+            doc_texts=truncated_docs,
+            task=task,
+        )
+        if count_tokens(tokenizer, anchor) <= max_seq_length:
+            return anchor
+        if truncated_docs:
+            truncated_docs.pop()
+            continue
+        if len(truncated_query) > 1:
+            token_ids = tokenizer.encode(truncated_query, add_special_tokens=False)
+            truncated_query = tokenizer.decode(
+                token_ids[: max(1, len(token_ids) // 2)],
+                skip_special_tokens=True,
+            )
+            continue
+        return None

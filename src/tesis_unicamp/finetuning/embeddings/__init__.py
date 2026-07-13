@@ -20,6 +20,7 @@ __all__ = [
     "MINI_BATCH_SIZE",
     "TRAIN_BATCH_SIZE",
     "build_ir_evaluator",
+    "context",
     "finetune_qwen3_embedding",
     "get_embedding_finetuning_config",
     "prepare_training_dataset",
@@ -45,4 +46,8 @@ def __getattr__(name: str):
         from tesis_unicamp.finetuning.embeddings.trainer import finetune_qwen3_embedding
 
         return finetune_qwen3_embedding
+    if name == "context":
+        from tesis_unicamp.finetuning.embeddings import context
+
+        return context
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
