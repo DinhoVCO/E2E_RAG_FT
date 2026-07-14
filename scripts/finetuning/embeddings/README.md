@@ -391,6 +391,77 @@ python scripts/finetuning/embeddings/push_lora_adapters_to_hub.py --dataset qasp
 
 The upload includes adapter weights, Sentence Transformers config, tokenizer files, `best_model.json` (if present), and a generated model card with ST and vLLM loading examples.
 
+## Upload context-augmented adapters to Hugging Face Hub
+
+Context fine-tuning (`finetune_qwen3_embedding_context.py`) saves runs under **`models/qwen3-embedding-4b-lora-ctx/`** with a different naming scheme than the standard adapters. Use the same upload script, but pass **`--output-root`** and an explicit **`--repo-id`** so you do not overwrite the non-context repos (`Qwen3-Emb-4b-lora-<dataset>`).
+
+| Dataset | Default Hub repo (context) | Local run example |
+|---------|----------------------------|-------------------|
+| `telco-dpr` | `DinoStackAI/Qwen3-Emb-4b-lora-ctx-telco-dpr` | `telco-dpr-ctx-b32-e20/` |
+| `qasper` | `DinoStackAI/Qwen3-Emb-4b-lora-ctx-qasper` | `qasper-ctx-b32-e10/` |
+| `narrativeqa` | `DinoStackAI/Qwen3-Emb-4b-lora-ctx-narrativeqa` | `narrativeqa-ctx-b32-e10/` |
+| `bioasq-resplit` | `DinoStackAI/Qwen3-Emb-4b-lora-ctx-bioasq-resplit` | `bioasq-resplit-ctx-b32-e10/` |
+
+Requires `HF_TOKEN` in `.env` with write access to the target org. Override the org with `--hub-user` or `HF_ORG` in `.env`.
+
+The script uploads from **`final/`** (best checkpoint at end of training). If training was interrupted (e.g. SLURM time limit), either finish with `--resume` first or upload a specific checkpoint via `--adapter-dir`.
+
+```bash
+# One dataset (newest local run under models/qwen3-embedding-4b-lora-ctx/)
+uv run python scripts/finetuning/embeddings/push_lora_adapters_to_hub.py \
+  --dataset qasper \
+  --output-root models/qwen3-embedding-4b-lora-ctx \
+  --repo-id DinoStackAI/Qwen3-Emb-4b-lora-ctx-qasper
+
+# Specific run directory
+uv run python scripts/finetuning/embeddings/push_lora_adapters_to_hub.py \
+  --dataset telco-dpr \
+  --output-root models/qwen3-embedding-4b-lora-ctx \
+  --run-dir models/qwen3-embedding-4b-lora-ctx/telco-dpr-ctx-b32-e20 \
+  --repo-id DinoStackAI/Qwen3-Emb-4b-lora-ctx-telco-dpr
+
+# Upload a checkpoint directly (training not finished yet)
+uv run python scripts/finetuning/embeddings/push_lora_adapters_to_hub.py \
+  --dataset bioasq-resplit \
+  --adapter-dir models/qwen3-embedding-4b-lora-ctx/bioasq-resplit-ctx-b32-e10/checkpoint-1200 \
+  --repo-id DinoStackAI/Qwen3-Emb-4b-lora-ctx-bioasq-resplit
+
+# Preview without uploading
+uv run python scripts/finetuning/embeddings/push_lora_adapters_to_hub.py \
+  --dataset qasper \
+  --output-root models/qwen3-embedding-4b-lora-ctx \
+  --repo-id DinoStackAI/Qwen3-Emb-4b-lora-ctx-qasper \
+  --dry-run
+```
+
+Upload all four context adapters (one command per dataset; `--all` does not support custom `--output-root` / `--repo-id`):
+
+```bash
+for ds in telco-dpr qasper narrativeqa bioasq-resplit; do
+  uv run python scripts/finetuning/embeddings/push_lora_adapters_to_hub.py \
+    --dataset "$ds" \
+    --output-root models/qwen3-embedding-4b-lora-ctx \
+    --repo-id "DinoStackAI/Qwen3-Emb-4b-lora-ctx-$ds"
+done
+```
+
+Load from the Hub:
+
+```python
+from sentence_transformers import SentenceTransformer
+
+model = SentenceTransformer("DinoStackAI/Qwen3-Emb-4b-lora-ctx-qasper")
+embeddings = model.encode(["Instruct: ...\nQuery:your query", "document text"])
+```
+
+If training was cut short by a SLURM time limit, resume before uploading when possible:
+
+```bash
+TIME=12:00:00 bash jobs/scripts/santos_dumont/run_finetune_embedding_context_h100.sh bioasq-resplit --resume
+```
+
+See `finetune_qwen3_embedding_context.py --help` for `--resume` and `configs/context/<dataset>.yaml` for per-dataset hyperparameters.
+
 ## Memory Notes
 
 Default settings target **1× H100 80GB per job**:
@@ -412,7 +483,10 @@ Parallel runs (4 datasets) need **4 separate processes**, each with its own `CUD
 
 | Script | Purpose |
 |--------|---------|
-| `scripts/finetuning/embeddings/finetune_qwen3_embedding.py` | Main training CLI |
-| `jobs/scripts/finetuning/finetune_qwen3_embedding.sh` | Wrapper for one dataset |
-| `jobs/scripts/finetuning/finetune_qwen3_embedding_all.sh` | Train all four datasets |
+| `scripts/finetuning/embeddings/finetune_qwen3_embedding.py` | Standard (no context) training CLI |
+| `scripts/finetuning/embeddings/finetune_qwen3_embedding_context.py` | Context-augmented training CLI |
+| `scripts/finetuning/embeddings/push_lora_adapters_to_hub.py` | Upload LoRA adapters to Hugging Face Hub |
+| `jobs/scripts/finetuning/finetune_qwen3_embedding.sh` | Wrapper for one standard dataset |
+| `jobs/scripts/finetuning/finetune_qwen3_embedding_all.sh` | Train all four standard datasets |
+| `jobs/scripts/santos_dumont/run_finetune_embedding_context_h100.sh` | SLURM job for context fine-tuning (2× H100) |
 | `scripts/download_hf.py` | Download datasets and base model from Hugging Face |

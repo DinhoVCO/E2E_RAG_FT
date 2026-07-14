@@ -21,6 +21,16 @@ Usage:
         --batch-size 32 \\
         --eval-steps 250 \\
         --save-steps 250
+
+    # Resume after SLURM time limit (latest checkpoint in output_dir):
+    CUDA_VISIBLE_DEVICES=0,1 python scripts/finetuning/embeddings/finetune_qwen3_embedding_context.py \\
+        --dataset bioasq-resplit \\
+        --resume
+
+    # Resume from a specific checkpoint:
+    CUDA_VISIBLE_DEVICES=0,1 python scripts/finetuning/embeddings/finetune_qwen3_embedding_context.py \\
+        --dataset bioasq-resplit \\
+        --resume models/qwen3-embedding-4b-lora-ctx/bioasq-resplit-ctx-b32-e10/checkpoint-1200
 """
 
 from __future__ import annotations
@@ -283,6 +293,18 @@ def _build_parser() -> argparse.ArgumentParser:
             "(default: eval_<dataset>-ctx-dev_cosine_ndcg@10)."
         ),
     )
+    parser.add_argument(
+        "--resume",
+        nargs="?",
+        const=True,
+        default=None,
+        metavar="CHECKPOINT",
+        help=(
+            "Resume training from a checkpoint. Without CHECKPOINT, uses the newest "
+            "checkpoint in output_dir. With a path, resumes from that directory "
+            "(e.g. .../checkpoint-1200). Requires the same output_dir and hyperparameters."
+        ),
+    )
     return parser
 
 
@@ -373,6 +395,7 @@ def main(argv: list[str] | None = None) -> None:
         bf16=not args.no_bf16,
         load_best_model=not args.no_load_best_model,
         metric_for_best_model=args.metric_for_best_model,
+        resume_from_checkpoint=args.resume,
     )
 
     print(f"dataset: {args.dataset}")
@@ -392,6 +415,7 @@ def main(argv: list[str] | None = None) -> None:
     print(f"dataset_seed: {args.dataset_seed}")
     print(f"wandb_project: {wandb_project}")
     print(f"wandb_run_name: {resolved_run_name}")
+    print(f"resume: {run_config.resume_from_checkpoint}")
     print(f"load_best_model: {run_config.load_best_model}")
     if run_config.load_best_model:
         dataset_config = get_context_embedding_finetuning_config(args.dataset)

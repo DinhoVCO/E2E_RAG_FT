@@ -65,6 +65,26 @@ class ContextFinetuningRunConfig:
     bf16: bool = True
     load_best_model: bool = True
     metric_for_best_model: str | None = None
+    resume_from_checkpoint: bool | str | None = None
+
+
+def resolve_resume_from_checkpoint(
+    *,
+    output_dir: Path,
+    resume_from_checkpoint: bool | str | None,
+) -> bool | str | None:
+    if not resume_from_checkpoint:
+        return None
+    if resume_from_checkpoint is True:
+        if not output_dir.is_dir():
+            raise FileNotFoundError(
+                f"Cannot resume: output directory not found: {output_dir}"
+            )
+        return True
+    checkpoint = Path(resume_from_checkpoint).expanduser().resolve()
+    if not checkpoint.is_dir():
+        raise FileNotFoundError(f"Resume checkpoint not found: {checkpoint}")
+    return str(checkpoint)
 
 
 def configure_wandb(*, project: str, run_name: str) -> None:
@@ -264,7 +284,18 @@ def finetune_qwen3_embedding_context(
         evaluator=evaluator,
     )
 
-    trainer.train()
+    resolved_resume = resolve_resume_from_checkpoint(
+        output_dir=config.output_dir,
+        resume_from_checkpoint=config.resume_from_checkpoint,
+    )
+    if resolved_resume is True:
+        logger.info("Resuming from latest checkpoint in %s.", config.output_dir)
+        print(f"resume_from_checkpoint: latest in {config.output_dir}")
+    elif isinstance(resolved_resume, str):
+        logger.info("Resuming from checkpoint %s.", resolved_resume)
+        print(f"resume_from_checkpoint: {resolved_resume}")
+
+    trainer.train(resume_from_checkpoint=resolved_resume)
 
     if config.load_best_model:
         write_best_model_metadata(

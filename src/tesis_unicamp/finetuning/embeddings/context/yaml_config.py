@@ -33,6 +33,7 @@ _CONFIG_KEYS = frozenset(
         "load_best_model",
         "metric_for_best_model",
         "log_file",
+        "resume",
     }
 )
 

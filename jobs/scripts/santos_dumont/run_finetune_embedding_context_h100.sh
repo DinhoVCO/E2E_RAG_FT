@@ -5,6 +5,7 @@
 #   bash jobs/scripts/santos_dumont/run_finetune_embedding_context_h100.sh narrativeqa
 #   bash jobs/scripts/santos_dumont/run_finetune_embedding_context_h100.sh qasper --epochs 10
 #   TIME=24:00:00 JOB_NAME=my-ft-emb-ctx bash jobs/scripts/santos_dumont/run_finetune_embedding_context_h100.sh narrativeqa
+#   TIME=12:00:00 bash jobs/scripts/santos_dumont/run_finetune_embedding_context_h100.sh bioasq-resplit --resume
 #
 set -euo pipefail
 
