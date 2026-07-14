@@ -8,6 +8,9 @@
 #   bash jobs/scripts/santos_dumont/run_mteb_context_retrieval_h100.sh --dataset qasper
 #
 #   bash jobs/scripts/santos_dumont/run_mteb_context_retrieval_h100.sh \
+#     --dataset qasper --stage1-only
+#
+#   bash jobs/scripts/santos_dumont/run_mteb_context_retrieval_h100.sh \
 #     --dataset qasper \
 #     --lora-path DinoStackAI/Qwen3-Emb-4b-lora-ctx-qasper
 #
@@ -42,6 +45,7 @@ _list_datasets() {
   echo
   echo "Defaults: stage1-top-k=10, context-k=1 3 5 7 10"
   echo "Note: qasper uses paper-scoped retrieval by default (stage 1 and stage 2)."
+  echo "Use --stage1-only for MTEB with Instruct+Query only (no context docs, no stage 2)."
 }
 
 if (("$#" == 0)); then

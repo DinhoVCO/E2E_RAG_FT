@@ -42,6 +42,7 @@ from tesis_unicamp.evaluation.mteb.tasks import (
     RagRetrievalTaskConfig,
     _build_relevant_docs,
     _prepare_corpus,
+    create_rag_retrieval_task,
 )
 from tesis_unicamp.finetuning.embeddings.config import DEFAULT_BASE_MODEL
 from tesis_unicamp.finetuning.embeddings.context.config import (
@@ -62,6 +63,7 @@ from tesis_unicamp.vector_stores import InMemoryVectorStore
 CONTEXT_DATASET_IDS = tuple(CONTEXT_EMBEDDING_FINETUNING_DATASET_CONFIGS)
 DEFAULT_STAGE1_TOP_K = 10
 DEFAULT_CONTEXT_K_VALUES = (1, 3, 5, 7, 10)
+DEFAULT_STAGE1_ONLY_MODEL_REVISION_TEMPLATE = "ctx-lora-{dataset}-stage1"
 
 
 def stage1_query_to_text(query: str) -> str:
@@ -131,6 +133,8 @@ class ContextRetrievalEvalConfig:
     backend: str = "offline"
     batch_size: int = 128
     model_revision_template: str = "ctx-lora-{dataset}-k{k}"
+    stage1_only_model_revision_template: str = DEFAULT_STAGE1_ONLY_MODEL_REVISION_TEMPLATE
+    stage1_only: bool = False
     corpus_split: str = "train"
     paper_scoped: bool | None = None
     output_dir: Path | None = None
@@ -400,16 +404,71 @@ def default_model_revision(config: ContextRetrievalEvalConfig, *, context_k: int
     )
 
 
-def evaluate_context_retrieval(config: ContextRetrievalEvalConfig) -> list[Any]:
-    config = replace(
-        config,
-        context_k_values=_validate_context_k_values(config.context_k_values),
+def default_stage1_only_model_revision(config: ContextRetrievalEvalConfig) -> str:
+    return config.stage1_only_model_revision_template.format(dataset=config.dataset)
+
+
+def _evaluate_stage1_only_mteb(
+    config: ContextRetrievalEvalConfig,
+    *,
+    paper_scoped: bool,
+    run_label: str,
+    output_dir: Path,
+) -> list[Any]:
+    print("=" * 72)
+    print("Stage 1 only: MTEB with Instruct + Query (no context documents)")
+    print("=" * 72)
+
+    if config.backend == "offline":
+        configure_vllm_multiprocessing()
+    embedder = build_tesis_embedder(
+        mode=config.backend,
+        model=config.model,
+        batch_size=config.batch_size,
+        lora_path=config.lora_path,
+        max_lora_rank=config.max_lora_rank,
     )
-    if config.stage1_top_k < max(config.context_k_values):
-        raise ValueError(
-            f"stage1_top_k ({config.stage1_top_k}) must be >= max(context_k_values) "
-            f"({max(config.context_k_values)})."
-        )
+    if config.backend == "offline":
+        from tesis_unicamp.embeddings.vllm_offline import VLLMOfflineEmbedder
+
+        if isinstance(embedder, VLLMOfflineEmbedder):
+            print("Loading vLLM embedder (warmup)...")
+            embedder.warmup()
+
+    rag_config = RAG_RETRIEVAL_TASK_CONFIGS[config.dataset]
+    rag_config = replace(
+        rag_config,
+        eval_splits=config.splits,
+        query_text_fn=stage1_query_to_text,
+        use_top_ranked=paper_scoped if config.dataset == "qasper" else False,
+    )
+    task = create_rag_retrieval_task(rag_config)
+
+    model_revision = default_stage1_only_model_revision(config)
+    print(f"model_revision: {model_revision}")
+
+    model = resolve_model(
+        backend=config.backend,
+        model=config.model,
+        batch_size=config.batch_size,
+        model_revision=model_revision,
+        lora_path=config.lora_path,
+        max_lora_rank=config.max_lora_rank,
+        embedder=embedder,
+    )
+    results = evaluate_retrieval(
+        model,
+        [task],
+        output_folder=output_dir,
+        overwrite_strategy=config.overwrite,
+        encode_kwargs={"batch_size": config.batch_size},
+    )
+    for task_result in results:
+        print(task_result)
+    return results
+
+
+def evaluate_context_retrieval(config: ContextRetrievalEvalConfig) -> list[Any]:
     if config.dataset not in CONTEXT_DATASET_IDS:
         valid = ", ".join(CONTEXT_DATASET_IDS)
         raise ValueError(f"Unknown dataset {config.dataset!r}. Available: {valid}")
@@ -423,6 +482,23 @@ def evaluate_context_retrieval(config: ContextRetrievalEvalConfig) -> list[Any]:
     )
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    if config.stage1_only:
+        return _evaluate_stage1_only_mteb(
+            config,
+            paper_scoped=paper_scoped,
+            run_label=run_label,
+            output_dir=output_dir,
+        )
+
+    config = replace(
+        config,
+        context_k_values=_validate_context_k_values(config.context_k_values),
+    )
+    if config.stage1_top_k < max(config.context_k_values):
+        raise ValueError(
+            f"stage1_top_k ({config.stage1_top_k}) must be >= max(context_k_values) "
+            f"({max(config.context_k_values)})."
+        )
     tokenizer = AutoTokenizer.from_pretrained(config.model)
     if config.backend == "offline":
         configure_vllm_multiprocessing()

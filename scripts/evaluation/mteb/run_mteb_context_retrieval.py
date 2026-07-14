@@ -9,10 +9,11 @@ format as context fine-tuning (``## Context:`` blocks), then runs MTEB
 retrieval on the full corpus.
 
 Usage:
-    # Evaluate qasper ctx adapter (defaults: stage1-top-k=10, context-k=1 3 5 7 10)
+    # Stage 1 only: MTEB with Instruct + Query (no context, no stage 2)
     CUDA_VISIBLE_DEVICES=0 python scripts/evaluation/mteb/run_mteb_context_retrieval.py \\
         --dataset qasper \\
-        --lora-path DinoStackAI/Qwen3-Emb-4b-lora-ctx-qasper
+        --lora-path DinoStackAI/Qwen3-Emb-4b-lora-ctx-qasper \\
+        --stage1-only
 
     # Local adapter, custom context sizes
     CUDA_VISIBLE_DEVICES=0 python scripts/evaluation/mteb/run_mteb_context_retrieval.py \\
@@ -89,6 +90,15 @@ def _build_parser() -> argparse.ArgumentParser:
         help=f"Base embedding model (default: {DEFAULT_BASE_MODEL}).",
     )
     parser.add_argument(
+        "--stage1-only",
+        action="store_true",
+        help=(
+            "Run MTEB once with Instruct + Query queries only (no context documents). "
+            "Skips FAISS pre-retrieval and stage 2. Useful to evaluate ctx LoRA adapters "
+            "without injecting retrieved docs."
+        ),
+    )
+    parser.add_argument(
         "--context-k",
         type=int,
         nargs="+",
@@ -132,6 +142,14 @@ def _build_parser() -> argparse.ArgumentParser:
         "--corpus-split",
         default="train",
         help="Corpus split indexed for stage-1 retrieval (default: train).",
+    )
+    parser.add_argument(
+        "--stage1-only-model-revision",
+        default="ctx-lora-{dataset}-stage1",
+        help=(
+            "MTEB results subfolder when --stage1-only is set "
+            "(default: ctx-lora-{dataset}-stage1)."
+        ),
     )
     parser.add_argument(
         "--model-revision-template",
@@ -236,6 +254,8 @@ def main(argv: list[str] | None = None) -> None:
         backend=args.backend,
         batch_size=args.batch_size,
         model_revision_template=args.model_revision_template,
+        stage1_only_model_revision_template=args.stage1_only_model_revision,
+        stage1_only=args.stage1_only,
         corpus_split=args.corpus_split,
         paper_scoped=_resolve_paper_scoped(args),
         output_dir=output_dir,
@@ -250,8 +270,12 @@ def main(argv: list[str] | None = None) -> None:
     print(f"dataset: {config.dataset}")
     print(f"model: {config.model}")
     print(f"lora_path: {config.lora_path}")
-    print(f"stage1_top_k: {config.stage1_top_k}")
-    print(f"context_k: {list(config.context_k_values)}")
+    print(f"stage1_only: {config.stage1_only}")
+    if not config.stage1_only:
+        print(f"stage1_top_k: {config.stage1_top_k}")
+        print(f"context_k: {list(config.context_k_values)}")
+    else:
+        print(f"model_revision: {args.stage1_only_model_revision.format(dataset=config.dataset)}")
     print(f"splits: {', '.join(config.splits)}")
     print(f"backend: {config.backend}")
     if config.dataset == "qasper":
@@ -260,7 +284,10 @@ def main(argv: list[str] | None = None) -> None:
     print()
 
     evaluate_context_retrieval(config)
-    print(f"Completed context MTEB evaluation for {len(config.context_k_values)} k value(s).")
+    if config.stage1_only:
+        print("Completed stage-1-only context MTEB evaluation.")
+    else:
+        print(f"Completed context MTEB evaluation for {len(config.context_k_values)} k value(s).")
 
 
 if __name__ == "__main__":
