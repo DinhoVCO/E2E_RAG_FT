@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 from transformers import PreTrainedTokenizerBase
 
 from tesis_unicamp.finetuning.generative.config import (
@@ -11,6 +13,22 @@ from tesis_unicamp.finetuning.generative.config import (
     MAX_QUERY_TOKENS,
     MAX_SEQ_LENGTH,
 )
+
+QUERY_TITLE_SECTION = "## Title:"
+
+
+@dataclass(frozen=True)
+class ContextDocument:
+    title: str
+    text: str
+
+
+def format_context_document(doc: ContextDocument) -> str:
+    title = doc.title.strip()
+    text = doc.text.strip()
+    if title and text:
+        return f"{title}\n{text}"
+    return title or text
 
 
 def truncate_to_tokens(
@@ -36,23 +54,38 @@ def count_tokens(tokenizer: PreTrainedTokenizerBase, text: str) -> int:
 def build_user_content(
     *,
     query: str,
-    doc_texts: list[str],
+    doc_texts: list[str] | None = None,
+    context_docs: list[ContextDocument] | None = None,
     instruction: str = DEFAULT_INSTRUCTION,
+    query_title: str | None = None,
 ) -> str:
     query = query.strip()
     instruction = instruction.strip()
-    parts = [
-        instruction,
-        "## Query:",
-        query,
-    ]
-    if doc_texts:
+    parts = [instruction]
+    if query_title and query_title.strip():
+        parts.extend([QUERY_TITLE_SECTION, query_title.strip()])
+    parts.extend(
+        [
+            "## Query:",
+            query,
+        ]
+    )
+
+    rendered_docs: list[str] = []
+    if context_docs:
+        rendered_docs = [
+            format_context_document(doc)
+            for doc in context_docs
+            if doc.title.strip() or doc.text.strip()
+        ]
+    elif doc_texts:
+        rendered_docs = [doc_text.strip() for doc_text in doc_texts if doc_text.strip()]
+
+    if rendered_docs:
         parts.append("## Context:")
-        for index, doc_text in enumerate(doc_texts, start=1):
-            doc_text = doc_text.strip()
-            if doc_text:
-                parts.append(f"doc {index} :")
-                parts.append(doc_text)
+        for index, doc_text in enumerate(rendered_docs, start=1):
+            parts.append(f"doc {index} :")
+            parts.append(doc_text)
     parts.append("## Response:")
     return "\n".join(parts)
 
@@ -175,17 +208,21 @@ def build_qa_user_content(
     *,
     query: str,
     instruction: str = DEFAULT_QA_INSTRUCTION,
+    query_title: str | None = None,
 ) -> str:
     query = query.strip()
     instruction = instruction.strip()
-    return "\n".join(
+    parts = [instruction]
+    if query_title and query_title.strip():
+        parts.extend([QUERY_TITLE_SECTION, query_title.strip()])
+    parts.extend(
         [
-            instruction,
             "## Query:",
             query,
             "## Response:",
         ]
     )
+    return "\n".join(parts)
 
 
 def build_qa_training_messages(

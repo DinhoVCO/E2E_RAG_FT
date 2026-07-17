@@ -129,6 +129,10 @@ def _print_experiment_summary(experiment: ResolvedExperiment) -> None:
     print(f"generation_model: {experiment.generation_model}")
     print(f"generation_lora: {_format_lora(experiment.generation_lora)}")
     print(f"top_k: {experiment.top_k}")
+    print(f"include_title_prompt: {experiment.include_title_prompt}")
+    print(f"generation_max_tokens: {experiment.generation_max_tokens}")
+    print(f"max_tokens_per_chunk: {experiment.max_tokens_per_chunk}")
+    print(f"max_prompt_tokens: {experiment.max_prompt_tokens}")
     if experiment.use_retrieval:
         print(f"retrieval_top_k: {experiment.retrieval_top_k}")
     print(f"split: {experiment.split}")
@@ -195,7 +199,17 @@ def _generation_command(experiment: ResolvedExperiment) -> list[str]:
         str(experiment.generation_batch_size),
         "--prompt-mode",
         experiment.prompt_mode,
+        "--max-tokens",
+        str(experiment.generation_max_tokens),
+        "--max-tokens-per-chunk",
+        str(experiment.max_tokens_per_chunk),
+        "--max-prompt-tokens",
+        str(experiment.max_prompt_tokens),
     ]
+    if experiment.include_title_prompt:
+        command.append("--include-title-prompt")
+    else:
+        command.append("--no-include-title-prompt")
     if experiment.use_retrieval:
         command.extend(
             [

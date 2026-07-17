@@ -32,6 +32,10 @@ _EXPERIMENT_KEYS = frozenset(
         "paper_scoped",
         "retrieval_batch_size",
         "generation_batch_size",
+        "include_title_prompt",
+        "generation_max_tokens",
+        "max_tokens_per_chunk",
+        "max_prompt_tokens",
     }
 )
 
@@ -55,6 +59,10 @@ class ResolvedExperiment:
     paper_scoped: bool
     retrieval_batch_size: int
     generation_batch_size: int
+    include_title_prompt: bool
+    generation_max_tokens: int
+    max_tokens_per_chunk: int
+    max_prompt_tokens: int
 
 
 def default_experiments_path() -> Path:
@@ -311,6 +319,18 @@ def resolve_experiment(raw: dict[str, Any], experiment_id: str) -> ResolvedExper
         ),
         generation_batch_size=int(
             spec.get("generation_batch_size", defaults.get("generation_batch_size", 8))
+        ),
+        include_title_prompt=bool(
+            spec.get("include_title_prompt", defaults.get("include_title_prompt", False))
+        ),
+        generation_max_tokens=int(
+            spec.get("generation_max_tokens", defaults.get("generation_max_tokens", 512))
+        ),
+        max_tokens_per_chunk=int(
+            spec.get("max_tokens_per_chunk", defaults.get("max_tokens_per_chunk", 512))
+        ),
+        max_prompt_tokens=int(
+            spec.get("max_prompt_tokens", defaults.get("max_prompt_tokens", 0))
         ),
     )
 

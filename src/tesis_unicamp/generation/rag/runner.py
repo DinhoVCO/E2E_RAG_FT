@@ -7,19 +7,24 @@ from typing import Literal
 from tesis_unicamp.datasets.preprocessing.rag.retrieval.io import _load_split_records
 from tesis_unicamp.datasets.utils.corpus import iter_batches
 from tesis_unicamp.finetuning.generative.formatting import (
+    ContextDocument,
     build_qa_user_content,
     build_user_content,
 )
 from tesis_unicamp.generation.base import BaseGenerator
 from tesis_unicamp.generation.rag.context import (
     DEFAULT_MAX_TOKENS_PER_CHUNK,
+    build_corpus_body_lookup,
     build_corpus_lookup,
+    build_corpus_title_lookup,
+    build_query_document_title_lookup,
     group_retrieved_by_query,
 )
 from tesis_unicamp.generation.rag.datasets import (
     RagGenerationDatasetConfig,
     load_answers_subset,
     load_corpus_subset,
+    load_qrels_subset,
     load_queries_subset,
 )
 from tesis_unicamp.generation.rag.schemas import GeneratedAnswerRecord
@@ -39,6 +44,7 @@ def generate_answers_for_split(
     batch_size: int | None = None,
     show_progress: bool = True,
     prompt_mode: PromptMode = "rag-finetune",
+    include_title_prompt: bool = False,
 ) -> list[GeneratedAnswerRecord]:
     """Generate answers for one split."""
     if retrieved_dir is None:
@@ -49,6 +55,7 @@ def generate_answers_for_split(
             batch_size=batch_size,
             show_progress=show_progress,
             prompt_mode=prompt_mode,
+            include_title_prompt=include_title_prompt,
         )
 
     if prompt_mode != "rag-finetune":
@@ -67,7 +74,21 @@ def generate_answers_for_split(
         max_tokens_per_chunk=max_tokens_per_chunk,
         batch_size=batch_size,
         show_progress=show_progress,
+        include_title_prompt=include_title_prompt,
     )
+
+
+def _load_query_title_lookup(
+    config: RagGenerationDatasetConfig,
+    *,
+    split: str,
+    include_title_prompt: bool,
+) -> dict[str, str]:
+    if not include_title_prompt:
+        return {}
+    qrels = load_qrels_subset(config, split=split)
+    corpus = load_corpus_subset(config)
+    return build_query_document_title_lookup(qrels, corpus)
 
 
 def _generate_answers_with_finetune_rag_prompt(
@@ -81,6 +102,7 @@ def _generate_answers_with_finetune_rag_prompt(
     max_tokens_per_chunk: int,
     batch_size: int | None,
     show_progress: bool,
+    include_title_prompt: bool,
 ) -> list[GeneratedAnswerRecord]:
     if max_prompt_tokens is None:
         if hasattr(generator, "get_default_max_prompt_tokens"):
@@ -94,11 +116,18 @@ def _generate_answers_with_finetune_rag_prompt(
 
     corpus = load_corpus_subset(config)
     corpus_lookup = build_corpus_lookup(corpus, config.corpus_text_fn)
+    corpus_title_lookup = build_corpus_title_lookup(corpus)
+    corpus_body_lookup = build_corpus_body_lookup(corpus)
 
     queries = load_queries_subset(config, split=split)
     answers = load_answers_subset(config, split=split)
     query_lookup = {str(row["id"]): str(row["text"]) for row in queries}
     answer_lookup = {str(row["query_id"]): str(row["answer"]) for row in answers}
+    query_title_lookup = _load_query_title_lookup(
+        config,
+        split=split,
+        include_title_prompt=include_title_prompt,
+    )
 
     query_ids = [str(row["id"]) for row in queries if str(row["id"]) in grouped]
     if not query_ids:
@@ -123,10 +152,14 @@ def _generate_answers_with_finetune_rag_prompt(
             _build_finetune_rag_user_prompt(
                 query_lookup[query_id],
                 grouped[query_id],
-                corpus_lookup,
+                corpus_lookup=corpus_lookup,
+                corpus_title_lookup=corpus_title_lookup,
+                corpus_body_lookup=corpus_body_lookup,
                 max_docs=max_context_docs,
                 max_tokens_per_chunk=max_tokens_per_chunk,
                 truncate_text_to_tokens=truncate_text_to_tokens,
+                query_title=query_title_lookup.get(query_id),
+                include_title_prompt=include_title_prompt,
             )
             for query_id in batch
         ]
@@ -152,6 +185,7 @@ def _generate_answers_without_retrieval(
     batch_size: int | None,
     show_progress: bool,
     prompt_mode: PromptMode,
+    include_title_prompt: bool,
 ) -> list[GeneratedAnswerRecord]:
     if prompt_mode not in {"qa", "rag-finetune"}:
         raise ValueError(
@@ -162,6 +196,12 @@ def _generate_answers_without_retrieval(
     answers = load_answers_subset(config, split=split)
     query_lookup = {str(row["id"]): str(row["text"]) for row in queries}
     answer_lookup = {str(row["query_id"]): str(row["answer"]) for row in answers}
+
+    query_title_lookup = _load_query_title_lookup(
+        config,
+        split=split,
+        include_title_prompt=include_title_prompt,
+    )
 
     query_ids = list(query_lookup)
     if not query_ids:
@@ -185,10 +225,18 @@ def _generate_answers_without_retrieval(
         user_prompts = []
         for query_id in batch:
             question = query_lookup[query_id]
+            query_title = query_title_lookup.get(query_id)
             if prompt_mode == "qa":
-                user_prompts.append(build_qa_user_content(query=question))
+                user_prompts.append(
+                    build_qa_user_content(query=question, query_title=query_title)
+                )
             else:
-                user_prompts.append(build_user_content(query=question, doc_texts=[]))
+                user_prompts.append(
+                    build_user_content(
+                        query=question,
+                        query_title=query_title,
+                    )
+                )
 
         generated_answers = generator.generate_texts(user_prompts)
         for query_id, generated_answer in zip(batch, generated_answers, strict=True):
@@ -207,12 +255,33 @@ def _generate_answers_without_retrieval(
 def _build_finetune_rag_user_prompt(
     question: str,
     hits: list,
-    corpus_lookup: dict[str, str],
     *,
+    corpus_lookup: dict[str, str],
+    corpus_title_lookup: dict[str, str],
+    corpus_body_lookup: dict[str, str],
     max_docs: int,
     max_tokens_per_chunk: int,
     truncate_text_to_tokens: Callable[[str, int], str] | None,
+    query_title: str | None = None,
+    include_title_prompt: bool = False,
 ) -> str:
+    if include_title_prompt:
+        context_docs: list[ContextDocument] = []
+        for hit in hits[:max_docs]:
+            corpus_id = str(hit["corpus_id"])
+            title = corpus_title_lookup.get(corpus_id, "").strip()
+            body = corpus_body_lookup.get(corpus_id, "").strip()
+            if not title and not body:
+                continue
+            if truncate_text_to_tokens is not None and body:
+                body = truncate_text_to_tokens(body, max_tokens_per_chunk)
+            context_docs.append(ContextDocument(title=title, text=body))
+        return build_user_content(
+            query=question,
+            context_docs=context_docs,
+            query_title=query_title,
+        )
+
     doc_texts: list[str] = []
     for hit in hits[:max_docs]:
         corpus_id = str(hit["corpus_id"])

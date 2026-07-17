@@ -22,6 +22,52 @@ def build_corpus_lookup(
     return {str(row["id"]): corpus_text_fn(row) for row in corpus}
 
 
+def build_corpus_title_lookup(corpus: Dataset) -> dict[str, str]:
+    """Map corpus id to document title."""
+    titles: dict[str, str] = {}
+    for row in corpus:
+        title = corpus_row_context_title(row)
+        if title:
+            titles[str(row["id"])] = title
+    return titles
+
+
+def corpus_row_context_title(row: dict[str, Any]) -> str:
+    title = str(row.get("title") or "").strip()
+    section = str(row.get("section_name") or "").strip()
+    if title and section:
+        return f"{title} | {section}"
+    return title or section
+
+
+def build_corpus_body_lookup(corpus: Dataset) -> dict[str, str]:
+    return {
+        str(row["id"]): str(row.get("text") or "").strip()
+        for row in corpus
+    }
+
+
+def build_query_document_title_lookup(
+    qrels: Dataset,
+    corpus: Dataset,
+) -> dict[str, str]:
+    """Map query id to the gold document title(s) from qrels."""
+    corpus_titles = build_corpus_title_lookup(corpus)
+    query_titles: dict[str, list[str]] = defaultdict(list)
+
+    for row in qrels:
+        query_id = str(row["query_id"])
+        corpus_id = str(row["corpus_id"])
+        title = corpus_titles.get(corpus_id, "")
+        if title and title not in query_titles[query_id]:
+            query_titles[query_id].append(title)
+
+    return {
+        query_id: titles[0] if len(titles) == 1 else "; ".join(titles)
+        for query_id, titles in query_titles.items()
+    }
+
+
 def group_retrieved_by_query(
     records: list[RetrievedDocRecord],
 ) -> dict[str, list[RetrievedDocRecord]]:

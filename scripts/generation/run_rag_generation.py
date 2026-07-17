@@ -202,6 +202,15 @@ def _build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Send raw prompts without applying the model chat template",
     )
+    parser.add_argument(
+        "--include-title-prompt",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help=(
+            "Add ## Title: to the query (from qrels) and render each context doc as "
+            "'title\\nbody' (default: off)"
+        ),
+    )
     return parser
 
 
@@ -224,6 +233,10 @@ def main(argv: list[str] | None = None) -> None:
     prompt_mode = args.prompt_mode or os.getenv("GENERATION_PROMPT_MODE")
     if prompt_mode is None:
         prompt_mode = "qa" if args.no_retrieval else "rag-finetune"
+
+    include_title_prompt = args.include_title_prompt
+    if include_title_prompt is None:
+        include_title_prompt = False
 
     _validate_cuda()
     configure_vllm_multiprocessing()
@@ -249,6 +262,7 @@ def main(argv: list[str] | None = None) -> None:
         print(f"max_lora_rank: {args.max_lora_rank}")
     print(f"no_retrieval: {args.no_retrieval}")
     print(f"prompt_mode: {prompt_mode}")
+    print(f"include_title_prompt: {include_title_prompt}")
     if retrieved_dir is not None:
         print(f"retrieved_dir: {retrieved_dir}")
     print(f"split: {args.split}")
@@ -278,6 +292,7 @@ def main(argv: list[str] | None = None) -> None:
         max_tokens_per_chunk=max_tokens_per_chunk,
         batch_size=args.batch_size,
         prompt_mode=prompt_mode,
+        include_title_prompt=include_title_prompt,
     )
     run_settings = {
         "dataset": args.dataset,
@@ -285,6 +300,7 @@ def main(argv: list[str] | None = None) -> None:
         "lora_path": args.lora_path,
         "no_retrieval": args.no_retrieval,
         "prompt_mode": prompt_mode,
+        "include_title_prompt": include_title_prompt,
         "retrieval_run_label": retrieval_run_label,
         "retrieved_dir": str(retrieved_dir) if retrieved_dir is not None else None,
         "run_label": run_label,

@@ -1,0 +1,223 @@
+# Title-aware generation experiment matrix (top 5, 2048 tokens/chunk, 14336 prompt budget).
+#
+# Prompt format adds ## Title: from qrels and renders each context doc as:
+#   doc N :
+#   {title}
+#   {body}
+#
+# Run one experiment:
+#   python scripts/generation/run_rag_experiment.py \
+#       --config scripts/generation/configs/experiments_title.yaml \
+#       --experiment telco-dpr-emb-base-gen-base-title-top5-2k
+#
+# Run all for one dataset:
+#   python scripts/generation/run_rag_experiment.py \
+#       --config scripts/generation/configs/experiments_title.yaml \
+#       --dataset telco-dpr
+
+defaults:
+  embedding_model: Qwen/Qwen3-Embedding-4B
+  generation_model: Qwen/Qwen3-8B
+  qa_adapter_root: models/qwen3-8b-lora-qa
+  top_k: 5
+  retrieval_top_k: 10
+  split: test
+  retrieval_batch_size: 128
+  generation_batch_size: 8
+  base_retrieval_run_label: vllm-offline-b128
+  lora_retrieval_run_label_template: vllm-lora-{dataset}-b128
+  include_title_prompt: true
+  generation_max_tokens: 2048
+  max_tokens_per_chunk: 2048
+  max_prompt_tokens: 14336
+datasets:
+  telco-dpr:
+    embedding_lora: DinoStackAI/Qwen3-Emb-4b-lora-telco-dpr
+    generation_lora: DinoStackAI/Qwen3-8b-lora-telco-dpr
+    generation_lora_qa: models/qwen3-8b-lora-qa/telco-dpr-qa-b4-e6/final
+  qasper:
+    paper_scoped: true
+    embedding_lora: DinoStackAI/Qwen3-Emb-4b-lora-qasper
+    generation_lora: DinoStackAI/Qwen3-8b-lora-qasper
+    generation_lora_qa: models/qwen3-8b-lora-qa/qasper-qa-b5-e4/final
+  narrativeqa:
+    embedding_lora: DinoStackAI/Qwen3-Emb-4b-lora-narrativeqa
+    generation_lora: DinoStackAI/Qwen3-8b-lora-narrativeqa
+    generation_lora_qa: models/qwen3-8b-lora-qa/narrativeqa-qa-b8-e2/final
+  bioasq-resplit:
+    embedding_lora: DinoStackAI/Qwen3-Emb-4b-lora-bioasq-resplit
+    generation_lora: DinoStackAI/Qwen3-8b-lora-bioasq-resplit
+    generation_lora_qa: models/qwen3-8b-lora-qa/bioasq-resplit-qa-b5-e4/final
+experiments:
+  telco-dpr-emb-base-gen-base-title-top5-2k:
+    dataset: telco-dpr
+    embedding: base
+    generation: base
+    run_label: telco-dpr-emb-base-gen-base-title-top5-2k
+  telco-dpr-emb-lora-gen-base-title-top5-2k:
+    dataset: telco-dpr
+    embedding: lora
+    generation: base
+    run_label: telco-dpr-emb-lora-gen-base-title-top5-2k
+  telco-dpr-emb-base-gen-lora-title-top5-2k:
+    dataset: telco-dpr
+    embedding: base
+    generation: lora
+    run_label: telco-dpr-emb-base-gen-lora-title-top5-2k
+  telco-dpr-emb-lora-gen-lora-title-top5-2k:
+    dataset: telco-dpr
+    embedding: lora
+    generation: lora
+    run_label: telco-dpr-emb-lora-gen-lora-title-top5-2k
+  qasper-emb-base-gen-base-title-top5-2k:
+    dataset: qasper
+    embedding: base
+    generation: base
+    run_label: qasper-emb-base-gen-base-title-top5-2k
+  qasper-emb-lora-gen-base-title-top5-2k:
+    dataset: qasper
+    embedding: lora
+    generation: base
+    run_label: qasper-emb-lora-gen-base-title-top5-2k
+  qasper-emb-base-gen-lora-title-top5-2k:
+    dataset: qasper
+    embedding: base
+    generation: lora
+    run_label: qasper-emb-base-gen-lora-title-top5-2k
+  qasper-emb-lora-gen-lora-title-top5-2k:
+    dataset: qasper
+    embedding: lora
+    generation: lora
+    run_label: qasper-emb-lora-gen-lora-title-top5-2k
+  narrativeqa-emb-base-gen-base-title-top5-2k:
+    dataset: narrativeqa
+    embedding: base
+    generation: base
+    run_label: narrativeqa-emb-base-gen-base-title-top5-2k
+  narrativeqa-emb-lora-gen-base-title-top5-2k:
+    dataset: narrativeqa
+    embedding: lora
+    generation: base
+    run_label: narrativeqa-emb-lora-gen-base-title-top5-2k
+  narrativeqa-emb-base-gen-lora-title-top5-2k:
+    dataset: narrativeqa
+    embedding: base
+    generation: lora
+    run_label: narrativeqa-emb-base-gen-lora-title-top5-2k
+  narrativeqa-emb-lora-gen-lora-title-top5-2k:
+    dataset: narrativeqa
+    embedding: lora
+    generation: lora
+    run_label: narrativeqa-emb-lora-gen-lora-title-top5-2k
+  bioasq-resplit-emb-base-gen-base-title-top5-2k:
+    dataset: bioasq-resplit
+    embedding: base
+    generation: base
+    run_label: bioasq-resplit-emb-base-gen-base-title-top5-2k
+  bioasq-resplit-emb-lora-gen-base-title-top5-2k:
+    dataset: bioasq-resplit
+    embedding: lora
+    generation: base
+    run_label: bioasq-resplit-emb-lora-gen-base-title-top5-2k
+  bioasq-resplit-emb-base-gen-lora-title-top5-2k:
+    dataset: bioasq-resplit
+    embedding: base
+    generation: lora
+    run_label: bioasq-resplit-emb-base-gen-lora-title-top5-2k
+  bioasq-resplit-emb-lora-gen-lora-title-top5-2k:
+    dataset: bioasq-resplit
+    embedding: lora
+    generation: lora
+    run_label: bioasq-resplit-emb-lora-gen-lora-title-top5-2k
+  telco-dpr-emb-base-gen-qa-title-top5-2k:
+    dataset: telco-dpr
+    embedding: base
+    generation: qa
+    run_label: telco-dpr-emb-base-gen-qa-title-top5-2k
+  telco-dpr-gen-qa-title-noretrieval-2k:
+    dataset: telco-dpr
+    embedding: none
+    generation: qa
+    use_retrieval: false
+    run_label: telco-dpr-gen-qa-title-noretrieval-2k
+  telco-dpr-gen-lora-title-noretrieval-2k:
+    dataset: telco-dpr
+    embedding: none
+    generation: lora
+    use_retrieval: false
+    run_label: telco-dpr-gen-lora-title-noretrieval-2k
+  telco-dpr-gen-base-title-noretrieval-2k:
+    dataset: telco-dpr
+    embedding: none
+    generation: base
+    use_retrieval: false
+    run_label: telco-dpr-gen-base-title-noretrieval-2k
+  qasper-emb-base-gen-qa-title-top5-2k:
+    dataset: qasper
+    embedding: base
+    generation: qa
+    run_label: qasper-emb-base-gen-qa-title-top5-2k
+  qasper-gen-qa-title-noretrieval-2k:
+    dataset: qasper
+    embedding: none
+    generation: qa
+    use_retrieval: false
+    run_label: qasper-gen-qa-title-noretrieval-2k
+  qasper-gen-lora-title-noretrieval-2k:
+    dataset: qasper
+    embedding: none
+    generation: lora
+    use_retrieval: false
+    run_label: qasper-gen-lora-title-noretrieval-2k
+  qasper-gen-base-title-noretrieval-2k:
+    dataset: qasper
+    embedding: none
+    generation: base
+    use_retrieval: false
+    run_label: qasper-gen-base-title-noretrieval-2k
+  narrativeqa-emb-base-gen-qa-title-top5-2k:
+    dataset: narrativeqa
+    embedding: base
+    generation: qa
+    run_label: narrativeqa-emb-base-gen-qa-title-top5-2k
+  narrativeqa-gen-qa-title-noretrieval-2k:
+    dataset: narrativeqa
+    embedding: none
+    generation: qa
+    use_retrieval: false
+    run_label: narrativeqa-gen-qa-title-noretrieval-2k
+  narrativeqa-gen-lora-title-noretrieval-2k:
+    dataset: narrativeqa
+    embedding: none
+    generation: lora
+    use_retrieval: false
+    run_label: narrativeqa-gen-lora-title-noretrieval-2k
+  narrativeqa-gen-base-title-noretrieval-2k:
+    dataset: narrativeqa
+    embedding: none
+    generation: base
+    use_retrieval: false
+    run_label: narrativeqa-gen-base-title-noretrieval-2k
+  bioasq-resplit-emb-base-gen-qa-title-top5-2k:
+    dataset: bioasq-resplit
+    embedding: base
+    generation: qa
+    run_label: bioasq-resplit-emb-base-gen-qa-title-top5-2k
+  bioasq-resplit-gen-qa-title-noretrieval-2k:
+    dataset: bioasq-resplit
+    embedding: none
+    generation: qa
+    use_retrieval: false
+    run_label: bioasq-resplit-gen-qa-title-noretrieval-2k
+  bioasq-resplit-gen-lora-title-noretrieval-2k:
+    dataset: bioasq-resplit
+    embedding: none
+    generation: lora
+    use_retrieval: false
+    run_label: bioasq-resplit-gen-lora-title-noretrieval-2k
+  bioasq-resplit-gen-base-title-noretrieval-2k:
+    dataset: bioasq-resplit
+    embedding: none
+    generation: base
+    use_retrieval: false
+    run_label: bioasq-resplit-gen-base-title-noretrieval-2k

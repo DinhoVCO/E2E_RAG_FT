@@ -287,18 +287,36 @@ Answer the question based only on the provided context.
 If the context does not contain enough information, say so briefly.
 ```
 
-### User message
+### User message (with retrieval, default)
 
 ```
-Context:
-[1] <chunk 1, truncated to 512 tokens>
+Answer the query using the documents as support...
+## Query:
+<raw query text>
 
-[2] <chunk 2, truncated to 512 tokens>
+## Context:
+doc 1 :
+<title>\n\n<text chunk, truncated to 512 tokens by default>
+
+doc 2 :
+...
+## Response:
+```
+
+With `--include-title-prompt` (see `experiments_title.yaml`):
+
+```
+## Title:
+<gold document title from qrels>
+
+## Query:
 ...
 
-Question: <raw query text>
-
-Answer:
+## Context:
+doc 1 :
+{title}
+{body}
+...
 ```
 
 Notes:
@@ -307,6 +325,51 @@ Notes:
 - Each retrieved chunk is truncated to `--max-tokens-per-chunk` (default: 512).
 - `--top-k` controls how many retrieved documents are included (by rank).
 - Qwen3 **thinking is disabled by default** (`enable_thinking=False` in the chat template).
+- `--include-title-prompt` (default: off) adds the gold document title before the query.
+  Retrieved chunks already embed their own title in the text; the explicit `## Title:`
+  section anchors the question to the source document even when retrieval is noisy.
+
+### Title-aware experiments (`experiments_title.yaml`)
+
+A separate 32-experiment matrix lives in `scripts/generation/configs/experiments_title.yaml`.
+It enables `--include-title-prompt`, uses **top 5**, **2048 tokens/chunk**, **2048 max
+generation tokens**, and a **14336** prompt budget. Context docs are rendered as:
+
+```
+doc 1 :
+{title}
+{body}
+```
+
+```bash
+python scripts/generation/run_rag_experiment.py \
+  --config scripts/generation/configs/experiments_title.yaml \
+  --experiment telco-dpr-emb-base-gen-base-title-top5-2k
+```
+
+### No-retrieval prompts (`--no-retrieval`)
+
+When generating without retrieved context, add `--include-title-prompt` to prepend the
+gold document title from qrels:
+
+```
+Answer the question based only on the provided context.
+## Title:
+Pump Up the Volume (film)
+
+## Query:
+Where does this radio station take place?
+
+## Response:
+```
+
+For qasper, the title is the paper name. For telco-dpr, it is the spec section path
+(e.g. `NR and NG-RAN Overall Description;Stage 2 | 6 Layer 2 | ...`).
+
+Disable with `--no-include-title-prompt` (default for the base `experiments.yaml` matrix).
+
+The `question` field in `generated_answers.json` still stores the original query text
+(without the title) for evaluation traceability.
 
 ---
 
