@@ -18,6 +18,7 @@ from __future__ import annotations
 import argparse
 import os
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -36,13 +37,19 @@ from tesis_unicamp.generation.rag.io import save_generated_answers_bundle
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_MODEL = "Qwen/Qwen3-8B"
+DEFAULT_RETRIEVAL_MODEL = "Qwen/Qwen3-Embedding-4B"
 DEFAULT_RETRIEVAL_RUN_LABEL = "vllm-offline-b128"
 DEFAULT_RUN_LABEL = "generation-default"
-DEFAULT_RETRIEVED_ROOT = PROJECT_ROOT / "datasets" / "retrieved_inmemory"
+DEFAULT_RETRIEVED_ROOT_NAME = "retrieved_inmemory"
+DEFAULT_TITLE_RETRIEVED_ROOT_NAME = "retrieved_inmemory_title"
 DEFAULT_OUTPUT_ROOT = PROJECT_ROOT / "datasets" / "generated"
 DEFAULT_SPLIT = "test"
 DEFAULT_TOP_K = 10
+DEFAULT_RETRIEVAL_TOP_K = 10
 DEFAULT_MAX_TOKENS_PER_CHUNK = 512
+RETRIEVAL_TITLE_SCRIPT = (
+    PROJECT_ROOT / "scripts" / "retrieval" / "retrieve_rag_top_k_inmemory_title.py"
+)
 
 
 def _load_env() -> None:
@@ -54,11 +61,76 @@ def _sanitize_label(label: str, *, fallback: str) -> str:
     return sanitized or fallback
 
 
-def _default_retrieved_dir(dataset: str, retrieval_run_label: str) -> Path:
-    return DEFAULT_RETRIEVED_ROOT / dataset / _sanitize_label(
+def _retrieved_root_path(retrieved_root: str) -> Path:
+    return PROJECT_ROOT / "datasets" / retrieved_root
+
+
+def _default_retrieved_dir(
+    dataset: str,
+    retrieval_run_label: str,
+    *,
+    retrieved_root: str,
+) -> Path:
+    return _retrieved_root_path(retrieved_root) / dataset / _sanitize_label(
         retrieval_run_label,
         fallback=DEFAULT_RETRIEVAL_RUN_LABEL,
     )
+
+
+def _retrieved_docs_path(retrieved_dir: Path, split: str) -> Path:
+    return retrieved_dir / split / "retrieved_docs.json"
+
+
+def _run_title_retrieval_if_missing(
+    *,
+    dataset: str,
+    split: str,
+    retrieval_run_label: str,
+    retrieved_dir: Path,
+    retrieval_model: str,
+    retrieval_lora_path: str | None,
+    retrieval_top_k: int,
+    retrieval_batch_size: int,
+    paper_scoped: bool,
+) -> None:
+    retrieved_path = _retrieved_docs_path(retrieved_dir, split)
+    if retrieved_path.is_file():
+        print(f"Using existing title retrieval: {retrieved_path}")
+        return
+
+    command = [
+        sys.executable,
+        str(RETRIEVAL_TITLE_SCRIPT),
+        "--dataset",
+        dataset,
+        "--mode",
+        "offline",
+        "--model",
+        retrieval_model,
+        "--top-k",
+        str(retrieval_top_k),
+        "--batch-size",
+        str(retrieval_batch_size),
+        "--run-label",
+        retrieval_run_label.removesuffix("-paper-scoped")
+        if paper_scoped
+        else retrieval_run_label,
+        "--splits",
+        split,
+        "--output-dir",
+        str(retrieved_dir),
+    ]
+    if retrieval_lora_path:
+        command.extend(["--lora-path", retrieval_lora_path])
+    if dataset == "qasper":
+        command.append("--paper-scoped" if paper_scoped else "--no-paper-scoped")
+
+    print(">>> title retrieval (missing retrieved_docs)")
+    print(f"$ {' '.join(command)}")
+    subprocess.run(command, cwd=PROJECT_ROOT, check=True)
+
+    if not retrieved_path.is_file():
+        raise FileNotFoundError(f"Title retrieval finished but file is missing: {retrieved_path}")
 
 
 def _default_output_dir(dataset: str, run_label: str) -> Path:
@@ -115,7 +187,16 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--retrieval-run-label",
         default=os.getenv("RETRIEVAL_RUN_LABEL", DEFAULT_RETRIEVAL_RUN_LABEL),
-        help="Subfolder under datasets/retrieved_inmemory/<dataset>/ (default: vllm-offline-b128)",
+        help="Subfolder under datasets/<retrieved-root>/<dataset>/ (default: vllm-offline-b128)",
+    )
+    parser.add_argument(
+        "--retrieved-root",
+        default=os.getenv("RETRIEVED_ROOT", DEFAULT_RETRIEVED_ROOT_NAME),
+        help=(
+            "Root folder under datasets/ for retrieved_docs "
+            f"(default: {DEFAULT_RETRIEVED_ROOT_NAME}; title runs: "
+            f"{DEFAULT_TITLE_RETRIEVED_ROOT_NAME})"
+        ),
     )
     parser.add_argument(
         "--retrieved-dir",
@@ -211,6 +292,43 @@ def _build_parser() -> argparse.ArgumentParser:
             "'title\\nbody' (default: off)"
         ),
     )
+    parser.add_argument(
+        "--run-title-retrieval-if-missing",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help=(
+            "Run title-aware in-memory retrieval when retrieved_docs are missing "
+            "(default: on when --include-title-prompt and retrieval is enabled)"
+        ),
+    )
+    parser.add_argument(
+        "--retrieval-model",
+        default=os.getenv("VLLM_MODEL", DEFAULT_RETRIEVAL_MODEL),
+        help=f"Embedding model for auto title retrieval (default: {DEFAULT_RETRIEVAL_MODEL})",
+    )
+    parser.add_argument(
+        "--retrieval-lora-path",
+        default=os.getenv("RETRIEVAL_LORA_PATH"),
+        help="Embedding LoRA adapter for auto title retrieval",
+    )
+    parser.add_argument(
+        "--retrieval-top-k",
+        type=int,
+        default=int(os.getenv("RETRIEVAL_TOP_K", DEFAULT_RETRIEVAL_TOP_K)),
+        help=f"Top-k saved by auto title retrieval (default: {DEFAULT_RETRIEVAL_TOP_K})",
+    )
+    parser.add_argument(
+        "--retrieval-batch-size",
+        type=int,
+        default=int(os.getenv("EMBED_BATCH_SIZE", "128")),
+        help="Embedding batch size for auto title retrieval (default: 128)",
+    )
+    parser.add_argument(
+        "--paper-scoped",
+        action=argparse.BooleanOptionalAction,
+        default=None,
+        help="QASPER only: paper-scoped title retrieval (default: on for qasper)",
+    )
     return parser
 
 
@@ -223,12 +341,6 @@ def main(argv: list[str] | None = None) -> None:
         fallback=DEFAULT_RETRIEVAL_RUN_LABEL,
     )
     run_label = _sanitize_label(args.run_label, fallback=DEFAULT_RUN_LABEL)
-    retrieved_dir = None
-    if not args.no_retrieval:
-        retrieved_dir = args.retrieved_dir or _default_retrieved_dir(
-            args.dataset,
-            retrieval_run_label,
-        )
 
     prompt_mode = args.prompt_mode or os.getenv("GENERATION_PROMPT_MODE")
     if prompt_mode is None:
@@ -237,6 +349,44 @@ def main(argv: list[str] | None = None) -> None:
     include_title_prompt = args.include_title_prompt
     if include_title_prompt is None:
         include_title_prompt = False
+
+    retrieved_root = args.retrieved_root
+    if include_title_prompt and retrieved_root == DEFAULT_RETRIEVED_ROOT_NAME:
+        retrieved_root = DEFAULT_TITLE_RETRIEVED_ROOT_NAME
+
+    run_title_retrieval_if_missing = args.run_title_retrieval_if_missing
+    if run_title_retrieval_if_missing is None:
+        run_title_retrieval_if_missing = include_title_prompt and not args.no_retrieval
+
+    paper_scoped = args.paper_scoped
+    if paper_scoped is None:
+        paper_scoped = args.dataset == "qasper"
+    if (
+        paper_scoped
+        and args.dataset == "qasper"
+        and "paper-scoped" not in retrieval_run_label.lower()
+    ):
+        retrieval_run_label = f"{retrieval_run_label}-paper-scoped"
+
+    retrieved_dir = None
+    if not args.no_retrieval:
+        retrieved_dir = args.retrieved_dir or _default_retrieved_dir(
+            args.dataset,
+            retrieval_run_label,
+            retrieved_root=retrieved_root,
+        )
+        if run_title_retrieval_if_missing and include_title_prompt:
+            _run_title_retrieval_if_missing(
+                dataset=args.dataset,
+                split=args.split,
+                retrieval_run_label=retrieval_run_label,
+                retrieved_dir=retrieved_dir,
+                retrieval_model=args.retrieval_model,
+                retrieval_lora_path=args.retrieval_lora_path,
+                retrieval_top_k=args.retrieval_top_k,
+                retrieval_batch_size=args.retrieval_batch_size,
+                paper_scoped=paper_scoped,
+            )
 
     _validate_cuda()
     configure_vllm_multiprocessing()
@@ -263,6 +413,7 @@ def main(argv: list[str] | None = None) -> None:
     print(f"no_retrieval: {args.no_retrieval}")
     print(f"prompt_mode: {prompt_mode}")
     print(f"include_title_prompt: {include_title_prompt}")
+    print(f"retrieved_root: {retrieved_root}")
     if retrieved_dir is not None:
         print(f"retrieved_dir: {retrieved_dir}")
     print(f"split: {args.split}")
@@ -301,6 +452,7 @@ def main(argv: list[str] | None = None) -> None:
         "no_retrieval": args.no_retrieval,
         "prompt_mode": prompt_mode,
         "include_title_prompt": include_title_prompt,
+        "retrieved_root": retrieved_root,
         "retrieval_run_label": retrieval_run_label,
         "retrieved_dir": str(retrieved_dir) if retrieved_dir is not None else None,
         "run_label": run_label,

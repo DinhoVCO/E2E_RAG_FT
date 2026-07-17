@@ -36,6 +36,8 @@ _EXPERIMENT_KEYS = frozenset(
         "generation_max_tokens",
         "max_tokens_per_chunk",
         "max_prompt_tokens",
+        "use_title_retrieval",
+        "retrieved_root",
     }
 )
 
@@ -63,6 +65,8 @@ class ResolvedExperiment:
     generation_max_tokens: int
     max_tokens_per_chunk: int
     max_prompt_tokens: int
+    use_title_retrieval: bool
+    retrieved_root: str
 
 
 def default_experiments_path() -> Path:
@@ -332,6 +336,12 @@ def resolve_experiment(raw: dict[str, Any], experiment_id: str) -> ResolvedExper
         max_prompt_tokens=int(
             spec.get("max_prompt_tokens", defaults.get("max_prompt_tokens", 0))
         ),
+        use_title_retrieval=bool(
+            spec.get("use_title_retrieval", defaults.get("use_title_retrieval", False))
+        ),
+        retrieved_root=str(
+            spec.get("retrieved_root", defaults.get("retrieved_root", "retrieved_inmemory"))
+        ),
     )
 
 
@@ -354,11 +364,12 @@ def retrieved_docs_path(
     dataset: str,
     retrieval_run_label: str,
     split: str,
+    retrieved_root: str = "retrieved_inmemory",
 ) -> Path:
     return (
         project_root
         / "datasets"
-        / "retrieved_inmemory"
+        / retrieved_root
         / dataset
         / retrieval_run_label
         / split

@@ -1,0 +1,143 @@
+#!/usr/bin/env bash
+# Submit title-aware RAG experiment(s) on ict-h100 (1 GPU, non-interactive batch job).
+#
+# Uses scripts/generation/configs/experiments_title.yaml:
+#   - title-aware retrieval -> datasets/retrieved_inmemory_title/
+#   - title-aware generation  -> ## Title: in query + title/body context docs
+#
+# Usage (from repo root):
+#   bash jobs/scripts/santos_dumont/run_rag_experiment_title_h100.sh \
+#     --experiment telco-dpr-emb-base-gen-base-title-top5-2k
+#
+#   bash jobs/scripts/santos_dumont/run_rag_experiment_title_h100.sh --dataset telco-dpr
+#
+#   bash jobs/scripts/santos_dumont/run_rag_experiment_title_h100.sh --all
+#
+#   JOB_NAME=rag-title-telco TIME=24:00:00 \
+#     bash jobs/scripts/santos_dumont/run_rag_experiment_title_h100.sh \
+#     --dataset telco-dpr --skip-retrieval
+#
+# Submit one GPU job per experiment (parallel runs):
+#   bash jobs/scripts/santos_dumont/run_rag_experiment_title_h100.sh \
+#     --submit-each --dataset telco-dpr
+#
+set -euo pipefail
+
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
+TITLE_CONFIG="${ROOT}/scripts/generation/configs/experiments_title.yaml"
+
+if (("$#" == 0)); then
+  echo "Usage: $0 <--experiment ID | --dataset NAME | --all> [run_rag_experiment.py args...]" >&2
+  echo "       $0 --list" >&2
+  echo "       $0 --submit-each <--experiment ID | --dataset NAME | --all>" >&2
+  exit 1
+fi
+
+if [[ "$1" == "--list" ]]; then
+  exec uv run python "${ROOT}/scripts/generation/run_rag_experiment.py" \
+    --config "${TITLE_CONFIG}" --list
+fi
+
+SUBMIT_EACH=false
+if [[ "$1" == "--submit-each" ]]; then
+  SUBMIT_EACH=true
+  shift
+  if (("$#" == 0)); then
+    echo "Missing target after --submit-each." >&2
+    exit 1
+  fi
+fi
+
+if [[ "$1" != "--experiment" && "$1" != "--dataset" && "$1" != "--all" ]]; then
+  echo "First argument must be --experiment, --dataset, or --all (or --list)." >&2
+  exit 1
+fi
+
+MODE="$1"
+TARGET="${2:-}"
+if [[ "$MODE" != "--all" && -z "$TARGET" ]]; then
+  echo "Missing value after ${MODE}." >&2
+  exit 1
+fi
+
+JOB_NAME="${JOB_NAME:-}"
+TIME="${TIME:-12:00:00}"
+ACCOUNT="${ACCOUNT:-smartassistant}"
+PARTITION="${PARTITION:-ict-h100}"
+CPUS_PER_TASK="${CPUS_PER_TASK:-4}"
+MEM="${MEM:-65536M}"
+LOG_DIR="${LOG_DIR:-${ROOT}/logs/slurm}"
+PYTHON_RUNNER="${PYTHON_RUNNER:-uv run python}"
+
+mkdir -p "$LOG_DIR"
+
+_submit_job() {
+  local job_name="$1"
+  shift
+  local extra_cmd
+  extra_cmd="$(printf ' %q' "$@")"
+
+  local job_id
+  job_id=$(sbatch --parsable \
+    --job-name="$job_name" \
+    --account="$ACCOUNT" \
+    --partition="$PARTITION" \
+    --time="$TIME" \
+    --cpus-per-task="$CPUS_PER_TASK" \
+    --mem="$MEM" \
+    --gres=gpu:1 \
+    --chdir="$ROOT" \
+    --output="${LOG_DIR}/${job_name}-%j.out" \
+    --error="${LOG_DIR}/${job_name}-%j.err" \
+    --wrap="set -euo pipefail
+cd '${ROOT}'
+export CUDA_VISIBLE_DEVICES=0
+echo SLURM_JOB_ID=\$SLURM_JOB_ID
+echo Node: \$(hostname)
+echo Started: \$(date -Is)
+echo Config: ${TITLE_CONFIG}
+exec ${PYTHON_RUNNER} scripts/generation/run_rag_experiment.py \
+  --config '${TITLE_CONFIG}'${extra_cmd}")
+
+  echo "Submitted batch job ${job_id}"
+  echo "Monitor:  squeue -j ${job_id}"
+  echo "Logs:     tail -f ${LOG_DIR}/${job_name}-${job_id}.out"
+  echo "Cancel:   scancel ${job_id}"
+}
+
+if [[ "$SUBMIT_EACH" == "true" && "$MODE" == "--experiment" ]]; then
+  job_name="${JOB_NAME:-rag-title-${TARGET}}"
+  _submit_job "$job_name" --experiment "$TARGET" "${@:3}"
+  exit 0
+fi
+
+if [[ "$SUBMIT_EACH" == "true" ]]; then
+  list_cmd=(${PYTHON_RUNNER} "${ROOT}/scripts/generation/run_rag_experiment.py" \
+    --config "${TITLE_CONFIG}" --list)
+  if [[ "$MODE" == "--dataset" ]]; then
+    mapfile -t experiment_ids < <("${list_cmd[@]}" | grep -F "dataset=${TARGET}" | cut -f1)
+  else
+    mapfile -t experiment_ids < <("${list_cmd[@]}" | cut -f1)
+  fi
+
+  if (("${#experiment_ids[@]}" == 0)); then
+    echo "No experiments matched ${MODE} ${TARGET}." >&2
+    exit 1
+  fi
+
+  for experiment_id in "${experiment_ids[@]}"; do
+    job_name="${JOB_NAME:-rag-title-${experiment_id}}"
+    _submit_job "$job_name" --experiment "$experiment_id" "${@:3}"
+    echo
+  done
+  exit 0
+fi
+
+case "$MODE" in
+  --experiment) DEFAULT_JOB_NAME="rag-title-${TARGET}" ;;
+  --dataset) DEFAULT_JOB_NAME="rag-title-${TARGET}" ;;
+  --all) DEFAULT_JOB_NAME="rag-title-all" ;;
+esac
+
+JOB_NAME="${JOB_NAME:-$DEFAULT_JOB_NAME}"
+_submit_job "$JOB_NAME" "$@"

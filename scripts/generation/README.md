@@ -332,8 +332,20 @@ Notes:
 ### Title-aware experiments (`experiments_title.yaml`)
 
 A separate 32-experiment matrix lives in `scripts/generation/configs/experiments_title.yaml`.
-It enables `--include-title-prompt`, uses **top 5**, **2048 tokens/chunk**, **2048 max
-generation tokens**, and a **14336** prompt budget. Context docs are rendered as:
+It enables `--include-title-prompt`, uses **title-aware retrieval** (saved under
+`datasets/retrieved_inmemory_title/`), **top 5**, **2048 tokens/chunk**, **2048 max
+generation tokens**, and a **14336** prompt budget.
+
+Retrieval query format:
+
+```
+Instruct: Given a web search query, retrieve relevant passages that answer the query
+## Title:
+<gold document title from qrels>
+Query:<question>
+```
+
+Generation context docs are rendered as:
 
 ```
 doc 1 :
@@ -346,6 +358,28 @@ python scripts/generation/run_rag_experiment.py \
   --config scripts/generation/configs/experiments_title.yaml \
   --experiment telco-dpr-emb-base-gen-base-title-top5-2k
 ```
+
+Cluster (SLURM batch) for the title matrix:
+
+```bash
+bash jobs/scripts/santos_dumont/run_rag_experiment_title_h100.sh \
+  --experiment telco-dpr-emb-base-gen-base-title-top5-2k
+
+bash jobs/scripts/santos_dumont/run_rag_experiment_title_h100.sh --dataset telco-dpr
+
+TIME=24:00:00 bash jobs/scripts/santos_dumont/run_rag_experiment_title_h100.sh --all
+```
+
+Submit one GPU job per experiment (parallel):
+
+```bash
+bash jobs/scripts/santos_dumont/run_rag_experiment_title_h100.sh \
+  --submit-each --dataset telco-dpr
+
+bash jobs/scripts/santos_dumont/run_rag_experiment_title_h100.sh --submit-each --all
+```
+
+Logs go to `logs/slurm/rag-title-<experiment>-<job_id>.out`.
 
 ### No-retrieval prompts (`--no-retrieval`)
 

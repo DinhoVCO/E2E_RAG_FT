@@ -45,6 +45,9 @@ from tesis_unicamp.generation.experiment_config import (
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 RETRIEVAL_SCRIPT = PROJECT_ROOT / "scripts" / "retrieval" / "retrieve_rag_top_k_inmemory.py"
+RETRIEVAL_TITLE_SCRIPT = (
+    PROJECT_ROOT / "scripts" / "retrieval" / "retrieve_rag_top_k_inmemory_title.py"
+)
 GENERATION_SCRIPT = PROJECT_ROOT / "scripts" / "generation" / "run_rag_generation.py"
 
 
@@ -133,6 +136,8 @@ def _print_experiment_summary(experiment: ResolvedExperiment) -> None:
     print(f"generation_max_tokens: {experiment.generation_max_tokens}")
     print(f"max_tokens_per_chunk: {experiment.max_tokens_per_chunk}")
     print(f"max_prompt_tokens: {experiment.max_prompt_tokens}")
+    print(f"use_title_retrieval: {experiment.use_title_retrieval}")
+    print(f"retrieved_root: {experiment.retrieved_root}")
     if experiment.use_retrieval:
         print(f"retrieval_top_k: {experiment.retrieval_top_k}")
     print(f"split: {experiment.split}")
@@ -156,9 +161,10 @@ def _list_experiments(raw: dict) -> None:
 
 
 def _retrieval_command(experiment: ResolvedExperiment) -> list[str]:
+    script = RETRIEVAL_TITLE_SCRIPT if experiment.use_title_retrieval else RETRIEVAL_SCRIPT
     command = [
         sys.executable,
-        str(RETRIEVAL_SCRIPT),
+        str(script),
         "--dataset",
         experiment.dataset,
         "--mode",
@@ -205,11 +211,19 @@ def _generation_command(experiment: ResolvedExperiment) -> list[str]:
         str(experiment.max_tokens_per_chunk),
         "--max-prompt-tokens",
         str(experiment.max_prompt_tokens),
+        "--retrieved-root",
+        experiment.retrieved_root,
+        "--retrieval-model",
+        experiment.embedding_model,
+        "--retrieval-top-k",
+        str(experiment.retrieval_top_k),
     ]
     if experiment.include_title_prompt:
         command.append("--include-title-prompt")
     else:
         command.append("--no-include-title-prompt")
+    if experiment.use_title_retrieval:
+        command.append("--run-title-retrieval-if-missing")
     if experiment.use_retrieval:
         command.extend(
             [
@@ -223,6 +237,8 @@ def _generation_command(experiment: ResolvedExperiment) -> list[str]:
         command.append("--no-retrieval")
     if experiment.generation_lora:
         command.extend(["--lora-path", experiment.generation_lora])
+    if experiment.use_retrieval and experiment.embedding_lora:
+        command.extend(["--retrieval-lora-path", experiment.embedding_lora])
     return command
 
 
@@ -241,6 +257,7 @@ def _needs_retrieval(
         dataset=experiment.dataset,
         retrieval_run_label=experiment.retrieval_run_label,
         split=experiment.split,
+        retrieved_root=experiment.retrieved_root,
     )
     return not path.is_file()
 
@@ -272,6 +289,7 @@ def _run_experiment(
         dataset=experiment.dataset,
         retrieval_run_label=experiment.retrieval_run_label,
         split=experiment.split,
+        retrieved_root=experiment.retrieved_root,
     )
 
     run_retrieval = (
@@ -294,7 +312,12 @@ def _run_experiment(
         print(f">>> skipping retrieval (using {retrieved_path})")
 
     if run_generation:
-        if experiment.use_retrieval and not run_retrieval and not retrieved_path.is_file():
+        if (
+            experiment.use_retrieval
+            and not run_retrieval
+            and not retrieved_path.is_file()
+            and not experiment.use_title_retrieval
+        ):
             raise FileNotFoundError(
                 f"Missing retrieved docs for generation: {retrieved_path}. "
                 "Run retrieval first or drop --skip-retrieval."

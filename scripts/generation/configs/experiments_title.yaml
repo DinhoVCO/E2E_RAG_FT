@@ -1,9 +1,7 @@
 # Title-aware generation experiment matrix (top 5, 2048 tokens/chunk, 14336 prompt budget).
 #
-# Prompt format adds ## Title: from qrels and renders each context doc as:
-#   doc N :
-#   {title}
-#   {body}
+# Uses title-aware retrieval (## Title: in embedding query) saved under
+# datasets/retrieved_inmemory_title/ and title-aware generation prompts.
 #
 # Run one experiment:
 #   python scripts/generation/run_rag_experiment.py \
@@ -27,6 +25,8 @@ defaults:
   base_retrieval_run_label: vllm-offline-b128
   lora_retrieval_run_label_template: vllm-lora-{dataset}-b128
   include_title_prompt: true
+  use_title_retrieval: true
+  retrieved_root: retrieved_inmemory_title
   generation_max_tokens: 2048
   max_tokens_per_chunk: 2048
   max_prompt_tokens: 14336
