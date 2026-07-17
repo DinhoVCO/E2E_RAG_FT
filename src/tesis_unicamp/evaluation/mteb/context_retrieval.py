@@ -53,9 +53,20 @@ from tesis_unicamp.finetuning.embeddings.context.config import (
 from tesis_unicamp.finetuning.embeddings.context.datasets import (
     CONTEXT_EMBEDDING_FINETUNING_DATASET_CONFIGS,
 )
+from tesis_unicamp.datasets.utils.title_retrieval import (
+    build_corpus_body_lookup,
+    build_corpus_title_lookup,
+    build_query_document_title_lookup,
+)
 from tesis_unicamp.finetuning.embeddings.context.formatting import (
     build_anchor_text,
     build_context_anchor_text,
+    count_tokens,
+    truncate_to_tokens,
+)
+from tesis_unicamp.finetuning.generative.formatting import (
+    ContextDocument,
+    build_user_content,
 )
 from tesis_unicamp.generation.rag.context import build_corpus_lookup, group_retrieved_by_query
 from tesis_unicamp.vector_stores import InMemoryVectorStore
@@ -64,6 +75,12 @@ CONTEXT_DATASET_IDS = tuple(CONTEXT_EMBEDDING_FINETUNING_DATASET_CONFIGS)
 DEFAULT_STAGE1_TOP_K = 10
 DEFAULT_CONTEXT_K_VALUES = (1, 3, 5, 7, 10)
 DEFAULT_STAGE1_ONLY_MODEL_REVISION_TEMPLATE = "ctx-lora-{dataset}-stage1"
+DEFAULT_TITLE_STAGE1_ONLY_MODEL_REVISION_TEMPLATE = "ctx-lora-{dataset}-stage1-title"
+DEFAULT_TITLE_MODEL_REVISION_TEMPLATE = "ctx-lora-{dataset}-k{k}-title"
+DEFAULT_TITLE_CONTEXT_K_VALUES = (1, 3, 5)
+DEFAULT_TITLE_MAX_TOKENS_PER_CHUNK = 2048
+DEFAULT_TITLE_MAX_SEQ_LENGTH = 14336
+DEFAULT_TITLE_OUTPUT_ROOT = Path("results") / "mteb" / "context_title"
 
 
 def stage1_query_to_text(query: str) -> str:
@@ -144,6 +161,8 @@ class ContextRetrievalEvalConfig:
     max_query_tokens: int = MAX_QUERY_TOKENS
     max_doc_tokens: int = MAX_DOC_TOKENS
     run_label: str | None = None
+    include_query_title: bool = False
+    max_tokens_per_chunk: int = DEFAULT_TITLE_MAX_TOKENS_PER_CHUNK
 
 
 def _validate_context_k_values(values: tuple[int, ...]) -> tuple[int, ...]:
@@ -197,6 +216,7 @@ def create_rag_retrieval_task_with_query_maps(
     query_maps: dict[str, dict[str, str]],
     *,
     task_name_suffix: str,
+    include_query_title: bool = False,
 ) -> AbsTaskRetrieval:
     def load_data(
         self: AbsTaskRetrieval,
@@ -225,10 +245,20 @@ def create_rag_retrieval_task_with_query_maps(
         (AbsTaskRetrieval,),
         {
             "metadata": TaskMetadata(
-                name=f"{config.name}-ctx-{task_name_suffix}",
+                name=(
+                    f"{config.name}-ctx-{task_name_suffix}-Title"
+                    if include_query_title
+                    else f"{config.name}-ctx-{task_name_suffix}"
+                ),
                 description=(
                     f"{config.description} "
-                    f"(context-augmented queries, stage-2 top_k={task_name_suffix})."
+                    f"(context-augmented queries, stage-2 top_k={task_name_suffix}"
+                    + (
+                        ", ## Title: query + title/body context docs, "
+                        f"{DEFAULT_TITLE_MAX_TOKENS_PER_CHUNK}-token chunk truncation)."
+                        if include_query_title
+                        else ")."
+                    )
                 ),
                 reference=config.reference or f"https://huggingface.co/datasets/{config.hf_repo_id}",
                 dataset={
@@ -267,13 +297,17 @@ def run_stage1_retrieval(
     batch_size: int,
     paper_scoped: bool,
     run_label: str,
+    include_query_title: bool = False,
 ) -> dict[str, list[RetrievedDocRecord]]:
     if dataset not in DATASET_STAGE1_SPECS:
         valid = ", ".join(sorted(DATASET_STAGE1_SPECS))
         raise ValueError(f"Unknown dataset {dataset!r}. Available: {valid}")
 
     spec = DATASET_STAGE1_SPECS[dataset]
-    store = InMemoryVectorStore(collection_name=f"{dataset}-ctx-stage1-{run_label}")
+    ctx_config = CONTEXT_EMBEDDING_FINETUNING_DATASET_CONFIGS[dataset]
+    store = InMemoryVectorStore(
+        collection_name=f"{dataset}-ctx-stage1{'-title' if include_query_title else ''}-{run_label}"
+    )
 
     indexed = spec.index_fn(
         embedder,
@@ -296,7 +330,10 @@ def run_stage1_retrieval(
             load_subset=spec.load_subset,
             load_top_ranked_for_split=load_top_ranked_for_split,
             top_k=stage1_top_k,
-            query_to_text=stage1_query_to_text,
+            query_to_text=None if include_query_title else stage1_query_to_text,
+            load_corpus=ctx_config.load_corpus,
+            include_query_title=include_query_title,
+            corpus_split=corpus_split,
             splits=splits,
             batch_size=batch_size,
             show_progress=True,
@@ -307,7 +344,10 @@ def run_stage1_retrieval(
             store,
             load_subset=spec.load_subset,
             top_k=stage1_top_k,
-            query_to_text=stage1_query_to_text,
+            query_to_text=None if include_query_title else stage1_query_to_text,
+            load_corpus=ctx_config.load_corpus,
+            include_query_title=include_query_title,
+            corpus_split=corpus_split,
             splits=splits,
             batch_size=batch_size,
             show_progress=True,
@@ -379,6 +419,113 @@ def build_context_query_maps(
     return query_maps
 
 
+def build_title_context_query_text(
+    tokenizer: PreTrainedTokenizerBase,
+    *,
+    query: str,
+    hits: list[RetrievedDocRecord],
+    context_k: int,
+    corpus_title_lookup: dict[str, str],
+    corpus_body_lookup: dict[str, str],
+    query_title: str | None,
+    max_tokens_per_chunk: int,
+    max_seq_length: int,
+) -> str | None:
+    """Build a stage-2 query using the generative title RAG prompt format."""
+    context_docs: list[ContextDocument] = []
+    for hit in hits[:context_k]:
+        corpus_id = str(hit["corpus_id"])
+        title = corpus_title_lookup.get(corpus_id, "").strip()
+        body = corpus_body_lookup.get(corpus_id, "").strip()
+        if not title and not body:
+            continue
+        if body:
+            body = truncate_to_tokens(tokenizer, body, max_tokens_per_chunk)
+        context_docs.append(ContextDocument(title=title, text=body))
+
+    truncated_query = query.strip()
+    docs = list(context_docs)
+
+    while True:
+        anchor = build_user_content(
+            query=truncated_query,
+            context_docs=docs,
+            query_title=query_title,
+        )
+        if count_tokens(tokenizer, anchor) <= max_seq_length:
+            return anchor
+        if docs:
+            docs.pop()
+            continue
+        if len(truncated_query) > 1:
+            token_ids = tokenizer.encode(truncated_query, add_special_tokens=False)
+            truncated_query = tokenizer.decode(
+                token_ids[: max(1, len(token_ids) // 2)],
+                skip_special_tokens=True,
+            )
+            continue
+        return None
+
+
+def build_title_context_query_maps(
+    *,
+    dataset: str,
+    splits: tuple[str, ...],
+    stage1_retrieved: dict[str, list[RetrievedDocRecord]],
+    context_k: int,
+    tokenizer: PreTrainedTokenizerBase,
+    max_tokens_per_chunk: int,
+    max_seq_length: int,
+) -> dict[str, dict[str, str]]:
+    if context_k <= 0:
+        raise ValueError("context_k must be positive.")
+
+    ctx_config = CONTEXT_EMBEDDING_FINETUNING_DATASET_CONFIGS[dataset]
+    raw_corpus = ctx_config.load_corpus()
+    corpus_title_lookup = build_corpus_title_lookup(raw_corpus)
+    corpus_body_lookup = build_corpus_body_lookup(raw_corpus)
+    query_maps: dict[str, dict[str, str]] = {}
+
+    for split in splits:
+        grouped = group_retrieved_by_query(stage1_retrieved[split])
+        queries = ctx_config.load_subset("queries", split=split)
+        qrels = ctx_config.load_subset("qrels", split=split)
+        query_title_lookup = build_query_document_title_lookup(qrels, raw_corpus)
+        raw_query_by_id = {str(row["id"]): str(row["text"]) for row in queries}
+        split_map: dict[str, str] = {}
+        fallback_count = 0
+
+        for query_id, hits in grouped.items():
+            raw_query = raw_query_by_id.get(query_id, "")
+            anchor = build_title_context_query_text(
+                tokenizer,
+                query=raw_query,
+                hits=hits,
+                context_k=context_k,
+                corpus_title_lookup=corpus_title_lookup,
+                corpus_body_lookup=corpus_body_lookup,
+                query_title=query_title_lookup.get(query_id),
+                max_tokens_per_chunk=max_tokens_per_chunk,
+                max_seq_length=max_seq_length,
+            )
+            if anchor is None:
+                anchor = build_user_content(
+                    query=raw_query,
+                    query_title=query_title_lookup.get(query_id),
+                )
+                fallback_count += 1
+            split_map[query_id] = anchor
+
+        if fallback_count:
+            print(
+                f"Stage 2 split={split}, k={context_k}: "
+                f"{fallback_count} queries fell back to query-only title format."
+            )
+        query_maps[split] = split_map
+
+    return query_maps
+
+
 def save_stage1_retrieved(
     stage1_retrieved: dict[str, list[RetrievedDocRecord]],
     output_path: Path,
@@ -398,14 +545,25 @@ def resolve_paper_scoped(dataset: str, paper_scoped: bool | None) -> bool:
 
 
 def default_model_revision(config: ContextRetrievalEvalConfig, *, context_k: int) -> str:
-    return config.model_revision_template.format(
+    template = config.model_revision_template
+    if config.include_query_title and template == "ctx-lora-{dataset}-k{k}":
+        template = DEFAULT_TITLE_MODEL_REVISION_TEMPLATE
+    return template.format(
         dataset=config.dataset,
         k=context_k,
     )
 
 
 def default_stage1_only_model_revision(config: ContextRetrievalEvalConfig) -> str:
-    return config.stage1_only_model_revision_template.format(dataset=config.dataset)
+    template = config.stage1_only_model_revision_template
+    if config.include_query_title and template == DEFAULT_STAGE1_ONLY_MODEL_REVISION_TEMPLATE:
+        template = DEFAULT_TITLE_STAGE1_ONLY_MODEL_REVISION_TEMPLATE
+    return template.format(dataset=config.dataset)
+
+
+def _default_output_dir(config: ContextRetrievalEvalConfig, run_label: str) -> Path:
+    root = DEFAULT_TITLE_OUTPUT_ROOT if config.include_query_title else Path("results") / "mteb" / "context"
+    return root / config.dataset / run_label
 
 
 def _evaluate_stage1_only_mteb(
@@ -416,7 +574,10 @@ def _evaluate_stage1_only_mteb(
     output_dir: Path,
 ) -> list[Any]:
     print("=" * 72)
-    print("Stage 1 only: MTEB with Instruct + Query (no context documents)")
+    if config.include_query_title:
+        print("Stage 1 only: MTEB with Instruct + ## Title: + Query (no context)")
+    else:
+        print("Stage 1 only: MTEB with Instruct + Query (no context documents)")
     print("=" * 72)
 
     if config.backend == "offline":
@@ -441,6 +602,7 @@ def _evaluate_stage1_only_mteb(
         eval_splits=config.splits,
         query_text_fn=stage1_query_to_text,
         use_top_ranked=paper_scoped if config.dataset == "qasper" else False,
+        include_query_title=config.include_query_title,
     )
     task = create_rag_retrieval_task(rag_config)
 
@@ -477,9 +639,7 @@ def evaluate_context_retrieval(config: ContextRetrievalEvalConfig) -> list[Any]:
 
     paper_scoped = resolve_paper_scoped(config.dataset, config.paper_scoped)
     run_label = config.run_label or config.lora_path.rsplit("/", maxsplit=1)[-1]
-    output_dir = config.output_dir or (
-        Path("results") / "mteb" / "context" / config.dataset / run_label
-    )
+    output_dir = config.output_dir or _default_output_dir(config, run_label)
     output_dir.mkdir(parents=True, exist_ok=True)
 
     if config.stage1_only:
@@ -517,7 +677,10 @@ def evaluate_context_retrieval(config: ContextRetrievalEvalConfig) -> list[Any]:
             embedder.warmup()
 
     print("=" * 72)
-    print("Stage 1: retrieve candidate documents (Instruct + Query, no context)")
+    if config.include_query_title:
+        print("Stage 1: retrieve candidates (Instruct + ## Title: + Query, no context)")
+    else:
+        print("Stage 1: retrieve candidate documents (Instruct + Query, no context)")
     print("=" * 72)
     stage1_retrieved = run_stage1_retrieval(
         dataset=config.dataset,
@@ -528,6 +691,7 @@ def evaluate_context_retrieval(config: ContextRetrievalEvalConfig) -> list[Any]:
         batch_size=config.batch_size,
         paper_scoped=paper_scoped,
         run_label=run_label,
+        include_query_title=config.include_query_title,
     )
     save_stage1_retrieved(stage1_retrieved, output_dir / "stage1_retrieved.json")
 
@@ -548,20 +712,33 @@ def evaluate_context_retrieval(config: ContextRetrievalEvalConfig) -> list[Any]:
         print(f"model_revision: {model_revision}")
         print("=" * 72)
 
-        query_maps = build_context_query_maps(
-            dataset=config.dataset,
-            splits=config.splits,
-            stage1_retrieved=stage1_retrieved,
-            context_k=context_k,
-            tokenizer=tokenizer,
-            max_seq_length=config.max_seq_length,
-            max_query_tokens=config.max_query_tokens,
-            max_doc_tokens=config.max_doc_tokens,
+        query_maps = (
+            build_title_context_query_maps(
+                dataset=config.dataset,
+                splits=config.splits,
+                stage1_retrieved=stage1_retrieved,
+                context_k=context_k,
+                tokenizer=tokenizer,
+                max_tokens_per_chunk=config.max_tokens_per_chunk,
+                max_seq_length=config.max_seq_length,
+            )
+            if config.include_query_title
+            else build_context_query_maps(
+                dataset=config.dataset,
+                splits=config.splits,
+                stage1_retrieved=stage1_retrieved,
+                context_k=context_k,
+                tokenizer=tokenizer,
+                max_seq_length=config.max_seq_length,
+                max_query_tokens=config.max_query_tokens,
+                max_doc_tokens=config.max_doc_tokens,
+            )
         )
         task = create_rag_retrieval_task_with_query_maps(
             rag_config,
             query_maps,
             task_name_suffix=f"k{context_k}",
+            include_query_title=config.include_query_title,
         )
 
         stage2_model = resolve_model(
