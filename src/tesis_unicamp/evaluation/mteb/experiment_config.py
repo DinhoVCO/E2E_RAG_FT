@@ -26,6 +26,7 @@ _EXPERIMENT_KEYS = frozenset(
         "max_lora_rank",
         "overwrite",
         "output_dir",
+        "include_query_title",
     }
 )
 
@@ -45,6 +46,7 @@ class ResolvedMtebExperiment:
     max_lora_rank: int
     overwrite: str
     output_dir: Path | None
+    include_query_title: bool
 
 
 def default_experiments_path() -> Path:
@@ -55,6 +57,17 @@ def default_experiments_path() -> Path:
         / "mteb"
         / "configs"
         / "experiments.yaml"
+    )
+
+
+def default_experiments_title_path() -> Path:
+    return (
+        Path(__file__).resolve().parents[4]
+        / "scripts"
+        / "evaluation"
+        / "mteb"
+        / "configs"
+        / "experiments_title.yaml"
     )
 
 
@@ -247,6 +260,12 @@ def resolve_experiment(raw: dict[str, Any], experiment_id: str) -> ResolvedMtebE
         max_lora_rank=int(spec.get("max_lora_rank", defaults.get("max_lora_rank", 16))),
         overwrite=overwrite,
         output_dir=resolved_output_dir,
+        include_query_title=bool(
+            spec.get(
+                "include_query_title",
+                defaults.get("include_query_title", False),
+            )
+        ),
     )
 
 
