@@ -306,6 +306,10 @@ def prepare_training_dataset(
     *,
     split: str | None = None,
     seed: int = DEFAULT_DATASET_SEED,
+    max_doc_tokens: int = MAX_DOC_TOKENS,
+    max_query_tokens: int = MAX_QUERY_TOKENS,
+    max_positive_tokens: int = MAX_POSITIVE_TOKENS,
+    max_seq_length: int = MAX_SEQ_LENGTH,
 ) -> Dataset:
     split = split or config.train_split
     return build_context_training_pairs(
@@ -313,6 +317,10 @@ def prepare_training_dataset(
         tokenizer=tokenizer,
         split=split,
         seed=seed,
+        max_doc_tokens=max_doc_tokens,
+        max_query_tokens=max_query_tokens,
+        max_positive_tokens=max_positive_tokens,
+        max_seq_length=max_seq_length,
     )
 
 
@@ -322,6 +330,9 @@ def _build_context_query_lookup(
     tokenizer: PreTrainedTokenizerBase,
     split: str,
     seed: int,
+    max_doc_tokens: int = MAX_DOC_TOKENS,
+    max_query_tokens: int = MAX_QUERY_TOKENS,
+    max_seq_length: int = MAX_SEQ_LENGTH,
 ) -> dict[str, str]:
     queries = config.load_subset("queries", split=split)
     qrels = config.load_subset("qrels", split=split)
@@ -354,6 +365,9 @@ def _build_context_query_lookup(
             tokenizer,
             query=query_text,
             doc_texts=doc_texts,
+            max_query_tokens=max_query_tokens,
+            max_doc_tokens=max_doc_tokens,
+            max_seq_length=max_seq_length,
         )
         if anchor is not None:
             query_lookup[query_id] = anchor
@@ -367,6 +381,9 @@ def prepare_ir_eval_inputs(
     *,
     split: str | None = None,
     seed: int = DEFAULT_DATASET_SEED,
+    max_doc_tokens: int = MAX_DOC_TOKENS,
+    max_query_tokens: int = MAX_QUERY_TOKENS,
+    max_seq_length: int = MAX_SEQ_LENGTH,
 ) -> tuple[dict[str, str], dict[str, str], dict[str, set[str]]]:
     split = split or config.eval_split
     corpus = config.load_corpus()
@@ -379,6 +396,9 @@ def prepare_ir_eval_inputs(
         tokenizer=tokenizer,
         split=split,
         seed=seed,
+        max_doc_tokens=max_doc_tokens,
+        max_query_tokens=max_query_tokens,
+        max_seq_length=max_seq_length,
     )
 
     if not query_dict:
@@ -414,12 +434,18 @@ def build_ir_evaluator(
     seed: int = DEFAULT_DATASET_SEED,
     batch_size: int = 32,
     name: str | None = None,
+    max_doc_tokens: int = MAX_DOC_TOKENS,
+    max_query_tokens: int = MAX_QUERY_TOKENS,
+    max_seq_length: int = MAX_SEQ_LENGTH,
 ) -> InformationRetrievalEvaluator:
     queries, corpus, relevant_docs = prepare_ir_eval_inputs(
         config,
         tokenizer,
         split=split,
         seed=seed,
+        max_doc_tokens=max_doc_tokens,
+        max_query_tokens=max_query_tokens,
+        max_seq_length=max_seq_length,
     )
     return InformationRetrievalEvaluator(
         queries=queries,
@@ -436,6 +462,10 @@ def summarize_training_dataset(
     *,
     split: str | None = None,
     seed: int = DEFAULT_DATASET_SEED,
+    max_doc_tokens: int = MAX_DOC_TOKENS,
+    max_query_tokens: int = MAX_QUERY_TOKENS,
+    max_positive_tokens: int = MAX_POSITIVE_TOKENS,
+    max_seq_length: int = MAX_SEQ_LENGTH,
 ) -> dict[str, int | float]:
     split = split or config.train_split
     dataset = build_context_training_pairs(
@@ -443,6 +473,10 @@ def summarize_training_dataset(
         tokenizer=tokenizer,
         split=split,
         seed=seed,
+        max_doc_tokens=max_doc_tokens,
+        max_query_tokens=max_query_tokens,
+        max_positive_tokens=max_positive_tokens,
+        max_seq_length=max_seq_length,
     )
     anchor_tokens = [count_tokens(tokenizer, text) for text in dataset["anchor"]]
     with_context = sum(1 for text in dataset["anchor"] if "## Context:" in text)

@@ -22,6 +22,9 @@ from transformers import AutoTokenizer
 from tesis_unicamp.finetuning.embeddings.context.config import (
     DEFAULT_BASE_MODEL,
     DEFAULT_WANDB_PROJECT,
+    MAX_DOC_TOKENS,
+    MAX_POSITIVE_TOKENS,
+    MAX_QUERY_TOKENS,
     MAX_SEQ_LENGTH,
     MINI_BATCH_SIZE,
     TRAIN_BATCH_SIZE,
@@ -56,6 +59,9 @@ class ContextFinetuningRunConfig:
     eval_batch_size: int = 32
     mini_batch_size: int = MINI_BATCH_SIZE
     max_seq_length: int = MAX_SEQ_LENGTH
+    max_doc_tokens: int = MAX_DOC_TOKENS
+    max_query_tokens: int = MAX_QUERY_TOKENS
+    max_positive_tokens: int = MAX_POSITIVE_TOKENS
     train_split: str | None = None
     eval_split: str | None = None
     dataset_seed: int = 42
@@ -219,12 +225,20 @@ def finetune_qwen3_embedding_context(
         tokenizer,
         split=config.train_split,
         seed=config.dataset_seed,
+        max_doc_tokens=config.max_doc_tokens,
+        max_query_tokens=config.max_query_tokens,
+        max_positive_tokens=config.max_positive_tokens,
+        max_seq_length=config.max_seq_length,
     )
     eval_dataset = prepare_training_dataset(
         dataset_config,
         tokenizer,
         split=config.eval_split,
         seed=config.dataset_seed + 1,
+        max_doc_tokens=config.max_doc_tokens,
+        max_query_tokens=config.max_query_tokens,
+        max_positive_tokens=config.max_positive_tokens,
+        max_seq_length=config.max_seq_length,
     )
     evaluator: InformationRetrievalEvaluator = build_ir_evaluator(
         dataset_config,
@@ -232,18 +246,29 @@ def finetune_qwen3_embedding_context(
         split=config.eval_split,
         seed=config.dataset_seed + 1,
         batch_size=config.eval_batch_size,
+        max_doc_tokens=config.max_doc_tokens,
+        max_query_tokens=config.max_query_tokens,
+        max_seq_length=config.max_seq_length,
     )
     train_summary = summarize_training_dataset(
         dataset_config,
         tokenizer,
         split=config.train_split,
         seed=config.dataset_seed,
+        max_doc_tokens=config.max_doc_tokens,
+        max_query_tokens=config.max_query_tokens,
+        max_positive_tokens=config.max_positive_tokens,
+        max_seq_length=config.max_seq_length,
     )
     eval_summary = summarize_training_dataset(
         dataset_config,
         tokenizer,
         split=config.eval_split,
         seed=config.dataset_seed + 1,
+        max_doc_tokens=config.max_doc_tokens,
+        max_query_tokens=config.max_query_tokens,
+        max_positive_tokens=config.max_positive_tokens,
+        max_seq_length=config.max_seq_length,
     )
     logger.info("Train dataset summary: %s", train_summary)
     logger.info("Eval dataset summary: %s", eval_summary)

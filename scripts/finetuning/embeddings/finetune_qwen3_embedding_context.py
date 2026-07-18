@@ -22,6 +22,11 @@ Usage:
         --eval-steps 250 \\
         --save-steps 250
 
+    # BioASQ with 2048-token docs (see configs/context/bioasq-resplit-2k.yaml):
+    CUDA_VISIBLE_DEVICES=0,1,2,3 python scripts/finetuning/embeddings/finetune_qwen3_embedding_context.py \\
+        --config scripts/finetuning/embeddings/configs/context/bioasq-resplit-2k.yaml \\
+        --dataset bioasq-resplit
+
     # Resume after SLURM time limit (latest checkpoint in output_dir):
     CUDA_VISIBLE_DEVICES=0,1 python scripts/finetuning/embeddings/finetune_qwen3_embedding_context.py \\
         --dataset bioasq-resplit \\
@@ -46,6 +51,9 @@ from tesis_unicamp.finetuning.embeddings.config import EMBEDDING_FINETUNING_DATA
 from tesis_unicamp.finetuning.embeddings.context.config import (
     DEFAULT_BASE_MODEL,
     DEFAULT_DATASET_SEED,
+    MAX_DOC_TOKENS,
+    MAX_POSITIVE_TOKENS,
+    MAX_QUERY_TOKENS,
     MAX_SEQ_LENGTH,
     MINI_BATCH_SIZE,
     TRAIN_BATCH_SIZE,
@@ -228,6 +236,30 @@ def _build_parser() -> argparse.ArgumentParser:
         help=f"Maximum anchor sequence length (default: {MAX_SEQ_LENGTH}).",
     )
     parser.add_argument(
+        "--max-doc-tokens",
+        type=int,
+        default=MAX_DOC_TOKENS,
+        help=(
+            "Max tokens per context document in training anchors "
+            f"(default: {MAX_DOC_TOKENS})."
+        ),
+    )
+    parser.add_argument(
+        "--max-query-tokens",
+        type=int,
+        default=MAX_QUERY_TOKENS,
+        help=f"Max query tokens in training anchors (default: {MAX_QUERY_TOKENS}).",
+    )
+    parser.add_argument(
+        "--max-positive-tokens",
+        type=int,
+        default=MAX_POSITIVE_TOKENS,
+        help=(
+            "Max tokens for positive passages in contrastive pairs "
+            f"(default: {MAX_POSITIVE_TOKENS})."
+        ),
+    )
+    parser.add_argument(
         "--train-split",
         default="train",
         help="Split used to build context (query, document) training pairs (default: train).",
@@ -386,6 +418,9 @@ def main(argv: list[str] | None = None) -> None:
         eval_batch_size=args.eval_batch_size,
         mini_batch_size=args.mini_batch_size,
         max_seq_length=args.max_seq_length,
+        max_doc_tokens=args.max_doc_tokens,
+        max_query_tokens=args.max_query_tokens,
+        max_positive_tokens=args.max_positive_tokens,
         train_split=args.train_split,
         eval_split=args.eval_split,
         dataset_seed=args.dataset_seed,
@@ -410,6 +445,9 @@ def main(argv: list[str] | None = None) -> None:
     print(f"mini_batch_size: {args.mini_batch_size}")
     print(f"epochs: {args.epochs}")
     print(f"max_seq_length: {args.max_seq_length}")
+    print(f"max_doc_tokens: {args.max_doc_tokens}")
+    print(f"max_query_tokens: {args.max_query_tokens}")
+    print(f"max_positive_tokens: {args.max_positive_tokens}")
     print(f"train_split: {args.train_split}")
     print(f"eval_split: {args.eval_split}")
     print(f"dataset_seed: {args.dataset_seed}")
