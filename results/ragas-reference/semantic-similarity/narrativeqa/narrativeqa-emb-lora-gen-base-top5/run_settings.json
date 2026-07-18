@@ -1,0 +1,21 @@
+{
+  "metric_group": "semantic-similarity",
+  "dataset": "narrativeqa",
+  "generation_dir": "/petrobr/home/ronaldinho.olivera/E2E_RAG_FT/datasets/generated/narrativeqa/narrativeqa-emb-lora-gen-base-top5",
+  "generation_run_label": "narrativeqa-emb-lora-gen-base-top5",
+  "retrieval_run_label": "vllm-lora-narrativeqa-b128",
+  "split": "test",
+  "metrics": [
+    "semantic_similarity"
+  ],
+  "num_samples": 10557,
+  "summary": {
+    "semantic_similarity": 0.4260512251532429
+  },
+  "embedding_model": "Qwen/Qwen3-Embedding-8B",
+  "embedding_backend": "openai",
+  "embedding_device": null,
+  "embedding_base_url": "http://127.0.0.1:8001/v1",
+  "embedding_batch_size": 32,
+  "api_timeout": 300.0
+}
