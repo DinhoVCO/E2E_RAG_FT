@@ -1,0 +1,8 @@
+{
+  "bleu_score": 0.013658983454017578,
+  "rouge_score(mode=fmeasure)": 0.17543957980567676,
+  "exact_match": 0.09312977099236641,
+  "string_present": 0.1,
+  "chrf_score": 0.1881773119703067,
+  "non_llm_string_similarity": 0.22266376449779438
+}

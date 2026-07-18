@@ -32,6 +32,66 @@ Evaluate **generated RAG answers** with [RAGAS](https://docs.ragas.io/) by calli
 
 ---
 
+## Reference metrics (response vs reference only)
+
+Lightweight evaluation that compares `generated_answer` to `reference_answer` without retrieved context or judge LLM.
+
+| Script | Metrics | Hardware |
+|--------|---------|----------|
+| `run_rag_reference_metrics_traditional.py` | BLEU, ROUGE, CHRF, exact match, string presence, non-LLM string similarity | CPU |
+| `run_rag_reference_metrics_semantic.py` | `semantic_similarity` | GPU via vLLM embedding server (Qwen3-Embedding-8B) |
+
+Traditional metrics follow the [RAGAS traditional NLP metrics](https://docs.ragas.io/en/stable/concepts/metrics/available_metrics/traditional/) docs.
+
+### vLLM embedding server (semantic similarity)
+
+Start only the embedding model on 1 H100 (interactive):
+
+```bash
+bash jobs/scripts/santos_dumont/run_vllm_embedding_server_h100.sh
+```
+
+The batch job for semantic similarity starts vLLM embed on the same node automatically:
+
+```bash
+bash jobs/scripts/santos_dumont/run_rag_reference_metrics_semantic_h100.sh --all
+```
+
+Or point at an already-running server:
+
+```bash
+export RAGAS_EMBEDDING_BASE_URL=http://<embed-host>:8001/v1
+export RAGAS_EMBEDDING_MODEL=Qwen/Qwen3-Embedding-8B
+bash jobs/scripts/santos_dumont/run_rag_reference_metrics_semantic_h100.sh --all
+```
+
+### Evaluate all generated runs
+
+```bash
+# CPU metrics on ict-h100 (1 GPU requested for QOS; no GPU used by the script)
+bash jobs/scripts/santos_dumont/run_rag_reference_metrics_traditional.sh --all
+
+# GPU — semantic similarity (starts vLLM Qwen3-Embedding-8B on the same node)
+bash jobs/scripts/santos_dumont/run_rag_reference_metrics_semantic_h100.sh --all
+```
+
+Or directly:
+
+```bash
+python scripts/evaluation/ragas/run_rag_reference_metrics_traditional.py --all --skip-existing
+python scripts/evaluation/ragas/run_rag_reference_metrics_semantic.py --dataset telco-dpr
+```
+
+### Output layout
+
+```
+results/ragas-reference/
+  traditional/<dataset>/<run_label>/test/reference_traditional_scores.json
+  semantic-similarity/<dataset>/<run_label>/test/reference_semantic_similarity_scores.json
+```
+
+---
+
 ## 1. Start vLLM servers (on GPU nodes)
 
 **Pre-download models on the login node** (compute nodes often hang on Hub downloads):

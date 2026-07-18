@@ -1,0 +1,25 @@
+{
+  "metric_group": "traditional",
+  "dataset": "qasper",
+  "generation_dir": "/petrobr/home/ronaldinho.olivera/E2E_RAG_FT/datasets/generated/qasper/qasper-emb-lora-gen-lora-top5",
+  "generation_run_label": "qasper-emb-lora-gen-lora-top5",
+  "retrieval_run_label": "vllm-lora-qasper-b128-paper-scoped",
+  "split": "test",
+  "metrics": [
+    "bleu_score",
+    "rouge_score",
+    "exact_match",
+    "string_present",
+    "chrf_score",
+    "non_llm_string_similarity"
+  ],
+  "num_samples": 1310,
+  "summary": {
+    "bleu_score": 0.1423004123600353,
+    "rouge_score(mode=fmeasure)": 0.4279694738932893,
+    "exact_match": 0.1916030534351145,
+    "string_present": 0.2267175572519084,
+    "chrf_score": 0.42490901890966565,
+    "non_llm_string_similarity": 0.414515181253518
+  }
+}

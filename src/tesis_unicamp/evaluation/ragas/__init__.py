@@ -18,6 +18,13 @@ from tesis_unicamp.evaluation.ragas.runner import (
     evaluate_generated_answers,
 )
 
+from tesis_unicamp.evaluation.ragas.reference_runner import (
+    build_traditional_metrics,
+    discover_generation_dirs,
+    evaluate_reference_semantic_similarity,
+    evaluate_reference_traditional_metrics,
+)
+
 __all__ = [
     "DEFAULT_EMBEDDING_BASE_URL",
     "DEFAULT_EMBEDDING_MODEL",
@@ -27,9 +34,13 @@ __all__ = [
     "build_openai_judge_llm",
     "build_openai_ragas_embeddings",
     "build_ragas_evaluation_dataset",
+    "build_traditional_metrics",
     "check_openai_server",
     "configure_ragas_runtime",
+    "discover_generation_dirs",
     "evaluate_generated_answers",
+    "evaluate_reference_semantic_similarity",
+    "evaluate_reference_traditional_metrics",
     "load_generation_run_settings",
     "resolve_generation_paths",
 ]
