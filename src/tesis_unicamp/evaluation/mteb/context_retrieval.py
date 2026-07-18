@@ -81,6 +81,8 @@ DEFAULT_TITLE_CONTEXT_K_VALUES = (1, 3, 5)
 DEFAULT_TITLE_MAX_TOKENS_PER_CHUNK = 2048
 DEFAULT_TITLE_MAX_SEQ_LENGTH = 14336
 DEFAULT_TITLE_OUTPUT_ROOT = Path("results") / "mteb" / "context_title"
+DEFAULT_TITLE_NOTRUNC_OUTPUT_ROOT = Path("results") / "mteb" / "context_title_notrunc"
+DEFAULT_TITLE_NOTRUNC_MODEL_REVISION_TEMPLATE = "ctx-lora-{dataset}-k{k}-title-notrunc"
 
 
 def stage1_query_to_text(query: str) -> str:
@@ -163,6 +165,7 @@ class ContextRetrievalEvalConfig:
     run_label: str | None = None
     include_query_title: bool = False
     max_tokens_per_chunk: int = DEFAULT_TITLE_MAX_TOKENS_PER_CHUNK
+    truncate_stage2_docs: bool = True
 
 
 def _validate_context_k_values(values: tuple[int, ...]) -> tuple[int, ...]:
@@ -430,6 +433,7 @@ def build_title_context_query_text(
     query_title: str | None,
     max_tokens_per_chunk: int,
     max_seq_length: int,
+    truncate_docs: bool = True,
 ) -> str | None:
     """Build a stage-2 query using the generative title RAG prompt format."""
     context_docs: list[ContextDocument] = []
@@ -439,9 +443,16 @@ def build_title_context_query_text(
         body = corpus_body_lookup.get(corpus_id, "").strip()
         if not title and not body:
             continue
-        if body:
+        if truncate_docs and body:
             body = truncate_to_tokens(tokenizer, body, max_tokens_per_chunk)
         context_docs.append(ContextDocument(title=title, text=body))
+
+    if not truncate_docs:
+        return build_user_content(
+            query=query,
+            context_docs=context_docs,
+            query_title=query_title,
+        )
 
     truncated_query = query.strip()
     docs = list(context_docs)
@@ -476,6 +487,7 @@ def build_title_context_query_maps(
     tokenizer: PreTrainedTokenizerBase,
     max_tokens_per_chunk: int,
     max_seq_length: int,
+    truncate_docs: bool = True,
 ) -> dict[str, dict[str, str]]:
     if context_k <= 0:
         raise ValueError("context_k must be positive.")
@@ -507,6 +519,7 @@ def build_title_context_query_maps(
                 query_title=query_title_lookup.get(query_id),
                 max_tokens_per_chunk=max_tokens_per_chunk,
                 max_seq_length=max_seq_length,
+                truncate_docs=truncate_docs,
             )
             if anchor is None:
                 anchor = build_user_content(
@@ -548,6 +561,15 @@ def default_model_revision(config: ContextRetrievalEvalConfig, *, context_k: int
     template = config.model_revision_template
     if config.include_query_title and template == "ctx-lora-{dataset}-k{k}":
         template = DEFAULT_TITLE_MODEL_REVISION_TEMPLATE
+    if (
+        config.include_query_title
+        and not config.truncate_stage2_docs
+        and template in {
+            DEFAULT_TITLE_MODEL_REVISION_TEMPLATE,
+            "ctx-lora-{dataset}-k{k}-title",
+        }
+    ):
+        template = DEFAULT_TITLE_NOTRUNC_MODEL_REVISION_TEMPLATE
     return template.format(
         dataset=config.dataset,
         k=context_k,
@@ -562,7 +584,13 @@ def default_stage1_only_model_revision(config: ContextRetrievalEvalConfig) -> st
 
 
 def _default_output_dir(config: ContextRetrievalEvalConfig, run_label: str) -> Path:
-    root = DEFAULT_TITLE_OUTPUT_ROOT if config.include_query_title else Path("results") / "mteb" / "context"
+    if config.include_query_title:
+        if not config.truncate_stage2_docs:
+            root = DEFAULT_TITLE_NOTRUNC_OUTPUT_ROOT
+        else:
+            root = DEFAULT_TITLE_OUTPUT_ROOT
+    else:
+        root = Path("results") / "mteb" / "context"
     return root / config.dataset / run_label
 
 
@@ -721,6 +749,7 @@ def evaluate_context_retrieval(config: ContextRetrievalEvalConfig) -> list[Any]:
                 tokenizer=tokenizer,
                 max_tokens_per_chunk=config.max_tokens_per_chunk,
                 max_seq_length=config.max_seq_length,
+                truncate_docs=config.truncate_stage2_docs,
             )
             if config.include_query_title
             else build_context_query_maps(

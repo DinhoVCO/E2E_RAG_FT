@@ -39,6 +39,8 @@ from tesis_unicamp.evaluation.mteb.context_retrieval import (
     DEFAULT_TITLE_MAX_SEQ_LENGTH,
     DEFAULT_TITLE_MAX_TOKENS_PER_CHUNK,
     DEFAULT_TITLE_MODEL_REVISION_TEMPLATE,
+    DEFAULT_TITLE_NOTRUNC_MODEL_REVISION_TEMPLATE,
+    DEFAULT_TITLE_NOTRUNC_OUTPUT_ROOT,
     DEFAULT_TITLE_OUTPUT_ROOT,
     DEFAULT_TITLE_STAGE1_ONLY_MODEL_REVISION_TEMPLATE,
     ContextRetrievalEvalConfig,
@@ -49,6 +51,7 @@ from tesis_unicamp.finetuning.embeddings.config import DEFAULT_BASE_MODEL
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_OUTPUT_ROOT = PROJECT_ROOT / DEFAULT_TITLE_OUTPUT_ROOT
+DEFAULT_NOTRUNC_OUTPUT_ROOT = PROJECT_ROOT / DEFAULT_TITLE_NOTRUNC_OUTPUT_ROOT
 
 
 def _load_env() -> None:
@@ -196,7 +199,16 @@ def _build_parser() -> argparse.ArgumentParser:
         default=DEFAULT_TITLE_MAX_TOKENS_PER_CHUNK,
         help=(
             "Max tokens per retrieved document body in stage 2 "
-            f"(default: {DEFAULT_TITLE_MAX_TOKENS_PER_CHUNK})."
+            f"(default: {DEFAULT_TITLE_MAX_TOKENS_PER_CHUNK}; "
+            "ignored with --no-truncate-stage2-docs)."
+        ),
+    )
+    parser.add_argument(
+        "--no-truncate-stage2-docs",
+        action="store_true",
+        help=(
+            "Use full document bodies in stage 2 (no per-chunk truncation and no "
+            "max-seq-length trimming). Results go to results/mteb/context_title_notrunc/."
         ),
     )
     search_scope = parser.add_mutually_exclusive_group()
@@ -241,7 +253,19 @@ def main(argv: list[str] | None = None) -> None:
         raise SystemExit("--paper-scoped is only supported for --dataset qasper.")
 
     run_label = args.run_label or args.lora_path.rstrip("/").rsplit("/", maxsplit=1)[-1]
-    output_dir = args.output_dir or (DEFAULT_OUTPUT_ROOT / args.dataset / run_label)
+    if args.output_dir is not None:
+        output_dir = args.output_dir
+    elif args.no_truncate_stage2_docs:
+        output_dir = DEFAULT_NOTRUNC_OUTPUT_ROOT / args.dataset / run_label
+    else:
+        output_dir = DEFAULT_OUTPUT_ROOT / args.dataset / run_label
+
+    model_revision_template = args.model_revision_template
+    if (
+        args.no_truncate_stage2_docs
+        and model_revision_template == DEFAULT_TITLE_MODEL_REVISION_TEMPLATE
+    ):
+        model_revision_template = DEFAULT_TITLE_NOTRUNC_MODEL_REVISION_TEMPLATE
 
     config = ContextRetrievalEvalConfig(
         dataset=args.dataset,
@@ -252,7 +276,7 @@ def main(argv: list[str] | None = None) -> None:
         splits=tuple(args.splits),
         backend=args.backend,
         batch_size=args.batch_size,
-        model_revision_template=args.model_revision_template,
+        model_revision_template=model_revision_template,
         stage1_only_model_revision_template=args.stage1_only_model_revision,
         stage1_only=args.stage1_only,
         corpus_split=args.corpus_split,
@@ -263,6 +287,7 @@ def main(argv: list[str] | None = None) -> None:
         max_seq_length=args.max_seq_length,
         include_query_title=True,
         max_tokens_per_chunk=args.max_tokens_per_chunk,
+        truncate_stage2_docs=not args.no_truncate_stage2_docs,
         run_label=run_label,
     )
 
@@ -274,8 +299,10 @@ def main(argv: list[str] | None = None) -> None:
     if not config.stage1_only:
         print(f"stage1_top_k: {config.stage1_top_k}")
         print(f"context_k: {list(config.context_k_values)}")
-        print(f"max_tokens_per_chunk: {config.max_tokens_per_chunk}")
-        print(f"max_seq_length: {config.max_seq_length}")
+        print(f"truncate_stage2_docs: {config.truncate_stage2_docs}")
+        if config.truncate_stage2_docs:
+            print(f"max_tokens_per_chunk: {config.max_tokens_per_chunk}")
+            print(f"max_seq_length: {config.max_seq_length}")
     else:
         print(
             "model_revision: "
