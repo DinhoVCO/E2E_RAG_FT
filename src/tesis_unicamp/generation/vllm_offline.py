@@ -137,24 +137,53 @@ class VLLMOfflineGenerator(BaseGenerator):
             template_kwargs.pop("enable_thinking")
             return tokenizer.apply_chat_template(messages, **template_kwargs)
 
+    def _sampling_params(self, *, n: int | None = None) -> SamplingParams:
+        from vllm import SamplingParams
+
+        num_completions = n if n is not None else self.config.n
+        kwargs: dict[str, object] = {
+            "temperature": self.config.temperature,
+            "max_tokens": self.config.max_tokens,
+            "n": num_completions,
+            "top_p": self.config.top_p,
+            "frequency_penalty": self.config.frequency_penalty,
+            "presence_penalty": self.config.presence_penalty,
+        }
+        if self.config.stop:
+            kwargs["stop"] = list(self.config.stop)
+        return SamplingParams(**kwargs)
+
+    def _generate_raw(self, formatted_prompts: list[str], *, n: int | None = None):
+        sampling_params = self._sampling_params(n=n)
+        lora_request = self._get_lora_request()
+        if lora_request is None:
+            return self._get_llm().generate(formatted_prompts, sampling_params)
+        return self._get_llm().generate(
+            formatted_prompts,
+            sampling_params,
+            lora_request=lora_request,
+        )
+
+    def generate_texts_multi(
+        self,
+        prompts: list[str],
+        *,
+        n: int | None = None,
+    ) -> list[list[str]]:
+        """Generate ``n`` completions per prompt (HyDE-style multi-sampling)."""
+        if not prompts:
+            return []
+
+        num_completions = n if n is not None else self.config.n
+        outputs = self._generate_raw(self._format_prompts(prompts), n=num_completions)
+        return [
+            [completion.text.strip() for completion in output.outputs]
+            for output in outputs
+        ]
+
     def generate_texts(self, prompts: list[str]) -> list[str]:
         if not prompts:
             return []
 
-        from vllm import SamplingParams
-
-        formatted_prompts = self._format_prompts(prompts)
-        sampling_params = SamplingParams(
-            temperature=self.config.temperature,
-            max_tokens=self.config.max_tokens,
-        )
-        lora_request = self._get_lora_request()
-        if lora_request is None:
-            outputs = self._get_llm().generate(formatted_prompts, sampling_params)
-        else:
-            outputs = self._get_llm().generate(
-                formatted_prompts,
-                sampling_params,
-                lora_request=lora_request,
-            )
+        outputs = self._generate_raw(self._format_prompts(prompts))
         return [output.outputs[0].text.strip() for output in outputs]

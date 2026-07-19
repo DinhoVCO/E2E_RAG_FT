@@ -14,6 +14,11 @@ class GenerationConfig:
     batch_size: int = DEFAULT_GENERATION_BATCH_SIZE
     max_tokens: int = 512
     temperature: float = 0.0
+    n: int = 1
+    top_p: float = 1.0
+    frequency_penalty: float = 0.0
+    presence_penalty: float = 0.0
+    stop: tuple[str, ...] = ()
 
 
 class BaseGenerator(ABC):
