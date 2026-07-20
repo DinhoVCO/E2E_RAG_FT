@@ -229,6 +229,11 @@ def _build_parser() -> argparse.ArgumentParser:
         default=None,
         help="QASPER only: append -paper-scoped to retrieval-run-label if missing",
     )
+    parser.add_argument(
+        "--concat-query",
+        action="store_true",
+        help="Concatenate original query with generated answer as expanded_query",
+    )
     return parser
 
 
@@ -292,6 +297,7 @@ def main(argv: list[str] | None = None) -> None:
     print(f"expansion_k: {expansion_k_values}")
     print(f"max_tokens_per_chunk: {args.max_tokens_per_chunk}")
     print(f"max_tokens: {args.max_tokens}")
+    print(f"concat_query: {args.concat_query}")
 
     base_output_dir = args.output_dir or _default_output_dir(args.dataset, run_label)
     print(f"output_dir: {base_output_dir}")
@@ -320,6 +326,7 @@ def main(argv: list[str] | None = None) -> None:
             max_prompt_tokens=max_prompt_tokens,
             max_tokens_per_chunk=args.max_tokens_per_chunk,
             batch_size=args.batch_size,
+            concat_query=args.concat_query,
         )
 
         run_settings = {
@@ -333,6 +340,7 @@ def main(argv: list[str] | None = None) -> None:
             "run_label": run_label,
             "split": args.split,
             "expansion_k": expansion_k,
+            "concat_query": args.concat_query,
             "max_tokens_per_chunk": args.max_tokens_per_chunk,
             "max_prompt_tokens": max_prompt_tokens,
             "max_tokens": args.max_tokens,

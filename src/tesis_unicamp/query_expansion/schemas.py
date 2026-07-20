@@ -1,4 +1,4 @@
-from typing import TypedDict
+from typing import NotRequired, TypedDict
 
 
 class ExpandedQueryRecord(TypedDict):
@@ -6,3 +6,4 @@ class ExpandedQueryRecord(TypedDict):
     question: str
     expanded_query: str
     reference_answer: str
+    generated_answer: NotRequired[str]

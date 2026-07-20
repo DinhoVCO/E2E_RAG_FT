@@ -26,6 +26,14 @@ DEFAULT_MAX_TOKENS_PER_CHUNK = 2048
 DEFAULT_EXPANSION_MAX_TOKENS = 2048
 
 
+def build_concatenated_expanded_query(question: str, generated_answer: str) -> str:
+    question = question.strip()
+    answer = generated_answer.strip()
+    if not answer:
+        return question
+    return f"{question} {answer}"
+
+
 def validate_expansion_k_values(
     values: tuple[int, ...],
     *,
@@ -55,6 +63,7 @@ def generate_expansions_for_split(
     max_tokens_per_chunk: int = DEFAULT_MAX_TOKENS_PER_CHUNK,
     batch_size: int | None = None,
     show_progress: bool = True,
+    concat_query: bool = False,
 ) -> list[ExpandedQueryRecord]:
     """Generate long-form RFG expanded queries from stage-1 retrieved documents."""
     if max_prompt_tokens is None:
@@ -105,16 +114,22 @@ def generate_expansions_for_split(
             )
             for query_id in batch
         ]
-        expanded_texts = generator.generate_texts(user_prompts)
-        for query_id, expanded_query in zip(batch, expanded_texts, strict=True):
-            records.append(
-                {
-                    "query_id": query_id,
-                    "question": query_lookup[query_id],
-                    "expanded_query": expanded_query,
-                    "reference_answer": answer_lookup.get(query_id, ""),
-                }
-            )
+        generated_answers = generator.generate_texts(user_prompts)
+        for query_id, generated_answer in zip(batch, generated_answers, strict=True):
+            question = query_lookup[query_id]
+            record: ExpandedQueryRecord = {
+                "query_id": query_id,
+                "question": question,
+                "expanded_query": (
+                    build_concatenated_expanded_query(question, generated_answer)
+                    if concat_query
+                    else generated_answer
+                ),
+                "reference_answer": answer_lookup.get(query_id, ""),
+            }
+            if concat_query:
+                record["generated_answer"] = generated_answer
+            records.append(record)
 
     return records
 

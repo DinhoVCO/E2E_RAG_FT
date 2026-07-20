@@ -1,0 +1,148 @@
+# RFG experiments with query concatenation:
+#   expanded_query = {original_query} + {generated_answer}
+#
+# Same 16-run matrix as experiments.yaml (embedding x generation x 4 datasets),
+# with distinct run labels and MTEB model revisions (-concat suffix).
+#
+# Run one experiment:
+#   python scripts/query_expansion/run_rfg_concat_experiment.py \\
+#       --experiment bioasq-resplit-rfg-emb-base-gen-base-concat
+#
+# List available experiments:
+#   python scripts/query_expansion/run_rfg_concat_experiment.py --list
+
+defaults:
+  embedding_model: Qwen/Qwen3-Embedding-4B
+  generation_model: Qwen/Qwen3-8B
+  retrieval_top_k: 10
+  expansion_k_values: [1, 3, 5, 7, 10]
+  split: test
+  retrieval_batch_size: 128
+  generation_batch_size: 8
+  generation_max_tokens: 2048
+  max_tokens_per_chunk: 2048
+  max_prompt_tokens: 0
+  retrieved_root: retrieved_inmemory
+  base_retrieval_run_label: vllm-offline-b128
+  lora_retrieval_run_label_template: "vllm-lora-{dataset}-b128"
+  stage2_model_revision_template: "rfg-{dataset}-emb-{embedding}-gen-{generation}-concat-k{k}"
+  concat_query: true
+
+datasets:
+  telco-dpr:
+    embedding_lora: DinoStackAI/Qwen3-Emb-4b-lora-telco-dpr
+    generation_lora: DinoStackAI/Qwen3-8b-lora-telco-dpr
+
+  qasper:
+    paper_scoped: true
+    embedding_lora: DinoStackAI/Qwen3-Emb-4b-lora-qasper
+    generation_lora: DinoStackAI/Qwen3-8b-lora-qasper
+
+  narrativeqa:
+    embedding_lora: DinoStackAI/Qwen3-Emb-4b-lora-narrativeqa
+    generation_lora: DinoStackAI/Qwen3-8b-lora-narrativeqa
+
+  bioasq-resplit:
+    embedding_lora: DinoStackAI/Qwen3-Emb-4b-lora-bioasq-resplit
+    generation_lora: DinoStackAI/Qwen3-8b-lora-bioasq-resplit
+
+experiments:
+  # --- telco-dpr ---
+  telco-dpr-rfg-emb-base-gen-base-concat:
+    dataset: telco-dpr
+    embedding: base
+    generation: base
+    run_label: telco-dpr-rfg-emb-base-gen-base-concat
+
+  telco-dpr-rfg-emb-base-gen-lora-concat:
+    dataset: telco-dpr
+    embedding: base
+    generation: lora
+    run_label: telco-dpr-rfg-emb-base-gen-lora-concat
+
+  telco-dpr-rfg-emb-lora-gen-base-concat:
+    dataset: telco-dpr
+    embedding: lora
+    generation: base
+    run_label: telco-dpr-rfg-emb-lora-gen-base-concat
+
+  telco-dpr-rfg-emb-lora-gen-lora-concat:
+    dataset: telco-dpr
+    embedding: lora
+    generation: lora
+    run_label: telco-dpr-rfg-emb-lora-gen-lora-concat
+
+  # --- qasper ---
+  qasper-rfg-emb-base-gen-base-concat:
+    dataset: qasper
+    embedding: base
+    generation: base
+    run_label: qasper-rfg-emb-base-gen-base-concat
+
+  qasper-rfg-emb-base-gen-lora-concat:
+    dataset: qasper
+    embedding: base
+    generation: lora
+    run_label: qasper-rfg-emb-base-gen-lora-concat
+
+  qasper-rfg-emb-lora-gen-base-concat:
+    dataset: qasper
+    embedding: lora
+    generation: base
+    run_label: qasper-rfg-emb-lora-gen-base-concat
+
+  qasper-rfg-emb-lora-gen-lora-concat:
+    dataset: qasper
+    embedding: lora
+    generation: lora
+    run_label: qasper-rfg-emb-lora-gen-lora-concat
+
+  # --- narrativeqa ---
+  narrativeqa-rfg-emb-base-gen-base-concat:
+    dataset: narrativeqa
+    embedding: base
+    generation: base
+    run_label: narrativeqa-rfg-emb-base-gen-base-concat
+
+  narrativeqa-rfg-emb-base-gen-lora-concat:
+    dataset: narrativeqa
+    embedding: base
+    generation: lora
+    run_label: narrativeqa-rfg-emb-base-gen-lora-concat
+
+  narrativeqa-rfg-emb-lora-gen-base-concat:
+    dataset: narrativeqa
+    embedding: lora
+    generation: base
+    run_label: narrativeqa-rfg-emb-lora-gen-base-concat
+
+  narrativeqa-rfg-emb-lora-gen-lora-concat:
+    dataset: narrativeqa
+    embedding: lora
+    generation: lora
+    run_label: narrativeqa-rfg-emb-lora-gen-lora-concat
+
+  # --- bioasq-resplit ---
+  bioasq-resplit-rfg-emb-base-gen-base-concat:
+    dataset: bioasq-resplit
+    embedding: base
+    generation: base
+    run_label: bioasq-resplit-rfg-emb-base-gen-base-concat
+
+  bioasq-resplit-rfg-emb-base-gen-lora-concat:
+    dataset: bioasq-resplit
+    embedding: base
+    generation: lora
+    run_label: bioasq-resplit-rfg-emb-base-gen-lora-concat
+
+  bioasq-resplit-rfg-emb-lora-gen-base-concat:
+    dataset: bioasq-resplit
+    embedding: lora
+    generation: base
+    run_label: bioasq-resplit-rfg-emb-lora-gen-base-concat
+
+  bioasq-resplit-rfg-emb-lora-gen-lora-concat:
+    dataset: bioasq-resplit
+    embedding: lora
+    generation: lora
+    run_label: bioasq-resplit-rfg-emb-lora-gen-lora-concat

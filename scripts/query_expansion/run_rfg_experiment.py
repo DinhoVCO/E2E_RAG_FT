@@ -160,6 +160,7 @@ def _print_experiment_summary(experiment: ResolvedRfgExperiment) -> None:
     print(f"expansion_k: {list(experiment.expansion_k_values)}")
     print(f"max_tokens_per_chunk: {experiment.max_tokens_per_chunk}")
     print(f"generation_max_tokens: {experiment.generation_max_tokens}")
+    print(f"concat_query: {experiment.concat_query}")
     print(f"split: {experiment.split}")
     if experiment.dataset == "qasper":
         print(f"paper_scoped: {experiment.paper_scoped}")
@@ -236,6 +237,8 @@ def _expansion_command(experiment: ResolvedRfgExperiment) -> list[str]:
     ]
     if experiment.generation_lora:
         command.extend(["--lora-path", experiment.generation_lora])
+    if experiment.concat_query:
+        command.append("--concat-query")
     if experiment.dataset == "qasper":
         command.append("--paper-scoped" if experiment.paper_scoped else "--no-paper-scoped")
     return command

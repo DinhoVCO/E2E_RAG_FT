@@ -40,6 +40,7 @@ _EXPERIMENT_KEYS = frozenset(
         "stage2_model_revision",
         "stage2_output_dir",
         "retrieved_root",
+        "concat_query",
     }
 )
 
@@ -69,6 +70,7 @@ class ResolvedRfgExperiment:
     stage2_model_revision: str
     stage2_output_dir: Path | None
     retrieved_root: str
+    concat_query: bool
 
 
 def default_experiments_path() -> Path:
@@ -354,6 +356,7 @@ def resolve_experiment(raw: dict[str, Any], experiment_id: str) -> ResolvedRfgEx
         retrieved_root=str(
             spec.get("retrieved_root", defaults.get("retrieved_root", "retrieved_inmemory"))
         ),
+        concat_query=bool(spec.get("concat_query", defaults.get("concat_query", False))),
     )
 
 
