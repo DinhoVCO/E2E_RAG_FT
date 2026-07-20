@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Context Title Retrieval — k Comparison</title>
+  
+<style>
+  body { font-family: sans-serif; margin: 24px; color: #111827; }
+  h1 { font-size: 1.25rem; margin-bottom: 8px; }
+  p.subtitle { margin-top: 0; margin-bottom: 16px; color: #4b5563; }
+  table { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
+  th, td { border: 1px solid #d1d5db; padding: 6px 8px; text-align: right; }
+  th:first-child, td:first-child { text-align: center; white-space: nowrap; font-weight: 600; }
+  th { background: #f9fafb; position: sticky; top: 0; }
+  .legend { display: flex; gap: 16px; margin-bottom: 16px; flex-wrap: wrap; }
+  .legend-item { display: inline-flex; align-items: center; gap: 8px; }
+  .swatch { width: 16px; height: 16px; border: 1px solid #d1d5db; display: inline-block; }
+  .swatch.baseline { background: #f3f4f6; }
+  .swatch.better { background: #2166ac; }
+  .swatch.worse { background: #ef8a62; }
+</style>
+
+</head>
+<body>
+  <h1>Context Title Retrieval — k Comparison</h1>
+  <p class="subtitle">Per-dataset comparison against <strong>k=0</strong> (vllm-offline title baseline retrieval without context reranking).</p>
+  
+<div class="legend">
+  <span class="legend-item"><span class="swatch baseline"></span> Baseline (k=0)</span>
+  <span class="legend-item"><span class="swatch better"></span> Better than baseline</span>
+  <span class="legend-item"><span class="swatch worse"></span> Worse than baseline</span>
+</div>
+
+  <table class="context-results-heatmap">
+    <thead>
+      <tr><th rowspan="2">K</th><th colspan="3">BioASQ</th><th colspan="3">NarrativeQA</th><th colspan="3">QASPER</th><th colspan="3">TelcoDPR</th></tr><tr><th>ndcg@10</th><th>map@10</th><th>recall@10</th><th>ndcg@10</th><th>map@10</th><th>recall@10</th><th>ndcg@10</th><th>map@10</th><th>recall@10</th><th>ndcg@10</th><th>map@10</th><th>recall@10</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>0</td><td style="background-color: #f3f4f6;">0.9277</td><td style="background-color: #f3f4f6;">0.7824</td><td style="background-color: #f3f4f6;">0.8192</td><td style="background-color: #f3f4f6;">0.9967</td><td style="background-color: #f3f4f6;">0.9956</td><td style="background-color: #f3f4f6;">0.9998</td><td style="background-color: #f3f4f6;">0.5787</td><td style="background-color: #f3f4f6;">0.4625</td><td style="background-color: #f3f4f6;">0.7832</td><td style="background-color: #f3f4f6;">0.5144</td><td style="background-color: #f3f4f6;">0.4197</td><td style="background-color: #f3f4f6;">0.8126</td></tr><tr><td>stage1</td><td style="background-color: rgb(248, 209, 194);">0.9099</td><td style="background-color: rgb(248, 209, 194);">0.7591</td><td style="background-color: rgb(248, 205, 189);">0.8101</td><td style="background-color: rgb(247, 199, 181);">0.9629</td><td style="background-color: rgb(247, 200, 182);">0.9527</td><td style="background-color: rgb(248, 206, 189);">0.9937</td><td style="background-color: rgb(228, 236, 245);">0.5899</td><td style="background-color: rgb(228, 236, 244);">0.4771</td><td style="background-color: rgb(252, 234, 227);">0.7795</td><td style="background-color: rgb(75, 131, 187);">0.7576</td><td style="background-color: rgb(81, 135, 189);">0.6917</td><td style="background-color: rgb(35, 103, 173);">0.9598</td></tr><tr><td>1</td><td style="background-color: rgb(251, 226, 217);">0.9166</td><td style="background-color: rgb(251, 226, 216);">0.7679</td><td style="background-color: rgb(253, 241, 236);">0.8166</td><td style="background-color: rgb(246, 190, 168);">0.9570</td><td style="background-color: rgb(246, 194, 173);">0.9477</td><td style="background-color: rgb(239, 138, 98);">0.9852</td><td style="background-color: rgb(237, 242, 248);">0.5862</td><td style="background-color: rgb(220, 231, 242);">0.4814</td><td style="background-color: rgb(239, 138, 98);">0.7625</td><td style="background-color: rgb(70, 128, 186);">0.7636</td><td style="background-color: rgb(75, 131, 187);">0.7009</td><td style="background-color: rgb(44, 109, 176);">0.9541</td></tr><tr><td>3</td><td style="background-color: rgb(243, 173, 144);">0.8953</td><td style="background-color: rgb(243, 173, 145);">0.7405</td><td style="background-color: rgb(243, 169, 140);">0.8034</td><td style="background-color: rgb(246, 189, 167);">0.9568</td><td style="background-color: rgb(246, 193, 171);">0.9466</td><td style="background-color: rgb(240, 150, 114);">0.9867</td><td style="background-color: rgb(91, 142, 193);">0.6477</td><td style="background-color: rgb(83, 136, 190);">0.5559</td><td style="background-color: rgb(246, 193, 172);">0.7723</td><td style="background-color: rgb(36, 104, 173);">0.8104</td><td style="background-color: rgb(35, 104, 173);">0.7624</td><td style="background-color: rgb(38, 105, 174);">0.9579</td></tr><tr><td>5</td><td style="background-color: rgb(239, 138, 98);">0.8815</td><td style="background-color: rgb(239, 138, 98);">0.7223</td><td style="background-color: rgb(239, 138, 98);">0.7975</td><td style="background-color: rgb(239, 138, 98);">0.9249</td><td style="background-color: rgb(239, 138, 98);">0.9030</td><td style="background-color: rgb(243, 173, 145);">0.9896</td><td style="background-color: rgb(33, 102, 172);">0.6724</td><td style="background-color: rgb(33, 102, 172);">0.5833</td><td style="background-color: rgb(234, 240, 247);">0.7852</td><td style="background-color: rgb(33, 102, 172);">0.8148</td><td style="background-color: rgb(33, 102, 172);">0.7670</td><td style="background-color: rgb(33, 102, 172);">0.9618</td></tr><tr><td>7</td><td style="background-color: #ffffff;"></td><td style="background-color: #ffffff;"></td><td style="background-color: #ffffff;"></td><td style="background-color: #ffffff;"></td><td style="background-color: #ffffff;"></td><td style="background-color: #ffffff;"></td><td style="background-color: #ffffff;"></td><td style="background-color: #ffffff;"></td><td style="background-color: #ffffff;"></td><td style="background-color: #ffffff;"></td><td style="background-color: #ffffff;"></td><td style="background-color: #ffffff;"></td></tr><tr><td>10</td><td style="background-color: #ffffff;"></td><td style="background-color: #ffffff;"></td><td style="background-color: #ffffff;"></td><td style="background-color: #ffffff;"></td><td style="background-color: #ffffff;"></td><td style="background-color: #ffffff;"></td><td style="background-color: #ffffff;"></td><td style="background-color: #ffffff;"></td><td style="background-color: #ffffff;"></td><td style="background-color: #ffffff;"></td><td style="background-color: #ffffff;"></td><td style="background-color: #ffffff;"></td></tr>
+    </tbody>
+  </table>
+</body>
+</html>
