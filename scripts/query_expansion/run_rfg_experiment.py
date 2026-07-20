@@ -36,6 +36,7 @@ import argparse
 import os
 import subprocess
 import sys
+from dataclasses import replace
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -51,6 +52,7 @@ from tesis_unicamp.query_expansion.experiment_config import (
     stage1_retrieved_docs_path,
     stage2_model_revision_for_k,
 )
+from tesis_unicamp.query_expansion.generation import validate_expansion_k_values
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 STAGE1_SCRIPT = PROJECT_ROOT / "scripts" / "query_expansion" / "run_rfg_stage1_retrieval.py"
@@ -138,6 +140,13 @@ def _build_parser() -> argparse.ArgumentParser:
         "--dry-run",
         action="store_true",
         help="Print planned commands without executing",
+    )
+    parser.add_argument(
+        "--expansion-k",
+        type=int,
+        nargs="+",
+        metavar="K",
+        help="Run only these expansion k values (default: all from YAML)",
     )
     return parser
 
@@ -435,6 +444,19 @@ def _run_experiment(
     print()
 
 
+def _apply_expansion_k_override(
+    experiment: ResolvedRfgExperiment,
+    expansion_k_values: tuple[int, ...] | None,
+) -> ResolvedRfgExperiment:
+    if expansion_k_values is None:
+        return experiment
+    validated = validate_expansion_k_values(
+        expansion_k_values,
+        retrieval_top_k=experiment.retrieval_top_k,
+    )
+    return replace(experiment, expansion_k_values=validated)
+
+
 def _select_experiments(args: argparse.Namespace, raw: dict) -> list[ResolvedRfgExperiment]:
     if args.experiments:
         return resolve_experiments(raw, experiment_ids=args.experiments)
@@ -457,13 +479,16 @@ def main(argv: list[str] | None = None) -> None:
         return
 
     experiments = _select_experiments(args, raw)
+    expansion_k_override = tuple(args.expansion_k) if args.expansion_k else None
     print(f"config: {args.config}")
     print(f"experiments_to_run: {len(experiments)}")
+    if expansion_k_override:
+        print(f"expansion_k_override: {list(expansion_k_override)}")
     print()
 
     for experiment in experiments:
         _run_experiment(
-            experiment,
+            _apply_expansion_k_override(experiment, expansion_k_override),
             skip_stage1=args.skip_stage1,
             force_stage1=args.force_stage1,
             skip_expansion=args.skip_expansion,
