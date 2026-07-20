@@ -83,6 +83,10 @@ DEFAULT_TITLE_MAX_SEQ_LENGTH = 14336
 DEFAULT_TITLE_OUTPUT_ROOT = Path("results") / "mteb" / "context_title"
 DEFAULT_TITLE_NOTRUNC_OUTPUT_ROOT = Path("results") / "mteb" / "context_title_notrunc"
 DEFAULT_TITLE_NOTRUNC_MODEL_REVISION_TEMPLATE = "ctx-lora-{dataset}-k{k}-title-notrunc"
+DEFAULT_DOCTITLE_MODEL_REVISION_TEMPLATE = "ctx-lora-{dataset}-k{k}-doctitle"
+DEFAULT_DOCTITLE_NOTRUNC_MODEL_REVISION_TEMPLATE = "ctx-lora-{dataset}-k{k}-doctitle-notrunc"
+DEFAULT_DOCTITLE_OUTPUT_ROOT = Path("results") / "mteb" / "context_doctitle"
+DEFAULT_DOCTITLE_NOTRUNC_OUTPUT_ROOT = Path("results") / "mteb" / "context_doctitle_notrunc"
 
 
 def stage1_query_to_text(query: str) -> str:
@@ -164,6 +168,7 @@ class ContextRetrievalEvalConfig:
     max_doc_tokens: int = MAX_DOC_TOKENS
     run_label: str | None = None
     include_query_title: bool = False
+    include_context_doc_titles: bool = False
     max_tokens_per_chunk: int = DEFAULT_TITLE_MAX_TOKENS_PER_CHUNK
     truncate_stage2_docs: bool = True
 
@@ -220,6 +225,7 @@ def create_rag_retrieval_task_with_query_maps(
     *,
     task_name_suffix: str,
     include_query_title: bool = False,
+    include_context_doc_titles: bool = False,
 ) -> AbsTaskRetrieval:
     def load_data(
         self: AbsTaskRetrieval,
@@ -251,7 +257,11 @@ def create_rag_retrieval_task_with_query_maps(
                 name=(
                     f"{config.name}-ctx-{task_name_suffix}-Title"
                     if include_query_title
-                    else f"{config.name}-ctx-{task_name_suffix}"
+                    else (
+                        f"{config.name}-ctx-{task_name_suffix}-DocTitle"
+                        if include_context_doc_titles
+                        else f"{config.name}-ctx-{task_name_suffix}"
+                    )
                 ),
                 description=(
                     f"{config.description} "
@@ -260,7 +270,12 @@ def create_rag_retrieval_task_with_query_maps(
                         ", ## Title: query + title/body context docs, "
                         f"{DEFAULT_TITLE_MAX_TOKENS_PER_CHUNK}-token chunk truncation)."
                         if include_query_title
-                        else ")."
+                        else (
+                            ", title/body context docs (no query title), "
+                            f"{DEFAULT_TITLE_MAX_TOKENS_PER_CHUNK}-token chunk truncation)."
+                            if include_context_doc_titles
+                            else ")."
+                        )
                     )
                 ),
                 reference=config.reference or f"https://huggingface.co/datasets/{config.hf_repo_id}",
@@ -488,6 +503,7 @@ def build_title_context_query_maps(
     max_tokens_per_chunk: int,
     max_seq_length: int,
     truncate_docs: bool = True,
+    include_query_title: bool = True,
 ) -> dict[str, dict[str, str]]:
     if context_k <= 0:
         raise ValueError("context_k must be positive.")
@@ -501,14 +517,17 @@ def build_title_context_query_maps(
     for split in splits:
         grouped = group_retrieved_by_query(stage1_retrieved[split])
         queries = ctx_config.load_subset("queries", split=split)
-        qrels = ctx_config.load_subset("qrels", split=split)
-        query_title_lookup = build_query_document_title_lookup(qrels, raw_corpus)
+        query_title_lookup: dict[str, str] = {}
+        if include_query_title:
+            qrels = ctx_config.load_subset("qrels", split=split)
+            query_title_lookup = build_query_document_title_lookup(qrels, raw_corpus)
         raw_query_by_id = {str(row["id"]): str(row["text"]) for row in queries}
         split_map: dict[str, str] = {}
         fallback_count = 0
 
         for query_id, hits in grouped.items():
             raw_query = raw_query_by_id.get(query_id, "")
+            query_title = query_title_lookup.get(query_id) if include_query_title else None
             anchor = build_title_context_query_text(
                 tokenizer,
                 query=raw_query,
@@ -516,23 +535,31 @@ def build_title_context_query_maps(
                 context_k=context_k,
                 corpus_title_lookup=corpus_title_lookup,
                 corpus_body_lookup=corpus_body_lookup,
-                query_title=query_title_lookup.get(query_id),
+                query_title=query_title,
                 max_tokens_per_chunk=max_tokens_per_chunk,
                 max_seq_length=max_seq_length,
                 truncate_docs=truncate_docs,
             )
             if anchor is None:
-                anchor = build_user_content(
-                    query=raw_query,
-                    query_title=query_title_lookup.get(query_id),
-                )
+                if include_query_title:
+                    anchor = build_user_content(
+                        query=raw_query,
+                        query_title=query_title,
+                    )
+                else:
+                    anchor = stage1_query_to_text(raw_query)
                 fallback_count += 1
             split_map[query_id] = anchor
 
         if fallback_count:
+            fallback_label = (
+                "query-only title format"
+                if include_query_title
+                else "stage-1 format (no context)"
+            )
             print(
                 f"Stage 2 split={split}, k={context_k}: "
-                f"{fallback_count} queries fell back to query-only title format."
+                f"{fallback_count} queries fell back to {fallback_label}."
             )
         query_maps[split] = split_map
 
@@ -561,6 +588,8 @@ def default_model_revision(config: ContextRetrievalEvalConfig, *, context_k: int
     template = config.model_revision_template
     if config.include_query_title and template == "ctx-lora-{dataset}-k{k}":
         template = DEFAULT_TITLE_MODEL_REVISION_TEMPLATE
+    elif config.include_context_doc_titles and template == "ctx-lora-{dataset}-k{k}":
+        template = DEFAULT_DOCTITLE_MODEL_REVISION_TEMPLATE
     if (
         config.include_query_title
         and not config.truncate_stage2_docs
@@ -570,6 +599,15 @@ def default_model_revision(config: ContextRetrievalEvalConfig, *, context_k: int
         }
     ):
         template = DEFAULT_TITLE_NOTRUNC_MODEL_REVISION_TEMPLATE
+    if (
+        config.include_context_doc_titles
+        and not config.truncate_stage2_docs
+        and template in {
+            DEFAULT_DOCTITLE_MODEL_REVISION_TEMPLATE,
+            "ctx-lora-{dataset}-k{k}-doctitle",
+        }
+    ):
+        template = DEFAULT_DOCTITLE_NOTRUNC_MODEL_REVISION_TEMPLATE
     return template.format(
         dataset=config.dataset,
         k=context_k,
@@ -589,6 +627,11 @@ def _default_output_dir(config: ContextRetrievalEvalConfig, run_label: str) -> P
             root = DEFAULT_TITLE_NOTRUNC_OUTPUT_ROOT
         else:
             root = DEFAULT_TITLE_OUTPUT_ROOT
+    elif config.include_context_doc_titles:
+        if not config.truncate_stage2_docs:
+            root = DEFAULT_DOCTITLE_NOTRUNC_OUTPUT_ROOT
+        else:
+            root = DEFAULT_DOCTITLE_OUTPUT_ROOT
     else:
         root = Path("results") / "mteb" / "context"
     return root / config.dataset / run_label
@@ -664,6 +707,11 @@ def evaluate_context_retrieval(config: ContextRetrievalEvalConfig) -> list[Any]:
         raise ValueError(f"Unknown dataset {config.dataset!r}. Available: {valid}")
     if config.lora_path.strip() == "":
         raise ValueError("lora_path is required for context embedding evaluation.")
+    if config.include_query_title and config.include_context_doc_titles:
+        raise ValueError(
+            "include_query_title and include_context_doc_titles are mutually exclusive; "
+            "use include_query_title for query + doc titles."
+        )
 
     paper_scoped = resolve_paper_scoped(config.dataset, config.paper_scoped)
     run_label = config.run_label or config.lora_path.rsplit("/", maxsplit=1)[-1]
@@ -750,8 +798,9 @@ def evaluate_context_retrieval(config: ContextRetrievalEvalConfig) -> list[Any]:
                 max_tokens_per_chunk=config.max_tokens_per_chunk,
                 max_seq_length=config.max_seq_length,
                 truncate_docs=config.truncate_stage2_docs,
+                include_query_title=config.include_query_title,
             )
-            if config.include_query_title
+            if config.include_query_title or config.include_context_doc_titles
             else build_context_query_maps(
                 dataset=config.dataset,
                 splits=config.splits,
@@ -768,6 +817,7 @@ def evaluate_context_retrieval(config: ContextRetrievalEvalConfig) -> list[Any]:
             query_maps,
             task_name_suffix=f"k{context_k}",
             include_query_title=config.include_query_title,
+            include_context_doc_titles=config.include_context_doc_titles,
         )
 
         stage2_model = resolve_model(
