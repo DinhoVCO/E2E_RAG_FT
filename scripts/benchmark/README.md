@@ -71,6 +71,31 @@ exportar_tabelas(report, "reports/benchmark_cap3")
 gerar_todas_figuras(report, "reports/benchmark_cap3")
 ```
 
+## Histogramas por intervalos (tokens)
+
+Para figuras de distribuição em intervalos (bins) de **corpus**, **consultas** e **respostas**, com linhas de **média** e **mediana**:
+
+```bash
+python scripts/benchmark/plot_token_histograms.py --local-files-only
+
+# Ajustar largura dos intervalos / limite visual do eixo X
+python scripts/benchmark/plot_token_histograms.py --local-files-only \
+  --bin-width-corpus 100 --xmax-corpus 2000 \
+  --bin-width-consulta 2 --xmax-consulta 50 \
+  --bin-width-resposta 20 --xmax-resposta 400
+
+# Apenas split de teste, sem tokenizer (palavras)
+python scripts/benchmark/plot_token_histograms.py --sem-tokens --splits test
+```
+
+Saídas:
+- `figuras/fig_hist_intervalos_{corpus,consulta,resposta}.{pdf,png}`
+- `figuras/fig_hist_intervalos_{dataset}.{pdf,png}` (3 painéis por dataset)
+- `tabelas/tabela_histogramas_intervalos.csv`
+- `manifesto_histogramas.json`
+
+A **média** aparece como linha tracejada vermelha; a **mediana** (mais robusta a caudas longas) como linha pontilhada azul.
+
 ## Observações
 
 - A contagem de tokens usa o mesmo tokenizer dos experimentos de embedding (`Qwen/Qwen3-Embedding-4B`), com o texto formatado como na indexação/avaliação.

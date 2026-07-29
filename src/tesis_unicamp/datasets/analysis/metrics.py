@@ -130,6 +130,10 @@ class DatasetMetrics:
     dist_palavras_consulta_por_split: dict[str, list[int]] = field(
         default_factory=dict
     )
+    dist_tokens_resposta_por_split: dict[str, list[int]] = field(default_factory=dict)
+    dist_palavras_resposta_por_split: dict[str, list[int]] = field(
+        default_factory=dict
+    )
     dist_relevants_por_split: dict[str, list[int]] = field(default_factory=dict)
 
     def to_dict(self, *, incluir_distribuicoes: bool = False) -> dict[str, Any]:
@@ -159,6 +163,10 @@ class DatasetMetrics:
             out["dist_tokens_consulta_por_split"] = self.dist_tokens_consulta_por_split
             out["dist_palavras_consulta_por_split"] = (
                 self.dist_palavras_consulta_por_split
+            )
+            out["dist_tokens_resposta_por_split"] = self.dist_tokens_resposta_por_split
+            out["dist_palavras_resposta_por_split"] = (
+                self.dist_palavras_resposta_por_split
             )
             out["dist_relevants_por_split"] = self.dist_relevants_por_split
         return out
@@ -319,6 +327,8 @@ def analisar_dataset(
     docs_pai_por_split: dict[str, set[str]] = defaultdict(set)
     dist_tokens_q: dict[str, list[int]] = {}
     dist_palavras_q: dict[str, list[int]] = {}
+    dist_tokens_a: dict[str, list[int]] = {}
+    dist_palavras_a: dict[str, list[int]] = {}
     dist_relevants: dict[str, list[int]] = {}
     todos_docs_relevantes: set[str] = set()
 
@@ -373,9 +383,12 @@ def analisar_dataset(
             )
 
         dist_palavras_q[split] = palavras_q
+        dist_palavras_a[split] = palavras_a
         dist_relevants[split] = relevants_lista
         if tokens_q is not None:
             dist_tokens_q[split] = tokens_q
+        if tokens_a is not None:
+            dist_tokens_a[split] = tokens_a
 
         particoes[split] = EstatisticasParticao(
             n_consultas=len(qids),
@@ -423,6 +436,8 @@ def analisar_dataset(
         dist_palavras_corpus=palavras_corpus,
         dist_tokens_consulta_por_split=dist_tokens_q,
         dist_palavras_consulta_por_split=dist_palavras_q,
+        dist_tokens_resposta_por_split=dist_tokens_a,
+        dist_palavras_resposta_por_split=dist_palavras_a,
         dist_relevants_por_split=dist_relevants,
     )
 
