@@ -1,0 +1,1230 @@
+{
+  "tokenizer_nome": "Qwen/Qwen3-Embedding-4B",
+  "datasets": {
+    "qasper": {
+      "chave": "qasper",
+      "rotulo": "QASPER-RAG",
+      "dominio": "Literatura científica (PLN)",
+      "repo_id": "DinoStackAI/qasper-rag",
+      "unidade_corpus": "Parágrafo / abstract de artigo",
+      "n_corpus": 81550,
+      "n_docs_relevantes_unicos": 8081,
+      "fracao_corpus_relevante": 0.09909258123850398,
+      "tokens_corpus": {
+        "n": 81550,
+        "media": 120.7125076640098,
+        "desvio": 80.54543741997139,
+        "minimo": 11,
+        "maximo": 4840,
+        "percentis": {
+          "p50": 105.0,
+          "p75": 159.75,
+          "p90": 219.0,
+          "p95": 261.0,
+          "p99": 370.0
+        }
+      },
+      "palavras_corpus": {
+        "n": 81550,
+        "media": 84.78961373390558,
+        "desvio": 58.738309313666754,
+        "minimo": 6,
+        "maximo": 3634,
+        "percentis": {
+          "p50": 74.0,
+          "p75": 114.0,
+          "p90": 158.0,
+          "p95": 189.0,
+          "p99": 263.0
+        }
+      },
+      "particoes": {
+        "train": {
+          "n_consultas": 2101,
+          "n_consultas_unicas": 2101,
+          "n_qrels": 3815,
+          "n_respostas": 2101,
+          "n_consultas_sem_positivo": 0,
+          "relevants_por_consulta": {
+            "n": 2101,
+            "media": 1.8158019990480723,
+            "desvio": 1.939311910734429,
+            "minimo": 1,
+            "maximo": 21,
+            "percentis": {
+              "p50": 1.0,
+              "p75": 2.0,
+              "p90": 3.0,
+              "p95": 5.0,
+              "p99": 11.0
+            }
+          },
+          "tokens_consulta": {
+            "n": 2101,
+            "media": 10.135649690623513,
+            "desvio": 3.877855450244393,
+            "minimo": 4,
+            "maximo": 30,
+            "percentis": {
+              "p50": 9.0,
+              "p75": 12.0,
+              "p90": 15.0,
+              "p95": 18.0,
+              "p99": 23.0
+            }
+          },
+          "palavras_consulta": {
+            "n": 2101,
+            "media": 8.309852451213708,
+            "desvio": 3.2558142663565572,
+            "minimo": 3,
+            "maximo": 24,
+            "percentis": {
+              "p50": 8.0,
+              "p75": 10.0,
+              "p90": 13.0,
+              "p95": 15.0,
+              "p99": 19.0
+            }
+          },
+          "tokens_resposta": {
+            "n": 2101,
+            "media": 21.938124702522607,
+            "desvio": 28.81637739207578,
+            "minimo": 1,
+            "maximo": 393,
+            "percentis": {
+              "p50": 14.0,
+              "p75": 28.0,
+              "p90": 50.0,
+              "p95": 71.0,
+              "p99": 152.0
+            }
+          },
+          "palavras_resposta": {
+            "n": 2101,
+            "media": 14.296049500237983,
+            "desvio": 19.43636852213768,
+            "minimo": 1,
+            "maximo": 273,
+            "percentis": {
+              "p50": 9.0,
+              "p75": 19.0,
+              "p90": 33.0,
+              "p95": 47.0,
+              "p99": 89.0
+            }
+          }
+        },
+        "dev": {
+          "n_consultas": 890,
+          "n_consultas_unicas": 890,
+          "n_qrels": 1913,
+          "n_respostas": 890,
+          "n_consultas_sem_positivo": 0,
+          "relevants_por_consulta": {
+            "n": 890,
+            "media": 2.149438202247191,
+            "desvio": 2.1213533731609844,
+            "minimo": 1,
+            "maximo": 20,
+            "percentis": {
+              "p50": 1.0,
+              "p75": 2.0,
+              "p90": 4.0,
+              "p95": 6.0,
+              "p99": 11.0
+            }
+          },
+          "tokens_consulta": {
+            "n": 890,
+            "media": 9.601123595505618,
+            "desvio": 3.603899086430361,
+            "minimo": 5,
+            "maximo": 33,
+            "percentis": {
+              "p50": 9.0,
+              "p75": 11.0,
+              "p90": 14.0,
+              "p95": 17.0,
+              "p99": 21.0
+            }
+          },
+          "palavras_consulta": {
+            "n": 890,
+            "media": 7.898876404494382,
+            "desvio": 3.0440398343014565,
+            "minimo": 3,
+            "maximo": 24,
+            "percentis": {
+              "p50": 7.0,
+              "p75": 9.0,
+              "p90": 12.0,
+              "p95": 14.0,
+              "p99": 18.0
+            }
+          },
+          "tokens_resposta": {
+            "n": 890,
+            "media": 25.086516853932583,
+            "desvio": 32.251022772776764,
+            "minimo": 1,
+            "maximo": 435,
+            "percentis": {
+              "p50": 17.0,
+              "p75": 32.0,
+              "p90": 56.0,
+              "p95": 73.54999999999995,
+              "p99": 139.55000000000007
+            }
+          },
+          "palavras_resposta": {
+            "n": 890,
+            "media": 15.889887640449437,
+            "desvio": 19.121468873951283,
+            "minimo": 1,
+            "maximo": 198,
+            "percentis": {
+              "p50": 11.0,
+              "p75": 21.0,
+              "p90": 37.0,
+              "p95": 49.549999999999955,
+              "p99": 77.22000000000003
+            }
+          }
+        },
+        "test": {
+          "n_consultas": 1310,
+          "n_consultas_unicas": 1310,
+          "n_qrels": 3434,
+          "n_respostas": 1310,
+          "n_consultas_sem_positivo": 0,
+          "relevants_por_consulta": {
+            "n": 1310,
+            "media": 2.621374045801527,
+            "desvio": 3.34757534753409,
+            "minimo": 1,
+            "maximo": 67,
+            "percentis": {
+              "p50": 2.0,
+              "p75": 3.0,
+              "p90": 5.0,
+              "p95": 7.0,
+              "p99": 13.0
+            }
+          },
+          "tokens_consulta": {
+            "n": 1310,
+            "media": 9.432824427480917,
+            "desvio": 3.5876791440888374,
+            "minimo": 5,
+            "maximo": 30,
+            "percentis": {
+              "p50": 9.0,
+              "p75": 11.0,
+              "p90": 14.0,
+              "p95": 17.0,
+              "p99": 22.0
+            }
+          },
+          "palavras_consulta": {
+            "n": 1310,
+            "media": 7.780916030534351,
+            "desvio": 3.0489796692473172,
+            "minimo": 3,
+            "maximo": 24,
+            "percentis": {
+              "p50": 7.0,
+              "p75": 9.0,
+              "p90": 11.0,
+              "p95": 14.0,
+              "p99": 19.0
+            }
+          },
+          "tokens_resposta": {
+            "n": 1310,
+            "media": 27.590076335877864,
+            "desvio": 41.02539588630145,
+            "minimo": 1,
+            "maximo": 649,
+            "percentis": {
+              "p50": 17.0,
+              "p75": 33.0,
+              "p90": 63.0,
+              "p95": 85.09999999999991,
+              "p99": 180.4700000000014
+            }
+          },
+          "palavras_resposta": {
+            "n": 1310,
+            "media": 17.445801526717556,
+            "desvio": 25.324484304198286,
+            "minimo": 1,
+            "maximo": 337,
+            "percentis": {
+              "p50": 10.0,
+              "p75": 23.0,
+              "p90": 38.0,
+              "p95": 57.0,
+              "p99": 118.55000000000041
+            }
+          }
+        }
+      },
+      "overlap_query_ids": {
+        "train∩dev": 0,
+        "train∩test": 0,
+        "dev∩test": 0
+      },
+      "overlap_docs_relevantes": {
+        "conjuntos": {
+          "train": 3439,
+          "dev": 1682,
+          "test": 2960
+        },
+        "intersecoes": {
+          "train∩dev": 0,
+          "train∩test": 0,
+          "dev∩test": 0
+        },
+        "fracoes_em_relacao_ao_menor": {
+          "train∩dev": 0.0,
+          "train∩test": 0.0,
+          "dev∩test": 0.0
+        },
+        "fracao_test_em_train": 0.0,
+        "fracao_dev_em_train": 0.0
+      },
+      "overlap_docs_pai": {
+        "conjuntos": {
+          "train": 824,
+          "dev": 276,
+          "test": 408
+        },
+        "intersecoes": {
+          "train∩dev": 0,
+          "train∩test": 0,
+          "dev∩test": 0
+        },
+        "fracoes_em_relacao_ao_menor": {
+          "train∩dev": 0.0,
+          "train∩test": 0.0,
+          "dev∩test": 0.0
+        },
+        "fracao_test_em_train": 0.0,
+        "fracao_dev_em_train": 0.0
+      }
+    },
+    "bioasq-resplit": {
+      "chave": "bioasq-resplit",
+      "rotulo": "BioASQ-RAG-Resplit",
+      "dominio": "Biomedicina",
+      "repo_id": "DinoStackAI/bioasq-rag-13b-resplit",
+      "unidade_corpus": "Abstract PubMed",
+      "n_corpus": 44183,
+      "n_docs_relevantes_unicos": 44183,
+      "fracao_corpus_relevante": 1.0,
+      "tokens_corpus": {
+        "n": 44183,
+        "media": 346.2793834732816,
+        "desvio": 153.48395053556968,
+        "minimo": 0,
+        "maximo": 3776,
+        "percentis": {
+          "p50": 330.0,
+          "p75": 420.0,
+          "p90": 515.0,
+          "p95": 594.0,
+          "p99": 862.0
+        }
+      },
+      "palavras_corpus": {
+        "n": 44183,
+        "media": 220.36466514270194,
+        "desvio": 83.96102134014073,
+        "minimo": 0,
+        "maximo": 1537,
+        "percentis": {
+          "p50": 216.0,
+          "p75": 264.0,
+          "p90": 310.0,
+          "p95": 355.0,
+          "p99": 484.0
+        }
+      },
+      "particoes": {
+        "train": {
+          "n_consultas": 3668,
+          "n_consultas_unicas": 3668,
+          "n_qrels": 29427,
+          "n_respostas": 3668,
+          "n_consultas_sem_positivo": 201,
+          "relevants_por_consulta": {
+            "n": 3668,
+            "media": 8.022628135223554,
+            "desvio": 9.716891074570325,
+            "minimo": 0,
+            "maximo": 91,
+            "percentis": {
+              "p50": 5.0,
+              "p75": 11.0,
+              "p90": 20.0,
+              "p95": 26.0,
+              "p99": 45.0
+            }
+          },
+          "tokens_consulta": {
+            "n": 3668,
+            "media": 13.427208287895311,
+            "desvio": 5.108195902638721,
+            "minimo": 3,
+            "maximo": 49,
+            "percentis": {
+              "p50": 12.0,
+              "p75": 16.0,
+              "p90": 20.0,
+              "p95": 23.0,
+              "p99": 30.0
+            }
+          },
+          "palavras_consulta": {
+            "n": 3668,
+            "media": 8.631679389312977,
+            "desvio": 3.4154134099541626,
+            "minimo": 2,
+            "maximo": 30,
+            "percentis": {
+              "p50": 8.0,
+              "p75": 10.0,
+              "p90": 13.0,
+              "p95": 15.0,
+              "p99": 19.0
+            }
+          },
+          "tokens_resposta": {
+            "n": 3668,
+            "media": 73.54062159214831,
+            "desvio": 72.5522842860286,
+            "minimo": 0,
+            "maximo": 745,
+            "percentis": {
+              "p50": 48.0,
+              "p75": 91.0,
+              "p90": 171.0,
+              "p95": 234.0,
+              "p99": 332.3299999999999
+            }
+          },
+          "palavras_resposta": {
+            "n": 3668,
+            "media": 47.01581243184297,
+            "desvio": 48.43173895033358,
+            "minimo": 0,
+            "maximo": 417,
+            "percentis": {
+              "p50": 29.0,
+              "p75": 58.0,
+              "p90": 116.0,
+              "p95": 155.64999999999964,
+              "p99": 217.32999999999993
+            }
+          }
+        },
+        "dev": {
+          "n_consultas": 916,
+          "n_consultas_unicas": 916,
+          "n_qrels": 7342,
+          "n_respostas": 916,
+          "n_consultas_sem_positivo": 44,
+          "relevants_por_consulta": {
+            "n": 916,
+            "media": 8.01528384279476,
+            "desvio": 9.674832633771278,
+            "minimo": 0,
+            "maximo": 79,
+            "percentis": {
+              "p50": 5.0,
+              "p75": 11.0,
+              "p90": 18.5,
+              "p95": 25.0,
+              "p99": 46.40000000000009
+            }
+          },
+          "tokens_consulta": {
+            "n": 916,
+            "media": 13.503275109170305,
+            "desvio": 5.241232039428055,
+            "minimo": 3,
+            "maximo": 48,
+            "percentis": {
+              "p50": 13.0,
+              "p75": 16.0,
+              "p90": 20.0,
+              "p95": 23.0,
+              "p99": 30.850000000000023
+            }
+          },
+          "palavras_consulta": {
+            "n": 916,
+            "media": 8.77292576419214,
+            "desvio": 3.640020238281705,
+            "minimo": 2,
+            "maximo": 30,
+            "percentis": {
+              "p50": 8.0,
+              "p75": 11.0,
+              "p90": 13.0,
+              "p95": 15.0,
+              "p99": 21.850000000000023
+            }
+          },
+          "tokens_resposta": {
+            "n": 916,
+            "media": 75.75109170305677,
+            "desvio": 72.67740866492993,
+            "minimo": 0,
+            "maximo": 640,
+            "percentis": {
+              "p50": 51.0,
+              "p75": 98.25,
+              "p90": 176.5,
+              "p95": 221.0,
+              "p99": 326.70000000000005
+            }
+          },
+          "palavras_resposta": {
+            "n": 916,
+            "media": 48.640829694323145,
+            "desvio": 47.92314208093894,
+            "minimo": 0,
+            "maximo": 316,
+            "percentis": {
+              "p50": 30.5,
+              "p75": 65.25,
+              "p90": 115.5,
+              "p95": 147.0,
+              "p99": 204.70000000000005
+            }
+          }
+        },
+        "test": {
+          "n_consultas": 1145,
+          "n_consultas_unicas": 1145,
+          "n_qrels": 9478,
+          "n_respostas": 1145,
+          "n_consultas_sem_positivo": 72,
+          "relevants_por_consulta": {
+            "n": 1145,
+            "media": 8.277729257641921,
+            "desvio": 10.24732075308736,
+            "minimo": 0,
+            "maximo": 73,
+            "percentis": {
+              "p50": 5.0,
+              "p75": 11.0,
+              "p90": 19.0,
+              "p95": 27.0,
+              "p99": 53.11999999999989
+            }
+          },
+          "tokens_consulta": {
+            "n": 1145,
+            "media": 13.555458515283842,
+            "desvio": 5.099595701440263,
+            "minimo": 4,
+            "maximo": 46,
+            "percentis": {
+              "p50": 13.0,
+              "p75": 16.0,
+              "p90": 20.0,
+              "p95": 23.0,
+              "p99": 29.559999999999945
+            }
+          },
+          "palavras_consulta": {
+            "n": 1145,
+            "media": 8.689082969432315,
+            "desvio": 3.3574935464589433,
+            "minimo": 2,
+            "maximo": 23,
+            "percentis": {
+              "p50": 8.0,
+              "p75": 10.0,
+              "p90": 13.0,
+              "p95": 15.0,
+              "p99": 19.559999999999945
+            }
+          },
+          "tokens_resposta": {
+            "n": 1145,
+            "media": 74.00087336244542,
+            "desvio": 68.26253583308984,
+            "minimo": 0,
+            "maximo": 524,
+            "percentis": {
+              "p50": 51.0,
+              "p75": 96.0,
+              "p90": 163.20000000000027,
+              "p95": 215.79999999999995,
+              "p99": 334.1199999999999
+            }
+          },
+          "palavras_resposta": {
+            "n": 1145,
+            "media": 47.019213973799125,
+            "desvio": 45.51532759049826,
+            "minimo": 0,
+            "maximo": 339,
+            "percentis": {
+              "p50": 31.0,
+              "p75": 60.0,
+              "p90": 107.60000000000014,
+              "p95": 149.0,
+              "p99": 199.79999999999973
+            }
+          }
+        }
+      },
+      "overlap_query_ids": {
+        "train∩dev": 0,
+        "train∩test": 0,
+        "dev∩test": 0
+      },
+      "overlap_docs_relevantes": {
+        "conjuntos": {
+          "train": 28560,
+          "dev": 7283,
+          "test": 9401
+        },
+        "intersecoes": {
+          "train∩dev": 436,
+          "train∩test": 529,
+          "dev∩test": 143
+        },
+        "fracoes_em_relacao_ao_menor": {
+          "train∩dev": 0.059865440065906904,
+          "train∩test": 0.05627060950962664,
+          "dev∩test": 0.01963476589317589
+        },
+        "fracao_test_em_train": 0.05627060950962664,
+        "fracao_dev_em_train": 0.059865440065906904
+      },
+      "overlap_docs_pai": null
+    },
+    "narrativeqa": {
+      "chave": "narrativeqa",
+      "rotulo": "NarrativeQA-RAG",
+      "dominio": "Narrativa / literatura",
+      "repo_id": "DinoStackAI/narrativeqa-rag",
+      "unidade_corpus": "Resumo (summary) do documento",
+      "n_corpus": 1572,
+      "n_docs_relevantes_unicos": 1572,
+      "fracao_corpus_relevante": 1.0,
+      "tokens_corpus": {
+        "n": 1572,
+        "media": 744.9917302798982,
+        "desvio": 261.894486276038,
+        "minimo": 248,
+        "maximo": 1399,
+        "percentis": {
+          "p50": 772.0,
+          "p75": 933.25,
+          "p90": 1086.8000000000002,
+          "p95": 1169.249999999999,
+          "p99": 1268.87
+        }
+      },
+      "palavras_corpus": {
+        "n": 1572,
+        "media": 577.5127226463104,
+        "desvio": 203.12811163488203,
+        "minimo": 202,
+        "maximo": 1001,
+        "percentis": {
+          "p50": 602.5,
+          "p75": 724.0,
+          "p90": 850.9000000000001,
+          "p95": 908.4499999999998,
+          "p99": 982.0
+        }
+      },
+      "particoes": {
+        "train": {
+          "n_consultas": 32747,
+          "n_consultas_unicas": 32507,
+          "n_qrels": 32747,
+          "n_respostas": 32747,
+          "n_consultas_sem_positivo": 0,
+          "relevants_por_consulta": {
+            "n": 32507,
+            "media": 1.0073830251945735,
+            "desvio": 0.08738502264875637,
+            "minimo": 1,
+            "maximo": 3,
+            "percentis": {
+              "p50": 1.0,
+              "p75": 1.0,
+              "p90": 1.0,
+              "p95": 1.0,
+              "p99": 1.0
+            }
+          },
+          "tokens_consulta": {
+            "n": 32747,
+            "media": 10.994167404647754,
+            "desvio": 3.882326772855497,
+            "minimo": 3,
+            "maximo": 41,
+            "percentis": {
+              "p50": 10.0,
+              "p75": 13.0,
+              "p90": 16.0,
+              "p95": 18.0,
+              "p99": 23.0
+            }
+          },
+          "palavras_consulta": {
+            "n": 32747,
+            "media": 8.58521391272483,
+            "desvio": 3.3329183306509234,
+            "minimo": 3,
+            "maximo": 30,
+            "percentis": {
+              "p50": 8.0,
+              "p75": 11.0,
+              "p90": 13.0,
+              "p95": 15.0,
+              "p99": 18.0
+            }
+          },
+          "tokens_resposta": {
+            "n": 32747,
+            "media": 7.028369010901762,
+            "desvio": 4.710810112936145,
+            "minimo": 1,
+            "maximo": 39,
+            "percentis": {
+              "p50": 6.0,
+              "p75": 9.0,
+              "p90": 14.0,
+              "p95": 16.0,
+              "p99": 22.0
+            }
+          },
+          "palavras_resposta": {
+            "n": 32747,
+            "media": 5.139463156930406,
+            "desvio": 4.114969398499557,
+            "minimo": 1,
+            "maximo": 30,
+            "percentis": {
+              "p50": 4.0,
+              "p75": 7.0,
+              "p90": 11.0,
+              "p95": 13.0,
+              "p99": 19.0
+            }
+          }
+        },
+        "dev": {
+          "n_consultas": 3461,
+          "n_consultas_unicas": 3425,
+          "n_qrels": 3461,
+          "n_respostas": 3461,
+          "n_consultas_sem_positivo": 0,
+          "relevants_por_consulta": {
+            "n": 3425,
+            "media": 1.0105109489051094,
+            "desvio": 0.1102374422587077,
+            "minimo": 1,
+            "maximo": 3,
+            "percentis": {
+              "p50": 1.0,
+              "p75": 1.0,
+              "p90": 1.0,
+              "p95": 1.0,
+              "p99": 1.0
+            }
+          },
+          "tokens_consulta": {
+            "n": 3461,
+            "media": 10.854088413753251,
+            "desvio": 3.757274160286651,
+            "minimo": 4,
+            "maximo": 31,
+            "percentis": {
+              "p50": 10.0,
+              "p75": 13.0,
+              "p90": 16.0,
+              "p95": 18.0,
+              "p99": 22.0
+            }
+          },
+          "palavras_consulta": {
+            "n": 3461,
+            "media": 8.440335163247616,
+            "desvio": 3.210739761399566,
+            "minimo": 3,
+            "maximo": 26,
+            "percentis": {
+              "p50": 8.0,
+              "p75": 10.0,
+              "p90": 13.0,
+              "p95": 14.0,
+              "p99": 18.0
+            }
+          },
+          "tokens_resposta": {
+            "n": 3461,
+            "media": 6.959549263218723,
+            "desvio": 4.762499692580477,
+            "minimo": 1,
+            "maximo": 50,
+            "percentis": {
+              "p50": 6.0,
+              "p75": 9.0,
+              "p90": 13.0,
+              "p95": 16.0,
+              "p99": 23.0
+            }
+          },
+          "palavras_resposta": {
+            "n": 3461,
+            "media": 5.0655879803524995,
+            "desvio": 4.2052275336518115,
+            "minimo": 1,
+            "maximo": 28,
+            "percentis": {
+              "p50": 4.0,
+              "p75": 7.0,
+              "p90": 11.0,
+              "p95": 14.0,
+              "p99": 19.40000000000009
+            }
+          }
+        },
+        "test": {
+          "n_consultas": 10557,
+          "n_consultas_unicas": 10479,
+          "n_qrels": 10557,
+          "n_respostas": 10557,
+          "n_consultas_sem_positivo": 0,
+          "relevants_por_consulta": {
+            "n": 10479,
+            "media": 1.007443458345262,
+            "desvio": 0.09237532522734039,
+            "minimo": 1,
+            "maximo": 3,
+            "percentis": {
+              "p50": 1.0,
+              "p75": 1.0,
+              "p90": 1.0,
+              "p95": 1.0,
+              "p99": 1.0
+            }
+          },
+          "tokens_consulta": {
+            "n": 10557,
+            "media": 10.967225537558019,
+            "desvio": 3.776791323108013,
+            "minimo": 4,
+            "maximo": 34,
+            "percentis": {
+              "p50": 10.0,
+              "p75": 13.0,
+              "p90": 16.0,
+              "p95": 18.0,
+              "p99": 22.0
+            }
+          },
+          "palavras_consulta": {
+            "n": 10557,
+            "media": 8.604243629819077,
+            "desvio": 3.298346221696533,
+            "minimo": 3,
+            "maximo": 26,
+            "percentis": {
+              "p50": 8.0,
+              "p75": 11.0,
+              "p90": 13.0,
+              "p95": 15.0,
+              "p99": 18.0
+            }
+          },
+          "tokens_resposta": {
+            "n": 10557,
+            "media": 7.061096902529128,
+            "desvio": 4.794039672088347,
+            "minimo": 1,
+            "maximo": 42,
+            "percentis": {
+              "p50": 6.0,
+              "p75": 9.0,
+              "p90": 14.0,
+              "p95": 16.0,
+              "p99": 23.0
+            }
+          },
+          "palavras_resposta": {
+            "n": 10557,
+            "media": 5.181775125509141,
+            "desvio": 4.2157880133910055,
+            "minimo": 1,
+            "maximo": 30,
+            "percentis": {
+              "p50": 4.0,
+              "p75": 7.0,
+              "p90": 11.0,
+              "p95": 14.0,
+              "p99": 19.0
+            }
+          }
+        }
+      },
+      "overlap_query_ids": {
+        "train∩dev": 0,
+        "train∩test": 0,
+        "dev∩test": 0
+      },
+      "overlap_docs_relevantes": {
+        "conjuntos": {
+          "train": 1102,
+          "dev": 115,
+          "test": 355
+        },
+        "intersecoes": {
+          "train∩dev": 0,
+          "train∩test": 0,
+          "dev∩test": 0
+        },
+        "fracoes_em_relacao_ao_menor": {
+          "train∩dev": 0.0,
+          "train∩test": 0.0,
+          "dev∩test": 0.0
+        },
+        "fracao_test_em_train": 0.0,
+        "fracao_dev_em_train": 0.0
+      },
+      "overlap_docs_pai": null
+    },
+    "telco-dpr": {
+      "chave": "telco-dpr",
+      "rotulo": "Telco-DPR-RAG",
+      "dominio": "Telecomunicações",
+      "repo_id": "DinoStackAI/telco-dpr-rag",
+      "unidade_corpus": "Passagem técnica",
+      "n_corpus": 14654,
+      "n_docs_relevantes_unicos": 283,
+      "fracao_corpus_relevante": 0.019312133205950592,
+      "tokens_corpus": {
+        "n": 14654,
+        "media": 343.49767981438515,
+        "desvio": 862.3057424668311,
+        "minimo": 9,
+        "maximo": 38934,
+        "percentis": {
+          "p50": 191.0,
+          "p75": 384.0,
+          "p90": 482.7000000000007,
+          "p95": 893.0,
+          "p99": 3083.819999999996
+        }
+      },
+      "palavras_corpus": {
+        "n": 14654,
+        "media": 189.1381192848369,
+        "desvio": 424.0513402082651,
+        "minimo": 5,
+        "maximo": 19929,
+        "percentis": {
+          "p50": 108.0,
+          "p75": 221.0,
+          "p90": 304.0,
+          "p95": 480.34999999999854,
+          "p99": 1586.0
+        }
+      },
+      "particoes": {
+        "train": {
+          "n_consultas": 975,
+          "n_consultas_unicas": 975,
+          "n_qrels": 975,
+          "n_respostas": 975,
+          "n_consultas_sem_positivo": 0,
+          "relevants_por_consulta": {
+            "n": 975,
+            "media": 1.0,
+            "desvio": 0.0,
+            "minimo": 1,
+            "maximo": 1,
+            "percentis": {
+              "p50": 1.0,
+              "p75": 1.0,
+              "p90": 1.0,
+              "p95": 1.0,
+              "p99": 1.0
+            }
+          },
+          "tokens_consulta": {
+            "n": 975,
+            "media": 21.666666666666668,
+            "desvio": 7.095297588068302,
+            "minimo": 7,
+            "maximo": 58,
+            "percentis": {
+              "p50": 21.0,
+              "p75": 26.0,
+              "p90": 31.0,
+              "p95": 34.0,
+              "p99": 44.0
+            }
+          },
+          "palavras_consulta": {
+            "n": 975,
+            "media": 15.108717948717949,
+            "desvio": 4.552652188130354,
+            "minimo": 5,
+            "maximo": 36,
+            "percentis": {
+              "p50": 14.0,
+              "p75": 18.0,
+              "p90": 22.0,
+              "p95": 23.299999999999955,
+              "p99": 27.0
+            }
+          },
+          "tokens_resposta": {
+            "n": 975,
+            "media": 9.122051282051283,
+            "desvio": 12.412007250939316,
+            "minimo": 0,
+            "maximo": 131,
+            "percentis": {
+              "p50": 5.0,
+              "p75": 9.0,
+              "p90": 19.600000000000023,
+              "p95": 33.0,
+              "p99": 61.77999999999997
+            }
+          },
+          "palavras_resposta": {
+            "n": 975,
+            "media": 4.324102564102564,
+            "desvio": 7.320052093813764,
+            "minimo": 0,
+            "maximo": 66,
+            "percentis": {
+              "p50": 2.0,
+              "p75": 4.0,
+              "p90": 11.0,
+              "p95": 20.299999999999955,
+              "p99": 36.25999999999999
+            }
+          }
+        },
+        "dev": {
+          "n_consultas": 243,
+          "n_consultas_unicas": 243,
+          "n_qrels": 243,
+          "n_respostas": 243,
+          "n_consultas_sem_positivo": 0,
+          "relevants_por_consulta": {
+            "n": 243,
+            "media": 1.0,
+            "desvio": 0.0,
+            "minimo": 1,
+            "maximo": 1,
+            "percentis": {
+              "p50": 1.0,
+              "p75": 1.0,
+              "p90": 1.0,
+              "p95": 1.0,
+              "p99": 1.0
+            }
+          },
+          "tokens_consulta": {
+            "n": 243,
+            "media": 22.05349794238683,
+            "desvio": 7.245348877520782,
+            "minimo": 7,
+            "maximo": 45,
+            "percentis": {
+              "p50": 21.0,
+              "p75": 27.0,
+              "p90": 31.80000000000001,
+              "p95": 36.0,
+              "p99": 42.15999999999997
+            }
+          },
+          "palavras_consulta": {
+            "n": 243,
+            "media": 15.395061728395062,
+            "desvio": 4.724541510654927,
+            "minimo": 5,
+            "maximo": 31,
+            "percentis": {
+              "p50": 14.0,
+              "p75": 18.0,
+              "p90": 22.0,
+              "p95": 25.0,
+              "p99": 28.579999999999984
+            }
+          },
+          "tokens_resposta": {
+            "n": 243,
+            "media": 8.423868312757202,
+            "desvio": 10.650709816911625,
+            "minimo": 0,
+            "maximo": 79,
+            "percentis": {
+              "p50": 5.0,
+              "p75": 9.0,
+              "p90": 18.0,
+              "p95": 23.899999999999977,
+              "p99": 62.15999999999997
+            }
+          },
+          "palavras_resposta": {
+            "n": 243,
+            "media": 4.078189300411522,
+            "desvio": 6.883963114492714,
+            "minimo": 0,
+            "maximo": 50,
+            "percentis": {
+              "p50": 2.0,
+              "p75": 4.0,
+              "p90": 9.0,
+              "p95": 15.0,
+              "p99": 37.0
+            }
+          }
+        },
+        "test": {
+          "n_consultas": 523,
+          "n_consultas_unicas": 523,
+          "n_qrels": 523,
+          "n_respostas": 523,
+          "n_consultas_sem_positivo": 0,
+          "relevants_por_consulta": {
+            "n": 523,
+            "media": 1.0,
+            "desvio": 0.0,
+            "minimo": 1,
+            "maximo": 1,
+            "percentis": {
+              "p50": 1.0,
+              "p75": 1.0,
+              "p90": 1.0,
+              "p95": 1.0,
+              "p99": 1.0
+            }
+          },
+          "tokens_consulta": {
+            "n": 523,
+            "media": 22.095602294455066,
+            "desvio": 7.296666239644459,
+            "minimo": 8,
+            "maximo": 47,
+            "percentis": {
+              "p50": 21.0,
+              "p75": 27.0,
+              "p90": 32.0,
+              "p95": 35.89999999999998,
+              "p99": 43.0
+            }
+          },
+          "palavras_consulta": {
+            "n": 523,
+            "media": 15.510516252390058,
+            "desvio": 4.87485689560257,
+            "minimo": 6,
+            "maximo": 32,
+            "percentis": {
+              "p50": 15.0,
+              "p75": 18.5,
+              "p90": 23.0,
+              "p95": 24.0,
+              "p99": 28.779999999999973
+            }
+          },
+          "tokens_resposta": {
+            "n": 523,
+            "media": 8.701720841300192,
+            "desvio": 12.540524631488472,
+            "minimo": 0,
+            "maximo": 140,
+            "percentis": {
+              "p50": 5.0,
+              "p75": 8.0,
+              "p90": 18.0,
+              "p95": 32.89999999999998,
+              "p99": 63.33999999999992
+            }
+          },
+          "palavras_resposta": {
+            "n": 523,
+            "media": 4.2007648183556405,
+            "desvio": 8.22344729764336,
+            "minimo": 0,
+            "maximo": 80,
+            "percentis": {
+              "p50": 2.0,
+              "p75": 3.0,
+              "p90": 10.0,
+              "p95": 16.899999999999977,
+              "p99": 42.0
+            }
+          }
+        }
+      },
+      "overlap_query_ids": {
+        "train∩dev": 0,
+        "train∩test": 0,
+        "dev∩test": 0
+      },
+      "overlap_docs_relevantes": {
+        "conjuntos": {
+          "train": 280,
+          "dev": 166,
+          "test": 251
+        },
+        "intersecoes": {
+          "train∩dev": 163,
+          "train∩test": 248,
+          "dev∩test": 145
+        },
+        "fracoes_em_relacao_ao_menor": {
+          "train∩dev": 0.9819277108433735,
+          "train∩test": 0.9880478087649402,
+          "dev∩test": 0.8734939759036144
+        },
+        "fracao_test_em_train": 0.9880478087649402,
+        "fracao_dev_em_train": 0.9819277108433735
+      },
+      "overlap_docs_pai": null
+    }
+  },
+  "fluxo_bioasq_resplit": {
+    "n_consultas_originais": 5729,
+    "n_consultas_resplit": 5729,
+    "matriz_transicao": {
+      "train": {
+        "train": 3111,
+        "dev": 779,
+        "test": 961
+      },
+      "dev": {
+        "train": 338,
+        "dev": 86,
+        "test": 114
+      },
+      "test": {
+        "train": 219,
+        "dev": 51,
+        "test": 70
+      }
+    },
+    "consultas_apenas_original": 0,
+    "consultas_apenas_resplit": 0
+  }
+}

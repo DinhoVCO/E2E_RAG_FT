@@ -38,6 +38,9 @@ dependencies = [
     "langchain-google-vertexai>=3.2.4",
     "pyyaml>=6.0.0",
     "wandb>=0.19.0",
+    "matplotlib>=3.11.1",
+    "seaborn>=0.13.2",
+    "tabulate>=0.10.0",
 ]
 
 [[tool.uv.index]]

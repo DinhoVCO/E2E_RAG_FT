@@ -1,0 +1,71 @@
+{
+  "datasets": [
+    "qasper",
+    "bioasq-resplit",
+    "narrativeqa",
+    "telco-dpr"
+  ],
+  "tokenizer": "Qwen/Qwen3-Embedding-4B",
+  "output_dir": "reports/benchmark_cap3",
+  "artefatos": {
+    "tabelas": {
+      "tabela_resumo_datasets.csv": "reports/benchmark_cap3/tabelas/tabela_resumo_datasets.csv",
+      "tabela_resumo_datasets.md": "reports/benchmark_cap3/tabelas/tabela_resumo_datasets.md",
+      "tabela_resumo_datasets.tex": "reports/benchmark_cap3/tabelas/tabela_resumo_datasets.tex",
+      "tabela_resumo_capitulo.csv": "reports/benchmark_cap3/tabelas/tabela_resumo_capitulo.csv",
+      "tabela_resumo_capitulo.md": "reports/benchmark_cap3/tabelas/tabela_resumo_capitulo.md",
+      "tabela_resumo_capitulo.tex": "reports/benchmark_cap3/tabelas/tabela_resumo_capitulo.tex",
+      "tabela_comprimentos.csv": "reports/benchmark_cap3/tabelas/tabela_comprimentos.csv",
+      "tabela_comprimentos.md": "reports/benchmark_cap3/tabelas/tabela_comprimentos.md",
+      "tabela_comprimentos.tex": "reports/benchmark_cap3/tabelas/tabela_comprimentos.tex",
+      "tabela_overlap_documentos.csv": "reports/benchmark_cap3/tabelas/tabela_overlap_documentos.csv",
+      "tabela_overlap_documentos.md": "reports/benchmark_cap3/tabelas/tabela_overlap_documentos.md",
+      "tabela_overlap_documentos.tex": "reports/benchmark_cap3/tabelas/tabela_overlap_documentos.tex",
+      "tabela_relevants_por_consulta.csv": "reports/benchmark_cap3/tabelas/tabela_relevants_por_consulta.csv",
+      "tabela_relevants_por_consulta.md": "reports/benchmark_cap3/tabelas/tabela_relevants_por_consulta.md",
+      "tabela_relevants_por_consulta.tex": "reports/benchmark_cap3/tabelas/tabela_relevants_por_consulta.tex",
+      "tabela_bioasq_fluxo_resplit.csv": "reports/benchmark_cap3/tabelas/tabela_bioasq_fluxo_resplit.csv",
+      "tabela_bioasq_fluxo_resplit.md": "reports/benchmark_cap3/tabelas/tabela_bioasq_fluxo_resplit.md",
+      "tabela_bioasq_fluxo_resplit.tex": "reports/benchmark_cap3/tabelas/tabela_bioasq_fluxo_resplit.tex",
+      "metricas_benchmark.json": "reports/benchmark_cap3/metricas_benchmark.json"
+    },
+    "figuras": {
+      "fig_tamanho_splits": [
+        "reports/benchmark_cap3/figuras/fig_tamanho_splits.pdf",
+        "reports/benchmark_cap3/figuras/fig_tamanho_splits.png"
+      ],
+      "fig_tamanho_corpus": [
+        "reports/benchmark_cap3/figuras/fig_tamanho_corpus.pdf",
+        "reports/benchmark_cap3/figuras/fig_tamanho_corpus.png"
+      ],
+      "fig_tokens_corpus": [
+        "reports/benchmark_cap3/figuras/fig_tokens_corpus.pdf",
+        "reports/benchmark_cap3/figuras/fig_tokens_corpus.png"
+      ],
+      "fig_tokens_consultas_teste": [
+        "reports/benchmark_cap3/figuras/fig_tokens_consultas_teste.pdf",
+        "reports/benchmark_cap3/figuras/fig_tokens_consultas_teste.png"
+      ],
+      "fig_relevants_por_consulta_teste": [
+        "reports/benchmark_cap3/figuras/fig_relevants_por_consulta_teste.pdf",
+        "reports/benchmark_cap3/figuras/fig_relevants_por_consulta_teste.png"
+      ],
+      "fig_overlap_documentos": [
+        "reports/benchmark_cap3/figuras/fig_overlap_documentos.pdf",
+        "reports/benchmark_cap3/figuras/fig_overlap_documentos.png"
+      ],
+      "fig_assimetria_query_doc": [
+        "reports/benchmark_cap3/figuras/fig_assimetria_query_doc.pdf",
+        "reports/benchmark_cap3/figuras/fig_assimetria_query_doc.png"
+      ],
+      "fig_fracao_corpus_relevante": [
+        "reports/benchmark_cap3/figuras/fig_fracao_corpus_relevante.pdf",
+        "reports/benchmark_cap3/figuras/fig_fracao_corpus_relevante.png"
+      ],
+      "fig_bioasq_fluxo_resplit": [
+        "reports/benchmark_cap3/figuras/fig_bioasq_fluxo_resplit.pdf",
+        "reports/benchmark_cap3/figuras/fig_bioasq_fluxo_resplit.png"
+      ]
+    }
+  }
+}

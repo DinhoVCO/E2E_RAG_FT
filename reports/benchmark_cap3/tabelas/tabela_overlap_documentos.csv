@@ -1,0 +1,6 @@
+dataset,nivel,n_relevants_train,n_relevants_dev,n_relevants_test,inter_train_dev,inter_train_test,inter_dev_test,fracao_test_em_train,fracao_dev_em_train,overlap_query_train_dev,overlap_query_train_test,overlap_query_dev_test
+QASPER-RAG,documento_relevante,3439,1682,2960,0,0,0,0.0,0.0,0.0,0.0,0.0
+QASPER-RAG,documento_pai,824,276,408,0,0,0,0.0,0.0,,,
+BioASQ-RAG-Resplit,documento_relevante,28560,7283,9401,436,529,143,0.0563,0.0599,0.0,0.0,0.0
+NarrativeQA-RAG,documento_relevante,1102,115,355,0,0,0,0.0,0.0,0.0,0.0,0.0
+Telco-DPR-RAG,documento_relevante,280,166,251,163,248,145,0.988,0.9819,0.0,0.0,0.0
