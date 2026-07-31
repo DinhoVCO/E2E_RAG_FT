@@ -173,8 +173,8 @@ def _desenhar_histograma(
     mostrar_mediana: bool = True,
 ) -> None:
     if not valores:
-        ax.set_title(titulo)
         ax.text(0.5, 0.5, "Sem dados", ha="center", va="center", transform=ax.transAxes)
+        ax.set_xlabel(titulo)
         return
 
     arr = np.asarray(valores, dtype=float)
@@ -218,8 +218,8 @@ def _desenhar_histograma(
             ha="right",
         )
 
-    ax.set_title(titulo)
-    ax.set_xlabel(f"Comprimento ({unidade})")
+    # Identificação do painel no eixo X (sem título/header na figura).
+    ax.set_xlabel(f"{titulo}\nComprimento ({unidade})")
     ax.set_ylabel("Frequência")
     ax.set_xlim(edges[0], edges[-1])
 
@@ -248,16 +248,6 @@ def fig_histogramas_por_tipo(
         squeeze=False,
     )
     unidade = "tokens" if usar_tokens else "palavras"
-    tipo_titulo = {
-        "corpus": "Corpus",
-        "consulta": "Consultas",
-        "resposta": "Respostas",
-    }[tipo]
-    split_txt = (
-        "todas as partições"
-        if set(splits) == set(SPLITS)
-        else ", ".join(_ROTULO_SPLIT.get(s, s) for s in splits)
-    )
 
     for idx, m in enumerate(datasets):
         r, c = divmod(idx, ncols)
@@ -276,12 +266,6 @@ def fig_histogramas_por_tipo(
     for idx in range(n, nrows * ncols):
         r, c = divmod(idx, ncols)
         axes[r][c].axis("off")
-
-    fig.suptitle(
-        f"Distribuição por intervalos — {tipo_titulo} ({unidade}; {split_txt})",
-        y=1.01,
-        fontsize=11,
-    )
     fig.tight_layout()
     return _salvar(fig, path_sem_ext)
 
@@ -333,10 +317,6 @@ def fig_histogramas_combinado_dataset(
                 cor=_PALETA[idx % len(_PALETA)],
                 unidade=unidade,
             )
-        fig.suptitle(
-            f"{m.rotulo} — distribuição por intervalos ({unidade})",
-            fontsize=11,
-        )
         fig.tight_layout()
         paths = _salvar(fig, Path(f"{path_sem_ext}_{m.chave}"))
         saidas.extend(paths)

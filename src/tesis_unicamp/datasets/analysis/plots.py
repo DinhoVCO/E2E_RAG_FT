@@ -71,7 +71,6 @@ def fig_tamanho_splits(report: BenchmarkReport, path_sem_ext: Path) -> list[Path
         palette=[_PALETA_SPLITS[s] for s in SPLITS],
         ax=ax,
     )
-    ax.set_title("Número de consultas únicas por partição")
     ax.set_xlabel("Conjunto de dados")
     ax.set_ylabel("Consultas únicas")
     ax.tick_params(axis="x", rotation=15)
@@ -85,7 +84,6 @@ def fig_tamanho_corpus(report: BenchmarkReport, path_sem_ext: Path) -> list[Path
     valores = [m.n_corpus for m in report.datasets.values()]
     fig, ax = plt.subplots(figsize=(7.5, 4.0))
     bars = ax.bar(rotulos, valores, color=_cores_datasets(len(rotulos)))
-    ax.set_title("Tamanho do corpus por conjunto de dados")
     ax.set_xlabel("Conjunto de dados")
     ax.set_ylabel("Documentos / passagens")
     ax.tick_params(axis="x", rotation=15)
@@ -140,11 +138,6 @@ def fig_tokens_corpus(
         legend=False,
         ax=ax,
     )
-    titulo = (
-        "Distribuição do comprimento do corpus"
-        + (" (tokens)" if tem_tokens else " (palavras)")
-    )
-    ax.set_title(titulo)
     ax.set_xlabel("Conjunto de dados")
     ax.set_ylabel(eixo + (f" (truncado em {max_exibir} p/ visualização)" if max_exibir else ""))
     ax.tick_params(axis="x", rotation=15)
@@ -201,10 +194,6 @@ def fig_tokens_consultas(
         ax=ax,
         showfliers=False,
     )
-    ax.set_title(
-        f"Comprimento das consultas ({_ROTULO_SPLIT.get(split, split)})"
-        + (" — tokens" if tem_tokens else " — palavras")
-    )
     ax.set_xlabel("Conjunto de dados")
     ax.set_ylabel(eixo)
     ax.tick_params(axis="x", rotation=15)
@@ -237,9 +226,6 @@ def fig_relevants_por_consulta(
         ax=ax,
         showfliers=True,
         fliersize=2,
-    )
-    ax.set_title(
-        f"Documentos relevantes por consulta ({_ROTULO_SPLIT.get(split, split)})"
     )
     ax.set_xlabel("Conjunto de dados")
     ax.set_ylabel("Nº de documentos relevantes")
@@ -279,7 +265,6 @@ def fig_overlap_documentos(report: BenchmarkReport, path_sem_ext: Path) -> list[
         ax=ax,
         cbar_kws={"label": "Fração de sobreposição"},
     )
-    ax.set_title("Sobreposição de documentos relevantes entre partições")
     ax.set_xlabel("Tipo de sobreposição")
     ax.set_ylabel("Conjunto de dados")
     fig.tight_layout()
@@ -330,7 +315,6 @@ def fig_assimetria_query_doc(report: BenchmarkReport, path_sem_ext: Path) -> lis
     ax.set_xticks(x)
     ax.set_xticklabels(df["Dataset"], rotation=15)
     ax.set_ylabel(f"Comprimento médio ({unidade})")
-    ax.set_title("Assimetria de comprimento: consulta vs. documento (teste)")
     ax.legend()
     fig.tight_layout()
     return _salvar(fig, path_sem_ext)
@@ -360,7 +344,6 @@ def fig_bioasq_fluxo_resplit(
     )
     ax.set_xlabel("Partição no BioASQ-Resplit")
     ax.set_ylabel("Partição no BioASQ original")
-    ax.set_title("Fluxo de consultas: BioASQ original → resplit")
     fig.tight_layout()
     return _salvar(fig, path_sem_ext)
 
@@ -372,7 +355,6 @@ def fig_fracao_corpus_relevante(
     fracoes = [100.0 * m.fracao_corpus_relevante for m in report.datasets.values()]
     fig, ax = plt.subplots(figsize=(7.5, 4.0))
     bars = ax.bar(rotulos, fracoes, color=_cores_datasets(len(rotulos)))
-    ax.set_title("Fração do corpus que aparece como relevante em alguma partição")
     ax.set_xlabel("Conjunto de dados")
     ax.set_ylabel("% do corpus")
     ax.tick_params(axis="x", rotation=15)

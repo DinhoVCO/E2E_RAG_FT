@@ -1,0 +1,98 @@
+\section{Caracterização Estatística}
+
+As estatísticas desta seção foram calculadas sobre os artefatos publicados no Hub, com contagem de \textit{tokens} pelo tokenizer \texttt{Qwen/Qwen3-Embedding-4B} e formatação textual idêntica à usada na indexação e na avaliação. Figuras e tabelas complementares (e.g., assimetria consulta--documento, fluxo BioASQ original~$\rightarrow$~\textit{resplit}, fração do corpus relevante) encontram-se no \textbf{Anexo~\ref{anexo:benchmark_stats}}.
+
+\textbf{Dimensão do corpus e partições.}
+A Tabela~\ref{tab:resumo_benchmark} resume, para cada conjunto, o tamanho do corpus partilhado e o número de consultas únicas em \textit{train}, \textit{dev} e \textit{test}. O corpus é único por domínio e indexado uma só vez; o que muda entre partições são as consultas, os \textit{qrels} e as respostas. Observa-se heterogeneidade intencional: QASPER e BioASQ oferecem corpora densos; NarrativeQA concentra muitas consultas sobre poucos documentos longos; Telco-DPR combina corpus moderado com relevância tipicamente singular (1 documento ouro por consulta no teste).
+
+\begin{table}[htbp]
+\caption{Visão geral dos conjuntos do \textit{benchmark}: tamanho do corpus e número de consultas únicas por partição.}
+\label{tab:resumo_benchmark}
+\centering
+\footnotesize
+\begin{tabular}{lrrrrr}
+\hline
+\textbf{Conjunto} & \textbf{Corpus} & \textbf{Treino} & \textbf{Validação} & \textbf{Teste} & \textbf{Relevantes/consulta (teste)} \\ \hline
+QASPER-RAG & 81.550 & 2.101 & 890 & 1.310 & 2,62 \\
+BioASQ-RAG-Resplit & 44.183 & 3.668 & 916 & 1.145 & 8,28 \\
+NarrativeQA-RAG & 1.572 & 32.507 & 3.425 & 10.479 & 1,01 \\
+Telco-DPR-RAG & 14.654 & 975 & 243 & 523 & 1,00 \\ \hline
+\end{tabular}
+\end{table}
+
+\textbf{Distribuição de comprimentos do corpus.}
+A Figura~\ref{fig:hist_corpus} apresenta a distribuição do comprimento dos documentos em intervalos de \textit{tokens}; a Figura~\ref{fig:violin_corpus} complementariza essa visão em formato de densidade (violin), com linhas de referência em 512 e 2.048~\textit{tokens} --- orçamentos típicos de modelos de \textit{embedding} e dos experimentos de contexto estendido. Em QASPER, a massa concentra-se em torno de $\sim$100--150~\textit{tokens} (média 120,7; mediana 105). Em BioASQ e Telco-DPR, as médias situam-se perto de 340--350~\textit{tokens}, porém o Telco-DPR exibe cauda extrema (máximo 38.934). NarrativeQA, baseado em \textit{summaries}, é sistematicamente mais longo (média 745; mediana 772).
+
+% fig_hist_intervalos_corpus.png / fig_tokens_corpus.png
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{images/fig_hist_intervalos_corpus.png}
+\caption{Distribuição do comprimento do corpus por intervalos de \textit{tokens} (média em tracejado; mediana em pontilhado).}
+\label{fig:hist_corpus}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.92\textwidth]{images/fig_tokens_corpus.png}
+\caption{Distribuição (violin) do comprimento do corpus em \textit{tokens}. Valores extremos truncados visualmente em 4.000 apenas para legibilidade.}
+\label{fig:violin_corpus}
+\end{figure}
+
+\textbf{Distribuição de comprimentos das consultas e das respostas.}
+As Figuras~\ref{fig:hist_consultas}--\ref{fig:box_consultas} e~\ref{fig:hist_respostas} caracterizam consultas e respostas. As consultas são curtas em todos os domínios (no teste: médias entre 9,4 e 22,1~\textit{tokens}; máximos $\leq$47), enquanto as respostas variam fortemente: curtas em NarrativeQA e Telco-DPR, e substancialmente mais longas em BioASQ (média $\sim$74~\textit{tokens} no teste). Esta assimetria consulta--documento reforça o desafio do \textit{vocabulary mismatch} e motiva tanto a expansão de consultas quanto \textit{embeddings} cientes do contexto.
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{images/fig_hist_intervalos_consulta.png}
+\caption{Distribuição do comprimento das consultas por intervalos de \textit{tokens}.}
+\label{fig:hist_consultas}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.92\textwidth]{images/fig_tokens_consultas_teste.png}
+\caption{Comprimento das consultas no \textit{split} de teste (boxplot).}
+\label{fig:box_consultas}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=\textwidth]{images/fig_hist_intervalos_resposta.png}
+\caption{Distribuição do comprimento das respostas de referência por intervalos de \textit{tokens}.}
+\label{fig:hist_respostas}
+\end{figure}
+
+\textbf{Sobreposição entre partições (reutilização de documentos ouro).}
+É importante distinguir dois fenómenos distintos. Em primeiro lugar, o \textbf{corpus é partilhado} entre \textit{train}/\textit{dev}/\textit{test} por desenho (padrão BEIR): todos os documentos estão disponíveis para indexação em qualquer partição. Em segundo lugar --- e este é o objeto da análise --- avalia-se a \textbf{reutilização de documentos relevantes} (\textit{gold}), i.e., dos identificadores \texttt{corpus\_id} que aparecem nos \textit{qrels} associados a consultas de uma partição e também nos \textit{qrels} de outra. Os identificadores de \textbf{consulta} (\texttt{query\_id}) são estritamente disjuntos entre partições (sobreposição $=0$ em todos os conjuntos).
+
+Formalmente, seja $R_{\text{train}}$ o conjunto de \texttt{corpus\_id} relevantes no treino e $R_{\text{test}}$ o análogo no teste. A métrica reportada é
+\[
+\frac{|R_{\text{test}} \cap R_{\text{train}}|}{|R_{\text{test}}|},
+\]
+isto é, a fração dos documentos ouro do teste que \emph{também} são ouro de alguma consulta do treino. A Tabela~\ref{tab:overlap_relevants} e a Figura~\ref{fig:overlap_barras} quantificam esse valor.
+
+\begin{table}[htbp]
+\caption{Reutilização de documentos relevantes (\textit{qrels}) entre treino e teste. A coluna ``Proporção'' é $|R_{\text{test}}\cap R_{\text{train}}|/|R_{\text{test}}|$.}
+\label{tab:overlap_relevants}
+\centering
+\footnotesize
+\begin{tabular}{llrr}
+\hline
+\textbf{Conjunto} & \textbf{Nível} (\texttt{corpus\_id} nos \textit{qrels}) & $|R_{\text{test}}\cap R_{\text{train}}|$ & \textbf{Proporção} \\ \hline
+QASPER-RAG & \textit{chunk} (parágrafo/abstract) & 0 & 0,0\% \\
+QASPER-RAG & artigo (\textit{paper\_id}) & 0 & 0,0\% \\
+BioASQ-RAG-Resplit & PMID (abstract PubMed) & 529 & 5,6\% \\
+NarrativeQA-RAG & documento (\textit{summary}) & 0 & 0,0\% \\
+Telco-DPR-RAG & passagem técnica & 248 & \textbf{98,8\%} \\ \hline
+\end{tabular}
+\end{table}
+
+\begin{figure}[htbp]
+\centering
+\includegraphics[width=0.92\textwidth]{images/fig_overlap_relevants_train_test.png}
+\caption{Percentagem dos documentos relevantes do teste que também aparecem como relevantes no treino. Os rótulos indicam a fração e a contagem absoluta $(|R_{\text{test}}\cap R_{\text{train}}|/|R_{\text{test}}|)$.}
+\label{fig:overlap_barras}
+\end{figure}
+
+\textbf{Implicações.}
+Em QASPER e NarrativeQA, a disjunção dos documentos ouro é total, o que fortalece a validade de avaliações com ajuste fino. No BioASQ, a sobreposição é marginal (5,6\%), compatível com a reincidência de artigos PubMed em tópicos relacionados. No Telco-DPR, quase todos os documentos relevantes do teste (248 de 251) também são relevantes no treino: o ajuste fino do recuperador pode beneficiar-se de memorização de passagens ``sempre ouro'', pelo que os ganhos de IR neste domínio devem ser interpretados com cautela e, preferencialmente, em conjunto com métricas de geração e com os restantes domínios. Análise adicional por partição (\textit{dev}) e figuras auxiliares constam do Anexo~\ref{anexo:benchmark_stats}.
