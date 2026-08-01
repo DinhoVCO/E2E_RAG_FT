@@ -153,6 +153,12 @@ experiments:
     generation: qa
     run_label: telco-dpr-emb-base-gen-qa-top5
 
+  telco-dpr-emb-lora-gen-qa-top5:
+    dataset: telco-dpr
+    embedding: lora
+    generation: qa
+    run_label: telco-dpr-emb-lora-gen-qa-top5
+
   telco-dpr-gen-qa-noretrieval:
     dataset: telco-dpr
     embedding: none
@@ -180,6 +186,12 @@ experiments:
     embedding: base
     generation: qa
     run_label: qasper-emb-base-gen-qa-top5
+
+  qasper-emb-lora-gen-qa-top5:
+    dataset: qasper
+    embedding: lora
+    generation: qa
+    run_label: qasper-emb-lora-gen-qa-top5
 
   qasper-gen-qa-noretrieval:
     dataset: qasper
@@ -209,6 +221,12 @@ experiments:
     generation: qa
     run_label: narrativeqa-emb-base-gen-qa-top5
 
+  narrativeqa-emb-lora-gen-qa-top5:
+    dataset: narrativeqa
+    embedding: lora
+    generation: qa
+    run_label: narrativeqa-emb-lora-gen-qa-top5
+
   narrativeqa-gen-qa-noretrieval:
     dataset: narrativeqa
     embedding: none
@@ -236,6 +254,12 @@ experiments:
     embedding: base
     generation: qa
     run_label: bioasq-resplit-emb-base-gen-qa-top5
+
+  bioasq-resplit-emb-lora-gen-qa-top5:
+    dataset: bioasq-resplit
+    embedding: lora
+    generation: qa
+    run_label: bioasq-resplit-emb-lora-gen-qa-top5
 
   bioasq-resplit-gen-qa-noretrieval:
     dataset: bioasq-resplit
