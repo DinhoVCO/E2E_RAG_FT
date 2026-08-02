@@ -50,6 +50,9 @@ from tesis_unicamp.finetuning.embeddings.context.config import (
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_OUTPUT_ROOT = PROJECT_ROOT / "results" / "mteb" / "context"
+DEFAULT_NO_TOTAL_TRUNC_OUTPUT_ROOT = (
+    PROJECT_ROOT / "results" / "mteb" / "context_512_notrunc"
+)
 
 
 def _load_env() -> None:
@@ -200,6 +203,15 @@ def _build_parser() -> argparse.ArgumentParser:
         default=MAX_DOC_TOKENS,
         help=f"Max tokens per context document (default: {MAX_DOC_TOKENS}).",
     )
+    parser.add_argument(
+        "--no-truncate-stage2-total",
+        action="store_true",
+        help=(
+            "Keep every requested stage-2 context document after truncating each "
+            "document to --max-doc-tokens; do not remove documents to satisfy "
+            "--max-seq-length. Results default to results/mteb/context_512_notrunc/."
+        ),
+    )
     search_scope = parser.add_mutually_exclusive_group()
     search_scope.add_argument(
         "--paper-scoped",
@@ -242,7 +254,12 @@ def main(argv: list[str] | None = None) -> None:
         raise SystemExit("--paper-scoped is only supported for --dataset qasper.")
 
     run_label = args.run_label or args.lora_path.rstrip("/").rsplit("/", maxsplit=1)[-1]
-    output_dir = args.output_dir or (DEFAULT_OUTPUT_ROOT / args.dataset / run_label)
+    if args.output_dir is not None:
+        output_dir = args.output_dir
+    elif args.no_truncate_stage2_total:
+        output_dir = DEFAULT_NO_TOTAL_TRUNC_OUTPUT_ROOT / args.dataset / run_label
+    else:
+        output_dir = DEFAULT_OUTPUT_ROOT / args.dataset / run_label
 
     config = ContextRetrievalEvalConfig(
         dataset=args.dataset,
@@ -264,6 +281,7 @@ def main(argv: list[str] | None = None) -> None:
         max_seq_length=args.max_seq_length,
         max_query_tokens=args.max_query_tokens,
         max_doc_tokens=args.max_doc_tokens,
+        enforce_stage2_max_seq_length=not args.no_truncate_stage2_total,
         run_label=run_label,
     )
 
@@ -274,6 +292,10 @@ def main(argv: list[str] | None = None) -> None:
     if not config.stage1_only:
         print(f"stage1_top_k: {config.stage1_top_k}")
         print(f"context_k: {list(config.context_k_values)}")
+        print(
+            "enforce_stage2_max_seq_length: "
+            f"{config.enforce_stage2_max_seq_length}"
+        )
     else:
         print(f"model_revision: {args.stage1_only_model_revision.format(dataset=config.dataset)}")
     print(f"splits: {', '.join(config.splits)}")

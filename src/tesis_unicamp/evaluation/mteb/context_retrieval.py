@@ -166,6 +166,7 @@ class ContextRetrievalEvalConfig:
     max_seq_length: int = CONTEXT_MAX_SEQ_LENGTH
     max_query_tokens: int = MAX_QUERY_TOKENS
     max_doc_tokens: int = MAX_DOC_TOKENS
+    enforce_stage2_max_seq_length: bool = True
     run_label: str | None = None
     include_query_title: bool = False
     include_context_doc_titles: bool = False
@@ -390,6 +391,7 @@ def build_context_query_maps(
     max_seq_length: int,
     max_query_tokens: int,
     max_doc_tokens: int,
+    enforce_max_seq_length: bool = True,
 ) -> dict[str, dict[str, str]]:
     if context_k <= 0:
         raise ValueError("context_k must be positive.")
@@ -421,6 +423,7 @@ def build_context_query_maps(
                 max_query_tokens=max_query_tokens,
                 max_doc_tokens=max_doc_tokens,
                 max_seq_length=max_seq_length,
+                enforce_max_seq_length=enforce_max_seq_length,
             )
             if anchor is None:
                 anchor = stage1_query_to_text(raw_query)
@@ -810,6 +813,7 @@ def evaluate_context_retrieval(config: ContextRetrievalEvalConfig) -> list[Any]:
                 max_seq_length=config.max_seq_length,
                 max_query_tokens=config.max_query_tokens,
                 max_doc_tokens=config.max_doc_tokens,
+                enforce_max_seq_length=config.enforce_stage2_max_seq_length,
             )
         )
         task = create_rag_retrieval_task_with_query_maps(

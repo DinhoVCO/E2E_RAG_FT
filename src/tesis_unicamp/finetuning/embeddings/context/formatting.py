@@ -70,6 +70,7 @@ def build_context_anchor_text(
     max_query_tokens: int = MAX_QUERY_TOKENS,
     max_doc_tokens: int = MAX_DOC_TOKENS,
     max_seq_length: int = MAX_SEQ_LENGTH,
+    enforce_max_seq_length: bool = True,
 ) -> str | None:
     truncated_query = truncate_to_tokens(tokenizer, query, max_query_tokens)
     truncated_docs = [
@@ -77,6 +78,13 @@ def build_context_anchor_text(
         for doc_text in doc_texts
         if doc_text.strip()
     ]
+
+    if not enforce_max_seq_length:
+        return build_anchor_text(
+            query=truncated_query,
+            doc_texts=truncated_docs,
+            task=task,
+        )
 
     while True:
         anchor = build_anchor_text(
