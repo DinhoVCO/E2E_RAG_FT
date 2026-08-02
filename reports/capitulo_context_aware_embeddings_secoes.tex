@@ -181,20 +181,64 @@ O contraste entre as duas primeiras condições isola o efeito de aumentar o con
 A Tabela~\ref{tab:ctx-emb-k} apresenta o nDCG@10 obtido ao variar a quantidade de documentos no segundo estágio. O melhor resultado macro foi alcançado com $k=5$, com 0,7514, seguido de perto por $k=3$, com 0,7511. O uso de dez documentos reduziu a média para 0,7299, mostrando que a adição irrestrita de evidências pode introduzir ruído.
 
 \begin{table}[htbp]
-    \centering
-    \caption{nDCG@10 do modelo contextual no segundo estágio para diferentes valores de $k$.}
-    \label{tab:ctx-emb-k}
-    \begin{tabular}{lrrrrr}
-        \toprule
-        $k$ & BioASQ & NarrativeQA & QASPER & Telco-DPR & Média macro \\
-        \midrule
-        1  & \textbf{0,8184} & 0,8181 & 0,5763 & 0,7075 & 0,7301 \\
-        3  & \textbf{0,8184} & 0,8342 & 0,6199 & 0,7318 & 0,7511 \\
-        5  & 0,8154 & \textbf{0,8381} & \textbf{0,6203} & 0,7319 & \textbf{0,7514} \\
-        7  & 0,8126 & 0,8375 & 0,6116 & \textbf{0,7388} & 0,7501 \\
-        10 & 0,8054 & 0,7942 & 0,5935 & 0,7267 & 0,7299 \\
-        \bottomrule
-    \end{tabular}
+\caption{Influência do número de documentos fornecidos ao segundo estágio. Os valores entre parênteses representam a variação absoluta do nDCG@10 em relação ao modelo-base sem ajuste fino. A última coluna apresenta a média macro entre os conjuntos.}
+\label{tab:ctx-emb-k}
+\centering
+\scriptsize
+\resizebox{\textwidth}{!}{
+\begin{tabular}{lccccc}
+\hline
+\textbf{Configuração} &
+\textbf{BioASQ-resplit} &
+\textbf{NarrativeQA} &
+\textbf{QASPER} &
+\textbf{Telco-DPR} &
+\textbf{Média} \\ \hline
+
+Baseline &
+\cellcolor{resultbaseline}0,78468 &
+\cellcolor{resultbaseline}0,74365 &
+\cellcolor{resultbaseline}0,56841 &
+\cellcolor{resultbaseline}0,52933 &
+\cellcolor{resultbaseline}0,65652 \\
+
+$k=1$ &
+\cellcolor{resultgain}\textbf{0,81840 (+0,03372)} &
+\cellcolor{resultgain}0,81810 (+0,07445) &
+\cellcolor{resultgain}0,57634 (+0,00793) &
+\cellcolor{resultgain}0,70748 (+0,17815) &
+\cellcolor{resultgain}0,73008 (+0,07356) \\
+
+$k=3$ &
+\cellcolor{resultgain}\textbf{0,81840 (+0,03372)} &
+\cellcolor{resultgain}0,83416 (+0,09051) &
+\cellcolor{resultgain}0,61992 (+0,05151) &
+\cellcolor{resultgain}0,73179 (+0,20246) &
+\cellcolor{resultgain}0,75107 (+0,09455) \\
+
+$k=5$ &
+\cellcolor{resultgain}0,81539 (+0,03071) &
+\cellcolor{resultgain}\textbf{0,83806 (+0,09441)} &
+\cellcolor{resultgain}\textbf{0,62032 (+0,05191)} &
+\cellcolor{resultgain}0,73192 (+0,20259) &
+\cellcolor{resultgain}\textbf{0,75142 (+0,09490)} \\
+
+$k=7$ &
+\cellcolor{resultgain}0,81261 (+0,02793) &
+\cellcolor{resultgain}0,83746 (+0,09381) &
+\cellcolor{resultgain}0,61163 (+0,04322) &
+\cellcolor{resultgain}\textbf{0,73884 (+0,20951)} &
+\cellcolor{resultgain}0,75013 (+0,09362) \\
+
+$k=10$ &
+\cellcolor{resultgain}0,80541 (+0,02073) &
+\cellcolor{resultgain}0,79417 (+0,05052) &
+\cellcolor{resultgain}0,59346 (+0,02505) &
+\cellcolor{resultgain}0,72665 (+0,19732) &
+\cellcolor{resultgain}0,72992 (+0,07341) \\ \hline
+
+\end{tabular}
+}
 \end{table}
 
 A escolha ótima variou entre os conjuntos. BioASQ obteve o mesmo nDCG@10 com $k=1$ e $k=3$; NarrativeQA e QASPER apresentaram seus melhores resultados contextuais com $k=5$; Telco-DPR atingiu o máximo com $k=7$. A degradação do NarrativeQA de 0,8381 em $k=5$ para 0,7942 em $k=10$ foi a principal responsável pela queda da média nessa configuração.
