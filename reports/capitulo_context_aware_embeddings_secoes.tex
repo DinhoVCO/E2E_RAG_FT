@@ -9,9 +9,9 @@ e a consulta é representada sem contexto:
 \begin{equation}
     \mathbf{z}^{(0)}_{q}=f_{\theta}(I \oplus q),
 \end{equation}
-em que $I$ é a instrução da tarefa e $\oplus$ denota a concatenação textual. A similaridade cosseno entre $\mathbf{z}^{(0)}_{q}$ e os vetores do \textit{corpus} determina a lista inicial $\mathcal{C}_{k}(q)$, composta pelos $k$ documentos mais bem classificados.
+em que $I$ é a instrução da tarefa e $\oplus$ denota a concatenação textual. A similaridade cosseno entre $\mathbf{z}^{(0)}_{q}$ e os vetores do \textit{corpus} determina a lista inicial $\mathcal{C}_{10}(q)$, composta pelos dez documentos mais bem classificados.
 
-Na segunda etapa, a consulta é reconstruída pela concatenação da instrução, da pergunta original e dos documentos de $\mathcal{C}_{k}(q)$. O modelo gera então o vetor contextualizado
+Na segunda etapa, a consulta é reconstruída pela concatenação da instrução, da pergunta original e do prefixo $\mathcal{C}_{k}(q)\subseteq\mathcal{C}_{10}(q)$, contendo os $k$ primeiros documentos da lista inicial. O modelo gera então o vetor contextualizado
 \begin{equation}
     \mathbf{z}^{(c)}_{q}
     =
@@ -19,10 +19,33 @@ Na segunda etapa, a consulta é reconstruída pela concatenação da instrução
 \end{equation}
 Esse vetor é comparado novamente com os mesmos vetores documentais previamente indexados. Portanto, a contextualização não exige uma segunda indexação do \textit{corpus}; somente as consultas são recodificadas. Diferentemente do RFG, não há geração autorregressiva de uma expansão textual intermediária. A ``expansão'' ocorre implicitamente no espaço vetorial, por meio da atenção do modelo sobre a consulta e o contexto recuperado.
 
+\subsection{Conjuntos de dados}
+\label{subsec:ctx-emb-dados}
+
+Os experimentos foram realizados nos quatro conjuntos de recuperação descritos no Capítulo~3: BioASQ-RAG-Resplit, NarrativeQA-RAG, QASPER-RAG e Telco-DPR-RAG. Eles abrangem, respectivamente, os domínios biomédico, narrativo, científico e de telecomunicações. Um adaptador LoRA independente foi treinado para cada conjunto. A divisão de treino foi utilizada para otimização, a divisão de validação para selecionar o melhor \textit{checkpoint} e a divisão de teste exclusivamente para a avaliação final.
+
 \subsection{Ajuste fino dos modelos de \textit{embeddings} cientes de contexto}
 \label{subsec:ctx-emb-ajuste}
 
-O modelo-base adotado foi o \texttt{Qwen3-Embedding-4B}, ajustado separadamente para cada conjunto de dados. O treinamento utilizou adaptadores LoRA (\textit{Low-Rank Adaptation}) com posto $r=16$, fator de escala $\alpha=32$ e \textit{dropout} de $0{,}05$. Essa configuração mantém congelada a maior parte dos parâmetros originais e reduz a quantidade de parâmetros treináveis, viabilizando o ajuste do modelo de quatro bilhões de parâmetros com sequências contextuais longas.
+O modelo-base adotado foi o \texttt{Qwen3-Embedding-4B}, com 36 camadas, dimensão de representação 2.560 e janela nativa superior ao comprimento empregado nos experimentos. O treinamento utilizou adaptadores LoRA (\textit{Low-Rank Adaptation}) nas projeções de consulta e valor (\texttt{q\_proj} e \texttt{v\_proj}), com posto $r=16$, fator de escala $\alpha=32$ e \textit{dropout} de $0{,}05$. A Tabela~\ref{tab:ctx-emb-parametros} apresenta a quantidade de parâmetros. Somente 5.898.240 parâmetros, equivalentes a $0{,}1464\%$ do modelo com o adaptador, foram atualizados.
+
+\begin{table}[htbp]
+    \centering
+    \caption{Parâmetros do \texttt{Qwen3-Embedding-4B} com o adaptador LoRA.}
+    \label{tab:ctx-emb-parametros}
+    \begin{tabular}{lrr}
+        \toprule
+        Componente & Parâmetros totais & Parâmetros treináveis \\
+        \midrule
+        Codificador-base & 4.021.774.336 & 0 \\
+        Adaptador LoRA & 5.898.240 & 5.898.240 \\
+        \midrule
+        Modelo com adaptador & 4.027.672.576 & 5.898.240 ($0{,}1464\%$) \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+Essa parametrização mantém congelado o codificador original e reduz substancialmente o custo de otimização, ao mesmo tempo que permite modificar a representação produzida a partir da consulta e do contexto.
 
 Cada exemplo de treinamento é um par $(a_i,d_i^{+})$, no qual $a_i$ é uma âncora formada pela consulta, opcionalmente acrescida de contexto, e $d_i^{+}$ é um documento relevante segundo os julgamentos de relevância do conjunto de dados. Para consultas associadas a mais de um documento relevante, é criado um par para cada documento positivo. A âncora segue o formato:
 
@@ -38,6 +61,33 @@ doc k:
 \end{verbatim}
 
 Para que um único adaptador opere nos dois estágios, o número de documentos de contexto é amostrado uniformemente entre zero e cinco para cada consulta. Consequentemente, parte dos exemplos contém apenas instrução e consulta, preservando a capacidade necessária à indexação e à busca inicial. Quando o exemplo possui contexto, são utilizados documentos previamente recuperados e ordenados pelo sistema de primeira etapa. Em $70\%$ desses casos, garante-se a presença de ao menos um documento relevante: caso nenhum dos documentos selecionados seja relevante, um deles é substituído, em posição aleatória, por um documento positivo. Nos demais casos, o contexto é mantido como recuperado, incluindo documentos potencialmente não relevantes. Essa mistura expõe o modelo tanto a evidências úteis quanto ao ruído que ocorre durante a inferência.
+
+\begin{figure}[htbp]
+    \centering
+    \includegraphics[width=0.95\textwidth]{reports/generative_context_distribution/context_distribution_train.png}
+    \caption{Distribuição dos exemplos de treino sem contexto, com contexto contendo ao menos uma passagem relevante e com contexto sem passagem relevante.}
+    \label{fig:ctx-emb-distribuicao-contexto}
+\end{figure}
+
+A Figura~\ref{fig:ctx-emb-distribuicao-contexto} mostra a distribuição produzida por essa estratégia antes da expansão das consultas em pares com cada passagem positiva. A fração sem contexto permaneceu próxima ao valor esperado de $1/6$: $16{,}75\%$ no QASPER, $16{,}27\%$ no BioASQ, $16{,}53\%$ no NarrativeQA e $15{,}02\%$ no Telco-DPR. A proporção de exemplos com contexto e ao menos uma passagem relevante variou de $63{,}99\%$, no Telco-DPR, a $77{,}12\%$, no NarrativeQA. Já os contextos sem passagem relevante representaram $12{,}09\%$, $6{,}96\%$, $6{,}34\%$ e $20{,}99\%$, respectivamente. A presença dessa última categoria é deliberada: ela aproxima o treinamento da inferência, na qual a primeira recuperação não garante evidência relevante.
+
+Para consultas associadas a múltiplas passagens relevantes, a mesma âncora origina um par para cada positivo. Por isso, a quantidade de pares contrastivos da Tabela~\ref{tab:ctx-emb-pares} pode superar a quantidade de consultas.
+
+\begin{table}[htbp]
+    \centering
+    \caption{Pares utilizados no ajuste fino contextual.}
+    \label{tab:ctx-emb-pares}
+    \begin{tabular}{lrrrr}
+        \toprule
+        Conjunto & Pares de treino & Sem contexto & Pares de validação & Sem contexto \\
+        \midrule
+        BioASQ-RAG-Resplit & 29.385 & 4.687 & 7.333 & 1.602 \\
+        NarrativeQA-RAG   & 32.747 & 5.412 & 3.461 & 556 \\
+        QASPER-RAG        & 3.815  & 660   & 1.913 & 297 \\
+        Telco-DPR-RAG     & 975    & 144   & 243   & 47 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
 
 As consultas foram limitadas a 512 \textit{tokens}; cada documento de contexto e cada passagem positiva também foi limitado a 512 \textit{tokens}. O comprimento máximo da âncora foi fixado em 3.072 \textit{tokens}. Quando a concatenação ultrapassava esse limite, documentos eram removidos a partir do final da lista até que a sequência coubesse na janela definida. Essa política preserva prioritariamente a consulta e os documentos mais bem classificados.
 
@@ -57,86 +107,99 @@ O objetivo de treinamento foi a \texttt{CachedMultipleNegativesRankingLoss}. Par
 \end{equation}
 em que $s(\cdot,\cdot)$ é a similaridade cosseno e $\tau$ é a temperatura empregada pela função de perda. A versão com \textit{cache} permite utilizar um lote contrastivo maior do que o lote efetivamente codificado em cada passo, reduzindo o consumo de memória. Adicionalmente, o amostrador evita exemplos duplicados dentro do mesmo lote, prevenindo falsos negativos triviais.
 
+\subsection{Configuração de treinamento e seleção do modelo}
+\label{subsec:ctx-emb-configuracao}
+
+Todos os adaptadores foram treinados em precisão \texttt{bfloat16}, com taxa de aprendizado de $2\times10^{-5}$, aquecimento linear em $10\%$ dos passos, semente 42 para a amostragem de treino e minilote de oito exemplos na perda com \textit{cache}. A Tabela~\ref{tab:ctx-emb-configuracoes} resume as configurações que variaram por conjunto. Os treinamentos principais foram executados com lote 32 por dispositivo; Telco-DPR recebeu vinte épocas devido ao seu menor número de exemplos.
+
+\begin{table}[htbp]
+    \centering
+    \caption{Configurações de ajuste fino por conjunto de dados.}
+    \label{tab:ctx-emb-configuracoes}
+    \begin{tabular}{lrrrrrr}
+        \toprule
+        Conjunto & Lote & Épocas & Avaliação & Salvamento & Doc./positivo & Janela \\
+        & & & (passos) & (passos) & (\textit{tokens}) & (\textit{tokens}) \\
+        \midrule
+        BioASQ       & 32  & 10 & 50 & 50 & 512   & 3.072 \\
+        NarrativeQA & 32  & 10 & 50 & 50 & 512   & 3.072 \\
+        QASPER      & 32  & 10 & 10 & 10 & 512   & 3.072 \\
+        Telco-DPR   & 32  & 20 & 5  & 5  & 512   & 3.072 \\
+        BioASQ longo& 128 & 10 & 50 & 50 & 2.048 & 14.336 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+A cada intervalo indicado, um \texttt{InformationRetrievalEvaluator} codificou as consultas da divisão de validação, comparou-as por similaridade cosseno com o \textit{corpus} e calculou as métricas de recuperação. O \textit{checkpoint} com maior nDCG@10 na validação foi carregado ao final do treinamento. Dessa forma, a seleção do modelo foi orientada diretamente pela tarefa de recuperação, e não apenas pelo valor da perda contrastiva. Os treinamentos principais utilizaram dois aceleradores H100; a variante BioASQ de contexto longo utilizou quatro aceleradores devido ao lote e à janela ampliados.
+
 \subsection{Recuperação contextual em dois estágios}
 \label{subsec:ctx-emb-dois-estagios}
 
-Na inferência, o primeiro estágio codifica a consulta somente com a instrução e recupera os dez primeiros documentos. No segundo estágio, avaliam-se $k\in\{1,3,5,7,10\}$, sempre utilizando o prefixo da lista produzida na primeira busca. O valor de $k$ representa um limite superior: quando a entrada ultrapassa 3.072 \textit{tokens}, os últimos documentos são removidos até respeitar a janela configurada. A consulta contextualizada é então comparada com todo o \textit{corpus}, e não apenas com os dez candidatos iniciais. Assim, o segundo estágio pode recuperar documentos ausentes da primeira lista, desde que o contexto altere a representação da consulta em uma direção semanticamente mais adequada.
+Antes de receber consultas, o \textit{corpus} é indexado uma única vez. Cada documento é codificado sem contexto, e seu vetor normalizado é armazenado no índice. Essa operação corresponde à preparação \textit{offline} do sistema e é compartilhada pelos dois estágios de recuperação.
+
+No primeiro estágio, a consulta é formada apenas pela instrução e pela pergunta. O mesmo adaptador contextual gera $\mathbf{z}^{(0)}_q$, que é comparado com o índice para recuperar os dez documentos mais similares. Essa etapa não dispõe de contexto externo e, por isso, depende dos exemplos sem contexto incluídos durante o ajuste fino.
+
+No segundo estágio, os primeiros $k$ documentos da lista inicial são concatenados à consulta, com $k\in\{1,3,5,7,10\}$. Cada documento é truncado individualmente em 512 \textit{tokens}, mas não se aplica o limite de 3.072 \textit{tokens} usado durante o treinamento: nenhum documento é removido em razão do comprimento total da entrada. Como o maior caso contém dez documentos, a entrada permanece dentro da janela suportada pelo modelo. O vetor contextualizado $\mathbf{z}^{(c)}_q$ é então comparado novamente com todo o \textit{corpus}, e não apenas com os dez candidatos iniciais. Assim, a segunda busca pode recuperar documentos ausentes da primeira lista.
 
 Essa arquitetura possui três propriedades. Primeiro, o índice documental é compartilhado entre os dois estágios. Segundo, os documentos que formam o contexto são obtidos exclusivamente pela busca inicial, sem uso dos julgamentos de relevância no teste. Terceiro, o modelo contextual é robustecido durante o treinamento com quantidades variáveis de contexto e com exemplos sem contexto. A etapa de injeção controlada de documentos relevantes é restrita à construção dos dados de treinamento e validação.
 
 \section{Procedimentos Experimentais}
 \label{sec:ctx-emb-procedimentos}
 
-\subsection{Conjuntos de dados e divisões experimentais}
+Todas as avaliações foram executadas com lote de codificação 128 e \textit{backend} \texttt{vLLM}, utilizando a divisão de teste e o protocolo MTEB. Os experimentos reportam nDCG@10, MAP@10 e Recall@10; a escolha de $k$ é apresentada como análise ablatória descritiva sobre esses resultados.
 
-Os experimentos foram realizados nos quatro conjuntos de recuperação descritos no Capítulo~3: BioASQ-RAG-Resplit, NarrativeQA-RAG, QASPER-RAG e Telco-DPR-RAG. Eles abrangem, respectivamente, os domínios biomédico, narrativo, científico e de telecomunicações. Um adaptador LoRA independente foi treinado para cada conjunto, utilizando a divisão de treino para otimização, a divisão de validação para seleção de \textit{checkpoint} e a divisão de teste exclusivamente para a avaliação final.
+\subsection{Experimento 1: influência da quantidade de contexto}
 
-A Tabela~\ref{tab:ctx-emb-pares} apresenta a quantidade de pares contrastivos efetivamente construída. A quantidade de pares pode superar a de consultas porque cada documento julgado relevante origina um exemplo positivo. A proporção observada de exemplos sem contexto permaneceu próxima ao valor esperado de $1/6$, decorrente da amostragem uniforme entre zero e cinco documentos.
+O primeiro experimento avaliou o modelo contextual com $k\in\{1,3,5,7,10\}$, com o objetivo de determinar como a quantidade de documentos fornecida ao segundo estágio afeta a recuperação e identificar um valor de $k$ adequado de forma geral. Em todas as condições, o primeiro estágio recuperou dez documentos. Cada documento fornecido ao segundo estágio foi limitado a 512 \textit{tokens}, sem remoção de documentos em função do comprimento total da entrada.
 
-\begin{table}[htbp]
-    \centering
-    \caption{Pares utilizados no ajuste fino contextual.}
-    \label{tab:ctx-emb-pares}
-    \begin{tabular}{lrrrr}
-        \toprule
-        Conjunto & Pares de treino & Sem contexto & Pares de validação & Sem contexto \\
-        \midrule
-        BioASQ-RAG-Resplit & 29.385 & 4.687 & 7.333 & 1.602 \\
-        NarrativeQA-RAG   & 32.747 & 5.412 & 3.461 & 556 \\
-        QASPER-RAG        & 3.815  & 660   & 1.913 & 297 \\
-        Telco-DPR-RAG     & 975    & 144   & 243   & 47 \\
-        \bottomrule
-    \end{tabular}
-\end{table}
+Para QASPER-RAG, a primeira recuperação foi restrita aos segmentos pertencentes ao artigo associado à pergunta, em conformidade com o protocolo do conjunto; nos demais casos, a busca foi realizada sobre o \textit{corpus} completo. O segundo estágio pesquisou novamente o mesmo espaço documental completo. A métrica principal foi nDCG@10, e MAP@10 e Recall@10 foram utilizadas como medidas complementares. O melhor $k$ geral foi definido pela média macro de nDCG@10 nos quatro conjuntos.
 
-\subsection{Configuração de treinamento}
+\subsection{Experimento 2: comparação com as abordagens de referência}
 
-O ajuste foi realizado em precisão \texttt{bfloat16}, com taxa de aprendizado de $2\times10^{-5}$, aquecimento linear em $10\%$ dos passos e semente 42 para a amostragem de contexto. O tamanho de lote por dispositivo foi 32 e a perda com \textit{cache} codificou minilotes de oito exemplos. BioASQ-RAG-Resplit, NarrativeQA-RAG e QASPER-RAG foram treinados por dez épocas; devido ao menor número de exemplos, Telco-DPR-RAG foi treinado por vinte épocas. O melhor \textit{checkpoint} foi selecionado pelo nDCG@10 na divisão de validação. Os treinamentos principais foram executados em dois aceleradores da partição H100, enquanto cada avaliação utilizou um acelerador.
-
-Como ablação complementar no BioASQ-RAG-Resplit, treinou-se uma variante com até 2.048 \textit{tokens} por documento de contexto e por passagem positiva, janela de 14.336 \textit{tokens}, lote 128 e dez épocas. Essa variante foi executada em quatro aceleradores H100 e avaliada com $k=5$. Também se avaliou o adaptador principal com o mesmo orçamento ampliado de entrada, permitindo separar o efeito do maior contexto na inferência do efeito de treinar o adaptador com sequências longas.
-
-\subsection{Protocolos de comparação}
-
-Foram consideradas quatro condições:
+O segundo experimento comparou cinco condições:
 \begin{enumerate}
     \item \textbf{Modelo-base}: \texttt{Qwen3-Embedding-4B} sem ajuste fino e sem contexto;
-    \item \textbf{FT convencional}: modelo ajustado apenas com pares consulta--documento, sem documentos recuperados na âncora;
-    \item \textbf{FT contextual, estágio 1}: adaptador proposto avaliado somente com instrução e consulta;
-    \item \textbf{FT contextual, estágio 2}: mesmo adaptador, com os $k$ documentos recuperados no primeiro estágio concatenados à consulta.
+    \item \textbf{FT sem contexto}: modelo de \textit{embeddings} ajustado apenas com pares consulta--documento, apresentado no Capítulo~4;
+    \item \textbf{RFG}: expansão fundamentada em recuperação do Capítulo~5, utilizando a configuração geral $k=7$, concatenação da consulta com a expansão, \textit{embedding} base e gerador base;
+    \item \textbf{FT contextual sem contexto}: adaptador proposto operando apenas no primeiro estágio, com instrução e consulta;
+    \item \textbf{FT contextual com contexto}: adaptador proposto no segundo estágio, utilizando o melhor valor geral de $k$ identificado no Experimento~1.
 \end{enumerate}
 
-O primeiro estágio recuperou dez documentos. Para QASPER-RAG, a busca foi restrita aos segmentos pertencentes ao artigo associado à pergunta, em conformidade com o protocolo desse conjunto; nos demais conjuntos, a busca foi realizada sobre o \textit{corpus} completo. O lote de codificação na avaliação foi 128. Como métricas, utilizaram-se nDCG@10 como medida principal, MAP@10 e Recall@10. Todos os resultados correspondem à divisão de teste.
+Essa comparação permite separar o ganho do ajuste fino convencional, o efeito de treinar o adaptador contextual sem fornecer contexto na inferência e o ganho adicional obtido pela segunda recuperação. A condição RFG também permite contrastar a contextualização direta no espaço vetorial com a geração de uma expansão textual.
+
+\subsection{Experimento 3: influência do comprimento dos documentos}
+
+O terceiro experimento investigou se o limite de 512 \textit{tokens} por documento restringia o desempenho no BioASQ-RAG-Resplit. Foram avaliadas três condições. Na primeira, o adaptador principal foi treinado e avaliado com documentos de até 512 \textit{tokens}. Na segunda, o mesmo adaptador foi mantido, mas os cinco documentos do segundo estágio puderam conter até 2.048 \textit{tokens}. Na terceira, treinou-se uma variante específica do BioASQ com documentos e passagens positivas de até 2.048 \textit{tokens}, janela de 14.336 \textit{tokens} e lote 128; essa variante foi avaliada com $k\in\{1,3,5\}$.
+
+O contraste entre as duas primeiras condições isola o efeito de aumentar o contexto somente na inferência. A terceira condição verifica se a exposição a sequências longas durante o treinamento torna o modelo mais capaz de aproveitar esse conteúdo adicional. Como a variante longa também utiliza um lote maior, seus resultados são interpretados como uma ablação conjunta, e não como uma estimativa causal exclusiva do comprimento.
 
 \section{Resultados}
 \label{sec:ctx-emb-resultados}
 
-A Tabela~\ref{tab:ctx-emb-ndcg} apresenta o nDCG@10 para todas as condições. O ajuste fino convencional elevou a média macro de 0,6565 para 0,7434. O adaptador contextual operando sem contexto obteve 0,7436, praticamente o mesmo resultado. Esse comportamento confirma que a inclusão de exemplos sem contexto preservou a capacidade de recuperação do primeiro estágio.
+\subsection{Influência da quantidade de contexto}
+
+A Tabela~\ref{tab:ctx-emb-k} apresenta o nDCG@10 obtido ao variar a quantidade de documentos no segundo estágio. O melhor resultado macro foi alcançado com $k=5$, com 0,7514, seguido de perto por $k=3$, com 0,7511. O uso de dez documentos reduziu a média para 0,7299, mostrando que a adição irrestrita de evidências pode introduzir ruído.
 
 \begin{table}[htbp]
     \centering
-    \caption{nDCG@10 no teste. ``Estágio 1'' utiliza o adaptador contextual sem documentos na entrada; as linhas $k$ correspondem ao segundo estágio. O melhor resultado de cada coluna está em negrito.}
-    \label{tab:ctx-emb-ndcg}
+    \caption{nDCG@10 do modelo contextual no segundo estágio para diferentes valores de $k$.}
+    \label{tab:ctx-emb-k}
     \begin{tabular}{lrrrrr}
         \toprule
-        Condição & BioASQ & NarrativeQA & QASPER & Telco-DPR & Média macro \\
+        $k$ & BioASQ & NarrativeQA & QASPER & Telco-DPR & Média macro \\
         \midrule
-        Modelo-base    & 0,7847 & 0,7437 & 0,5684 & 0,5293 & 0,6565 \\
-        FT convencional& \textbf{0,8264} & 0,8235 & \textbf{0,6371} & 0,6867 & 0,7434 \\
-        Estágio 1      & 0,8159 & 0,8225 & 0,6252 & 0,7109 & 0,7436 \\
-        $k=1$          & 0,8183 & 0,8178 & 0,5762 & 0,7070 & 0,7298 \\
-        $k=3$          & 0,8181 & 0,8342 & 0,6196 & 0,7293 & 0,7503 \\
-        $k=5$          & 0,8152 & 0,8379 & 0,6211 & 0,7337 & \textbf{0,7519} \\
-        $k=7$          & 0,8120 & 0,8383 & 0,6121 & 0,7352 & 0,7494 \\
-        $k=10$         & 0,8115 & \textbf{0,8384} & 0,5956 & \textbf{0,7390} & 0,7461 \\
+        1  & \textbf{0,8184} & 0,8181 & 0,5763 & 0,7075 & 0,7301 \\
+        3  & \textbf{0,8184} & 0,8342 & 0,6199 & 0,7318 & 0,7511 \\
+        5  & 0,8154 & \textbf{0,8381} & \textbf{0,6203} & 0,7319 & \textbf{0,7514} \\
+        7  & 0,8126 & 0,8375 & 0,6116 & \textbf{0,7388} & 0,7501 \\
+        10 & 0,8054 & 0,7942 & 0,5935 & 0,7267 & 0,7299 \\
         \bottomrule
     \end{tabular}
 \end{table}
 
-O melhor resultado médio ocorreu com $k=5$, alcançando nDCG@10 de 0,7519. Esse valor representa um ganho absoluto de 0,0954 sobre o modelo-base, de 0,0085 sobre o ajuste fino convencional e de 0,0083 sobre o mesmo adaptador no primeiro estágio. Portanto, a maior parte do ganho total decorre do ajuste fino supervisionado, mas a contextualização vetorial acrescenta uma melhora mensurável à média.
+A escolha ótima variou entre os conjuntos. BioASQ obteve o mesmo nDCG@10 com $k=1$ e $k=3$; NarrativeQA e QASPER apresentaram seus melhores resultados contextuais com $k=5$; Telco-DPR atingiu o máximo com $k=7$. A degradação do NarrativeQA de 0,8381 em $k=5$ para 0,7942 em $k=10$ foi a principal responsável pela queda da média nessa configuração.
 
-O efeito não foi homogêneo entre os conjuntos. Em relação ao estágio 1, $k=5$ aumentou o nDCG@10 em 0,0154 no NarrativeQA e em 0,0228 no Telco-DPR. No BioASQ, a variação foi de $-0,0007$, enquanto no QASPER houve redução de 0,0041. Com apenas um documento, a queda do QASPER foi mais acentuada, de 0,6252 para 0,5762, indicando sensibilidade ao contexto inicial quando este é insuficiente ou pouco representativo.
-
-A Tabela~\ref{tab:ctx-emb-metricas-k5} detalha as três métricas para a configuração com melhor média de nDCG@10. Embora $k=5$ eleve o nDCG@10 e o MAP@10 médios em relação ao estágio 1, o Recall@10 médio passa de 0,8273 para 0,8240. O contexto melhora, portanto, principalmente a ordenação dos documentos relevantes nas primeiras posições, sem produzir ganho geral de cobertura.
+A Tabela~\ref{tab:ctx-emb-metricas-k5} detalha as três métricas para $k=5$. A média macro foi 0,7514 em nDCG@10, 0,6695 em MAP@10 e 0,8236 em Recall@10.
 
 \begin{table}[htbp]
     \centering
@@ -146,42 +209,82 @@ A Tabela~\ref{tab:ctx-emb-metricas-k5} detalha as três métricas para a configu
         \toprule
         Conjunto & nDCG@10 & MAP@10 & Recall@10 \\
         \midrule
-        BioASQ-RAG-Resplit & 0,8152 & 0,6536 & 0,7448 \\
-        NarrativeQA-RAG   & 0,8379 & 0,8179 & 0,8993 \\
-        QASPER-RAG        & 0,6211 & 0,5219 & 0,7744 \\
-        Telco-DPR-RAG     & 0,7337 & 0,6870 & 0,8776 \\
+        BioASQ-RAG-Resplit & 0,8154 & 0,6542 & 0,7438 \\
+        NarrativeQA-RAG   & 0,8381 & 0,8181 & 0,8993 \\
+        QASPER-RAG        & 0,6203 & 0,5215 & 0,7719 \\
+        Telco-DPR-RAG     & 0,7319 & 0,6841 & 0,8795 \\
         \midrule
-        Média macro       & 0,7519 & 0,6701 & 0,8240 \\
+        Média macro       & 0,7514 & 0,6695 & 0,8236 \\
         \bottomrule
     \end{tabular}
 \end{table}
 
-No BioASQ, ampliar somente o orçamento de entrada para 2.048 \textit{tokens} por documento resultou em nDCG@10 de 0,8149, praticamente igual aos 0,8152 da configuração principal com 512 \textit{tokens}. O adaptador treinado com sequências de 2.048 \textit{tokens}, avaliado no \textit{checkpoint} 550, atingiu 0,8169. Os ganhos de 0,0017 ou menos indicam que, nesse conjunto e nessa configuração, o aumento de quatro vezes no limite por documento não produziu benefício substancial de recuperação.
+\subsection{Comparação com as abordagens de referência}
 
-O valor ótimo de $k$ também variou por domínio. Entre as configurações contextuais, BioASQ atingiu seu maior nDCG@10 com $k=1$, NarrativeQA e Telco-DPR com $k=10$, e QASPER obteve seu melhor resultado sem contexto, no estágio 1. Logo, $k=5$ deve ser interpretado como um compromisso global, não como uma escolha universalmente ótima.
+A Tabela~\ref{tab:ctx-emb-comparacao} compara o melhor valor geral, $k=5$, com as abordagens de referência. O ajuste fino sem contexto elevou a média de 0,6565 para 0,7434. O adaptador contextual sem documentos na entrada obteve 0,7436, diferença de apenas 0,0002, mostrando que o treinamento misto preservou a capacidade do primeiro estágio. A inclusão dos cinco documentos aumentou a média para 0,7514.
+
+\begin{table}[htbp]
+    \centering
+    \caption{Comparação de nDCG@10 com as abordagens de referência.}
+    \label{tab:ctx-emb-comparacao}
+    \begin{tabular}{lrrrrr}
+        \toprule
+        Método & BioASQ & NarrativeQA & QASPER & Telco-DPR & Média macro \\
+        \midrule
+        Modelo-base & 0,7847 & 0,7437 & 0,5684 & 0,5293 & 0,6565 \\
+        FT sem contexto & \textbf{0,8264} & 0,8235 & \textbf{0,6371} & 0,6867 & 0,7434 \\
+        RFG ($k=7$, concat.) & 0,7880 & 0,7935 & 0,6209 & 0,5530 & 0,6889 \\
+        FT contextual sem contexto & 0,8159 & 0,8225 & 0,6252 & 0,7109 & 0,7436 \\
+        FT contextual, $k=5$ & 0,8154 & \textbf{0,8381} & 0,6203 & \textbf{0,7319} & \textbf{0,7514} \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+Em média, o segundo estágio contextual superou o modelo-base em 0,0949, o ajuste fino sem contexto em 0,0080, o próprio adaptador sem contexto em 0,0078 e a configuração RFG comparada em 0,0626. O ganho sobre o primeiro estágio concentrou-se no NarrativeQA ($+0,0156$) e no Telco-DPR ($+0,0210$). BioASQ permaneceu praticamente estável ($-0,0005$), e QASPER apresentou redução de 0,0048.
+
+\subsection{Influência do comprimento dos documentos}
+
+A Tabela~\ref{tab:ctx-emb-contexto-longo} apresenta a ablação realizada no BioASQ. Aumentar o limite para 2.048 \textit{tokens} apenas na inferência, mantendo o adaptador treinado com 512 \textit{tokens}, produziu 0,8149 em $k=5$, valor ligeiramente inferior aos 0,8154 do protocolo principal. Quando o modelo também foi treinado com contexto longo e lote 128, o melhor resultado foi 0,8226 em $k=3$.
+
+\begin{table}[htbp]
+    \centering
+    \caption{nDCG@10 no BioASQ ao variar o comprimento dos documentos de contexto.}
+    \label{tab:ctx-emb-contexto-longo}
+    \begin{tabular}{lrrr}
+        \toprule
+        Treinamento / inferência & $k=1$ & $k=3$ & $k=5$ \\
+        \midrule
+        512 / 512 \textit{tokens} & 0,8184 & 0,8184 & 0,8154 \\
+        512 / 2.048 \textit{tokens} & -- & -- & 0,8149 \\
+        2.048 / 2.048 \textit{tokens}, lote 128 & 0,8207 & \textbf{0,8226} & 0,8169 \\
+        \bottomrule
+    \end{tabular}
+\end{table}
+
+Em $k=3$, a variante longa superou o modelo principal em 0,0042; em $k=5$, a diferença foi 0,0015. Portanto, o treinamento compatível com sequências maiores produziu uma melhora pequena, enquanto aumentar somente a janela de inferência não trouxe benefício.
 
 \section{Discussão}
 \label{sec:ctx-emb-discussao}
 
-Os resultados sustentam duas conclusões complementares. A primeira é que o treinamento conjunto com e sem contexto não compromete a busca inicial. A diferença de apenas 0,0002 na média de nDCG@10 entre o ajuste fino convencional e o adaptador contextual no estágio 1 mostra que o modelo reteve a capacidade \textit{zero-context}. Essa propriedade é indispensável, pois os documentos de suporte ainda não estão disponíveis antes da primeira recuperação.
+Os resultados sustentam, em primeiro lugar, que um único adaptador pode atender às duas etapas. A diferença de apenas 0,0002 na média de nDCG@10 entre o ajuste fino sem contexto e o adaptador contextual no primeiro estágio indica que a mistura de exemplos preservou a capacidade de codificar consultas sem documentos de apoio. Essa propriedade é indispensável, pois a primeira recuperação ocorre antes de qualquer contexto estar disponível.
 
-A segunda conclusão é que documentos recuperados podem orientar diretamente a representação vetorial da consulta, sem a produção de uma expansão textual. Os maiores ganhos no NarrativeQA e no Telco-DPR sugerem que o contexto é particularmente útil quando a consulta se beneficia de informações narrativas ou terminologia técnica adicional. Nesses casos, elevar o limite $k$ até 10 continuou melhorando o nDCG@10, ainda que com retornos decrescentes.
+Em segundo lugar, os documentos recuperados podem orientar diretamente a representação vetorial da consulta. O ganho macro de 0,0078 sobre o mesmo adaptador sem contexto é modesto, mas aparece sem gerar uma expansão textual intermediária. NarrativeQA e Telco-DPR foram os conjuntos mais beneficiados, sugerindo que evidências narrativas ou terminologia técnica recuperada podem complementar a formulação original da pergunta.
 
-O comportamento do QASPER evidencia, contudo, o risco de deriva semântica. Como as perguntas são vinculadas a artigos específicos e os segmentos podem tratar de aspectos distintos do mesmo trabalho, um documento inicial pouco informativo pode deslocar a representação para um tópico secundário. O resultado inferior com $k=1$ e a recuperação parcial com $k=3$ e $k=5$ indicam que a diversidade de contexto reduz, mas não elimina, esse efeito. No BioASQ, a estabilidade próxima ao estágio 1 sugere que a consulta biomédica já contém terminologia suficientemente discriminativa, limitando o benefício marginal dos textos recuperados.
+O efeito depende, contudo, da quantidade e da qualidade do contexto. O melhor compromisso geral foi $k=5$, mas nenhum valor foi ótimo para todos os conjuntos. Quando todos os dez documentos foram preservados na entrada, NarrativeQA sofreu queda acentuada. Esse resultado mostra que a ampla janela do modelo não elimina a deriva semântica: documentos adicionais podem competir pela atenção e deslocar o vetor para informações secundárias. O fato de o treinamento principal apresentar no máximo cinco documentos também cria uma mudança de distribuição nas avaliações com $k=7$ e $k=10$.
 
-O padrão observado também demonstra que mais contexto não implica necessariamente melhor recuperação. Documentos adicionais aumentam a probabilidade de incluir evidência útil, mas também introduzem ruído e competem pela atenção do modelo. Além disso, no protocolo principal cada documento foi truncado em 512 \textit{tokens}, e a janela de 3.072 \textit{tokens} pode fazer com que menos de $k$ documentos sejam efetivamente processados. Assim, $k$ controla o limite de quantidade e a diversidade potencial da evidência, mas não garante que todos os documentos, nem que a passagem decisiva, estejam preservados. Estratégias futuras podem selecionar trechos, ponderar documentos pela confiança da primeira etapa ou decidir $k$ dinamicamente para cada consulta.
+No QASPER, o adaptador sem contexto ainda superou todas as configurações do segundo estágio. Como as perguntas são vinculadas a artigos específicos, segmentos sobre aspectos secundários do mesmo trabalho podem parecer semanticamente próximos sem fornecer a evidência necessária. No BioASQ, a estabilidade sugere que a terminologia da própria consulta já oferece um sinal discriminativo forte, limitando o benefício marginal do contexto.
 
-A ablação de contexto longo no BioASQ reforça que aumentar indiscriminadamente a janela não resolve essa limitação. Mesmo com 2.048 \textit{tokens} por documento e treinamento compatível com sequências maiores, o nDCG@10 permaneceu essencialmente estável. Esse resultado favorece mecanismos de seleção de evidência em vez do simples aumento do volume de texto processado.
+A variante de contexto longo do BioASQ alcançou sua melhor melhora em $k=3$, mas a diferença de 0,0042 é pequena. Além disso, o experimento alterou simultaneamente o comprimento das sequências e o lote de treinamento, de 32 para 128. Portanto, o resultado não permite atribuir causalmente o ganho apenas aos 2.048 \textit{tokens}. A ausência de melhora ao ampliar somente a inferência reforça que mais texto não é automaticamente mais informação útil.
 
-Em relação ao RFG apresentado no Capítulo~5, o método mantém o princípio de fundamentar a expansão em documentos efetivamente recuperados, mas substitui a geração autorregressiva por uma única codificação contextual. Isso elimina arquiteturalmente a chamada a um gerador e a decodificação \textit{token} a \textit{token}. Entretanto, os experimentos deste capítulo mediram qualidade de recuperação, e não tempo de resposta, memória ou consumo energético. Assim, a redução de latência e custo permanece uma hipótese operacional plausível, mas deve ser confirmada por uma comparação controlada entre os dois \textit{pipelines}. Também não se realizou uma comparação direta de qualidade sob adaptadores, dados e orçamentos computacionais idênticos; os números dos dois capítulos não devem ser interpretados como uma disputa isolada entre métodos.
+Em relação ao RFG do Capítulo~5, o método proposto mantém a fundamentação em documentos recuperados, mas substitui a geração autorregressiva por uma única codificação contextual. A comparação favoreceu o modelo contextual, porém não isola apenas essa diferença: a configuração RFG utiliza modelos e um procedimento de expansão distintos. Além disso, este capítulo não mediu latência, memória ou consumo energético. A redução de custo permanece uma consequência arquitetural plausível, mas requer medição controlada ponta a ponta.
 
-Há ainda três limitações experimentais. Primeiro, os resultados correspondem a uma execução por configuração, sem repetição com diferentes sementes ou teste de significância; diferenças pequenas devem ser interpretadas descritivamente. Segundo, o contexto de treinamento contém um documento relevante em parte dos exemplos por construção, enquanto a inferência depende integralmente da qualidade do primeiro estágio. Terceiro, embora o método reduza a dependência de conteúdo gerado, os experimentos não medem ``alucinação'' do vetor diretamente. A evidência obtida diz respeito ao alinhamento para recuperação, quantificado por nDCG, MAP e \textit{recall}.
+Finalmente, os resultados correspondem a uma execução por configuração, sem repetição com diferentes sementes ou testes de significância. Diferenças pequenas devem ser interpretadas descritivamente. A injeção de uma passagem relevante ocorre somente durante treino e validação; no teste, o segundo estágio depende integralmente da qualidade da recuperação inicial. As métricas também avaliam alinhamento para recuperação, e não ``alucinação'' vetorial de forma direta.
 
 \section{Conclusões}
 \label{sec:ctx-emb-conclusoes}
 
 Este capítulo apresentou um modelo de \textit{embeddings} ciente de contexto para recuperação densa em dois estágios. O \texttt{Qwen3-Embedding-4B} foi ajustado com âncoras contendo entre zero e cinco documentos recuperados, combinando exemplos com evidência relevante, contexto ruidoso e ausência de contexto. Com isso, o mesmo adaptador pôde executar a busca inicial e, em seguida, recodificar a consulta com os documentos recuperados, sem alterar o índice do \textit{corpus} e sem recorrer a um LLM gerador.
 
-Na média dos quatro conjuntos de teste, a melhor configuração contextual, com $k=5$, alcançou nDCG@10 de 0,7519, frente a 0,7436 no primeiro estágio, 0,7434 no ajuste fino convencional e 0,6565 no modelo-base. A melhora contextual concentrou-se no NarrativeQA e no Telco-DPR; BioASQ permaneceu estável e QASPER apresentou sensibilidade ao ruído do contexto. Esses resultados confirmam a viabilidade da contextualização direta no espaço vetorial, mas também mostram que sua utilidade depende do domínio, da qualidade da primeira recuperação e da quantidade de documentos fornecida.
+Na média dos quatro conjuntos de teste, a melhor configuração contextual, com $k=5$, alcançou nDCG@10 de 0,7514, frente a 0,7436 no mesmo adaptador sem contexto, 0,7434 no ajuste fino convencional, 0,6889 no RFG comparado e 0,6565 no modelo-base. A melhora contextual concentrou-se no NarrativeQA e no Telco-DPR; BioASQ permaneceu estável e QASPER apresentou sensibilidade ao ruído. Preservar dez documentos na entrada reduziu a qualidade média, confirmando que a capacidade de processar sequências longas não substitui a seleção de evidência.
 
-Como continuidade, recomenda-se avaliar seleção adaptativa de $k$, filtragem ou reordenação dos documentos antes da segunda codificação, treinamento com diferentes níveis de ruído e destilação do vetor produzido por expansões RFG. Uma avaliação completa deve ainda incluir latência ponta a ponta, vazão, memória, consumo energético e repetição com múltiplas sementes. Esses experimentos permitirão determinar em que condições a eliminação da geração autorregressiva se traduz em vantagem prática, além do ganho de qualidade de recuperação observado neste capítulo.
+O treinamento com documentos de até 2.048 \textit{tokens} produziu uma melhora pequena no BioASQ, enquanto ampliar apenas a entrada de inferência não trouxe benefício. Como continuidade, recomenda-se investigar seleção adaptativa de $k$, filtragem ou reordenação das passagens, treinamento com mais de cinco documentos, diferentes níveis de ruído e destilação de expansões RFG. Uma avaliação completa deve ainda incluir latência ponta a ponta, vazão, memória, consumo energético e repetição com múltiplas sementes.
