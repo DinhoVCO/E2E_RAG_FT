@@ -6,7 +6,8 @@ candidate documents in memory (FAISS), similar to
 
 Stage 2 rebuilds each query with the top-k stage-1 documents using the same
 format as context fine-tuning (``## Context:`` blocks), then runs MTEB
-retrieval on the full corpus.
+retrieval using the dataset's configured search scope. QASPER uses the
+query paper's chunks in both stages by default.
 
 Usage:
     # Stage 1 only: MTEB with Instruct + Query (no context, no stage 2)
@@ -216,12 +217,12 @@ def _build_parser() -> argparse.ArgumentParser:
     search_scope.add_argument(
         "--paper-scoped",
         action="store_true",
-        help="QASPER only: restrict stage-1 retrieval to each query's paper chunks.",
+        help="QASPER only: restrict both retrieval stages to each query's paper chunks.",
     )
     search_scope.add_argument(
         "--full-corpus",
         action="store_true",
-        help="Search the full corpus in stage 1 (default for non-qasper datasets).",
+        help="Search the full corpus in both stages (default for non-qasper datasets).",
     )
     parser.add_argument(
         "--overwrite",

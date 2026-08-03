@@ -41,6 +41,7 @@ from tesis_unicamp.evaluation.mteb.tasks import (
     RAG_RETRIEVAL_TASK_CONFIGS,
     RagRetrievalTaskConfig,
     _build_relevant_docs,
+    _load_top_ranked_split,
     _prepare_corpus,
     create_rag_retrieval_task,
 )
@@ -212,11 +213,25 @@ def load_rag_retrieval_split_with_query_map(
     relevant_docs = _build_relevant_docs(qrels)
     relevant_docs, queries = _filter_queries_without_positives(relevant_docs, queries)
 
+    top_ranked = None
+    if config.use_top_ranked:
+        top_ranked = _load_top_ranked_split(
+            config,
+            split,
+            qrels=qrels,
+            corpus=raw_corpus,
+        )
+        top_ranked = {
+            query_id: ranked_ids
+            for query_id, ranked_ids in top_ranked.items()
+            if query_id in relevant_docs
+        }
+
     return RetrievalSplitData(
         corpus=corpus,
         queries=queries,
         relevant_docs=relevant_docs,
-        top_ranked=None,
+        top_ranked=top_ranked,
     )
 
 
