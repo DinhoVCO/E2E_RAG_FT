@@ -22,35 +22,79 @@ Esse vetor é comparado novamente com os mesmos vetores documentais previamente 
 \subsection{Conjuntos de dados}
 \label{subsec:ctx-emb-dados}
 
-Os experimentos foram realizados nos quatro conjuntos de recuperação descritos no Capítulo~3: BioASQ-RAG-Resplit, NarrativeQA-RAG, QASPER-RAG e Telco-DPR-RAG. Eles abrangem, respectivamente, os domínios biomédico, narrativo, científico e de telecomunicações. Um adaptador LoRA independente foi treinado para cada conjunto. A divisão de treino foi utilizada para otimização, a divisão de validação para selecionar o melhor \textit{checkpoint} e a divisão de teste exclusivamente para a avaliação final.
+Os experimentos foram realizados nos quatro conjuntos de recuperação descritos no Capítulo~3: BioASQ-RAG-Resplit, NarrativeQA-RAG, QASPER-RAG e Telco-DPR-RAG. Eles abrangem, respectivamente, os domínios biomédico, narrativo, científico e de telecomunicações.
 
 \subsection{Ajuste fino dos modelos de \textit{embeddings} cientes de contexto}
 \label{subsec:ctx-emb-ajuste}
 
-O modelo-base adotado foi o \texttt{Qwen3-Embedding-4B}, com 36 camadas, dimensão de representação 2.560 e janela nativa superior ao comprimento empregado nos experimentos. O treinamento utilizou adaptadores LoRA (\textit{Low-Rank Adaptation}) nas projeções de consulta e valor (\texttt{q\_proj} e \texttt{v\_proj}), com posto $r=16$, fator de escala $\alpha=32$ e \textit{dropout} de $0{,}05$. A Tabela~\ref{tab:ctx-emb-parametros} apresenta a quantidade de parâmetros. Somente 5.898.240 parâmetros, equivalentes a $0{,}1464\%$ do modelo com o adaptador, foram atualizados.
+O modelo-base adotado foi o \texttt{Qwen3-Embedding-4B}. Um adaptador LoRA independente foi treinado para cada conjunto de dados. A divisão de treino foi utilizada para otimização, a divisão de validação para selecionar o melhor \textit{checkpoint} e a divisão de teste exclusivamente para a avaliação final.
+
+\subsubsection{Configuração de treinamento e seleção do modelo}
+\label{subsubsec:ctx-emb-configuracao}
+
+A Tabela~\ref{tab:config-ft-ctx-embedding} resume as configurações compartilhadas por todos os treinamentos principais. Os adaptadores foram aplicados às projeções de consulta e valor da atenção. Dessa forma, o codificador-base permaneceu congelado e somente 5.898.240 parâmetros foram atualizados, equivalentes a aproximadamente $0{,}1464\%$ do modelo com o adaptador.
 
 \begin{table}[htbp]
-    \centering
-    \caption{Parâmetros do \texttt{Qwen3-Embedding-4B} com o adaptador LoRA.}
-    \label{tab:ctx-emb-parametros}
-    \begin{tabular}{lrr}
-        \toprule
-        Componente & Parâmetros totais & Parâmetros treináveis \\
-        \midrule
-        Codificador-base & 4.021.774.336 & 0 \\
-        Adaptador LoRA & 5.898.240 & 5.898.240 \\
-        \midrule
-        Modelo com adaptador & 4.027.672.576 & 5.898.240 ($0{,}1464\%$) \\
-        \bottomrule
-    \end{tabular}
+\caption{Configurações gerais do ajuste fino do modelo de \textit{embeddings} ciente de contexto.}
+\label{tab:config-ft-ctx-embedding}
+\centering
+\footnotesize
+\begin{tabular}{ll}
+\hline
+\textbf{Configuração} & \textbf{Valor} \\ \hline
+Modelo-base & \texttt{Qwen/Qwen3-Embedding-4B} \\
+Parâmetros do modelo-base & 4.021.774.336 \\
+Parâmetros LoRA treináveis & 5.898.240 (aprox.\ $0{,}1464\%$) \\
+Projeções de atenção adaptadas & \texttt{q\_proj}, \texttt{v\_proj} \\
+Posto LoRA ($r$) & 16 \\
+Fator LoRA ($\alpha$) & 32 \\
+\textit{Dropout} LoRA & 0,05 \\
+Comprimento máximo da âncora & 3.072 \textit{tokens} \\
+Limite da consulta & 512 \textit{tokens} \\
+Limite por documento de contexto & 512 \textit{tokens} \\
+Limite da passagem positiva & 512 \textit{tokens} \\
+Número de documentos de contexto & 0--5 \\
+Proporção com relevância garantida & 70\% dos exemplos com contexto \\
+Taxa de aprendizado & $2\times10^{-5}$ \\
+\textit{Warmup ratio} & 0,10 \\
+Precisão numérica & \texttt{bfloat16} \\
+Perda & \texttt{CachedMultipleNegativesRankingLoss} \\
+Minilote interno da perda com \textit{cache} & 8 \\
+Amostrador de lotes & Sem exemplos duplicados \\
+Limite de \textit{checkpoints} & 3 \\ \hline
+\end{tabular}
 \end{table}
 
-Essa parametrização mantém congelado o codificador original e reduz substancialmente o custo de otimização, ao mesmo tempo que permite modificar a representação produzida a partir da consulta e do contexto.
+A Tabela~\ref{tab:config-ft-ctx-embedding-datasets} apresenta somente as configurações que variaram entre os conjuntos de dados. O lote indicado corresponde ao número de exemplos por dispositivo.
+
+\begin{table}[htbp]
+\caption{Configurações específicas do ajuste fino do modelo de \textit{embeddings} por conjunto de dados.}
+\label{tab:config-ft-ctx-embedding-datasets}
+\centering
+\footnotesize
+\begin{tabular}{lrrrr}
+\hline
+\textbf{Conjunto} &
+\textbf{Lote} &
+\textbf{Épocas} &
+\textbf{Avaliação (passos)} &
+\textbf{Salvamento (passos)} \\ \hline
+BioASQ-RAG-Resplit & 32 & 10 & 50 & 50 \\
+NarrativeQA-RAG & 32 & 10 & 50 & 50 \\
+QASPER-RAG & 32 & 10 & 10 & 10 \\
+Telco-DPR-RAG & 32 & 20 & 5 & 5 \\ \hline
+\end{tabular}
+\end{table}
+
+Para acompanhar o treinamento e selecionar o melhor \textit{checkpoint}, utilizou-se o avaliador de recuperação de informação disponibilizado pela biblioteca \textit{Sentence Transformers}, denominado \texttt{InformationRetrievalEvaluator}. Esse componente recebe as consultas, o \textit{corpus} e os julgamentos de relevância da divisão de validação. A cada intervalo de avaliação indicado na Tabela~\ref{tab:config-ft-ctx-embedding-datasets}, o avaliador gera os \textit{embeddings} com o estado corrente do modelo, ordena os documentos pela similaridade cosseno e calcula as métricas de recuperação. Ao final do treinamento, seleciona-se o \textit{checkpoint} que obteve o maior nDCG@10 na validação. Assim, a escolha do modelo é determinada diretamente pela sua capacidade de recuperar e ordenar documentos relevantes, em vez de depender apenas do valor da perda contrastiva. Os treinamentos principais utilizaram dois aceleradores H100.
+
+Além das configurações principais, foi treinada uma variante de contexto longo para o BioASQ-RAG-Resplit. Essa variante utilizou lote 128, dez épocas, avaliação e salvamento a cada 50 passos, limite de 2.048 \textit{tokens} por documento e passagem positiva e janela de 14.336 \textit{tokens}. O treinamento foi executado em quatro aceleradores H100.
 
 Cada exemplo de treinamento é um par $(a_i,d_i^{+})$, no qual $a_i$ é uma âncora formada pela consulta, opcionalmente acrescida de contexto, e $d_i^{+}$ é um documento relevante segundo os julgamentos de relevância do conjunto de dados. Para consultas associadas a mais de um documento relevante, é criado um par para cada documento positivo. A âncora segue o formato:
 
 \begin{verbatim}
-Instruct: <descrição da tarefa de recuperação>
+Instruct: Given a web search query, retrieve relevant passages
+that answer the query
 Query:<consulta>
 ## Context:
 doc 1:
@@ -64,29 +108,35 @@ Para que um único adaptador opere nos dois estágios, o número de documentos d
 
 \begin{figure}[htbp]
     \centering
-    \includegraphics[width=0.95\textwidth]{reports/generative_context_distribution/context_distribution_train.png}
-    \caption{Distribuição dos exemplos de treino sem contexto, com contexto contendo ao menos uma passagem relevante e com contexto sem passagem relevante.}
+    \includegraphics[width=0.75\textwidth]{reports/embedding_context_distribution/embedding_context_distribution_train.pdf}
+    \caption{Distribuição dos pares de ajuste fino de \textit{embeddings} sem contexto, com contexto contendo ao menos uma passagem relevante e com contexto sem passagem relevante.}
     \label{fig:ctx-emb-distribuicao-contexto}
 \end{figure}
 
-A Figura~\ref{fig:ctx-emb-distribuicao-contexto} mostra a distribuição produzida por essa estratégia antes da expansão das consultas em pares com cada passagem positiva. A fração sem contexto permaneceu próxima ao valor esperado de $1/6$: $16{,}75\%$ no QASPER, $16{,}27\%$ no BioASQ, $16{,}53\%$ no NarrativeQA e $15{,}02\%$ no Telco-DPR. A proporção de exemplos com contexto e ao menos uma passagem relevante variou de $63{,}99\%$, no Telco-DPR, a $77{,}12\%$, no NarrativeQA. Já os contextos sem passagem relevante representaram $12{,}09\%$, $6{,}96\%$, $6{,}34\%$ e $20{,}99\%$, respectivamente. A presença dessa última categoria é deliberada: ela aproxima o treinamento da inferência, na qual a primeira recuperação não garante evidência relevante.
+A Figura~\ref{fig:ctx-emb-distribuicao-contexto} mostra a distribuição efetiva dos pares processados pela perda contrastiva. A fração sem contexto permaneceu próxima ao valor esperado de $1/6$: $17{,}30\%$ no QASPER, $15{,}95\%$ no BioASQ, $16{,}53\%$ no NarrativeQA e $14{,}77\%$ no Telco-DPR. A proporção de pares com contexto e ao menos uma passagem relevante foi de $70{,}77\%$, $82{,}69\%$, $77{,}01\%$ e $63{,}59\%$, respectivamente. Já os contextos sem passagem relevante representaram $11{,}93\%$, $1{,}36\%$, $6{,}47\%$ e $21{,}64\%$. A presença dessa última categoria é deliberada: ela aproxima o treinamento da inferência, na qual a primeira recuperação não garante evidência relevante. A baixa proporção observada no BioASQ decorre tanto do maior número de passagens relevantes por consulta quanto da expansão de uma mesma âncora em múltiplos pares positivos.
 
 Para consultas associadas a múltiplas passagens relevantes, a mesma âncora origina um par para cada positivo. Por isso, a quantidade de pares contrastivos da Tabela~\ref{tab:ctx-emb-pares} pode superar a quantidade de consultas.
 
 \begin{table}[htbp]
-    \centering
-    \caption{Pares utilizados no ajuste fino contextual.}
-    \label{tab:ctx-emb-pares}
-    \begin{tabular}{lrrrr}
-        \toprule
-        Conjunto & Pares de treino & Sem contexto & Pares de validação & Sem contexto \\
-        \midrule
-        BioASQ-RAG-Resplit & 29.385 & 4.687 & 7.333 & 1.602 \\
-        NarrativeQA-RAG   & 32.747 & 5.412 & 3.461 & 556 \\
-        QASPER-RAG        & 3.815  & 660   & 1.913 & 297 \\
-        Telco-DPR-RAG     & 975    & 144   & 243   & 47 \\
-        \bottomrule
-    \end{tabular}
+\caption{Quantidade de pares utilizados no ajuste fino contextual, discriminada por divisão e presença de contexto.}
+\label{tab:ctx-emb-pares}
+\centering
+\small
+\begin{tabular}{lrrrr}
+\hline
+& \multicolumn{2}{c}{\textbf{Treino}}
+& \multicolumn{2}{c}{\textbf{Validação}} \\
+\cline{2-5}
+\textbf{Conjunto} &
+\textbf{Total} &
+\textbf{Sem contexto} &
+\textbf{Total} &
+\textbf{Sem contexto} \\ \hline
+BioASQ-RAG-Resplit & 29.385 & 4.687 & 7.333 & 1.602 \\
+NarrativeQA-RAG    & 32.747 & 5.412 & 3.461 & 556 \\
+QASPER-RAG         & 3.815  & 660   & 1.913 & 297 \\
+Telco-DPR-RAG      & 975    & 144   & 243   & 47 \\ \hline
+\end{tabular}
 \end{table}
 
 As consultas foram limitadas a 512 \textit{tokens}; cada documento de contexto e cada passagem positiva também foi limitado a 512 \textit{tokens}. O comprimento máximo da âncora foi fixado em 3.072 \textit{tokens}. Quando a concatenação ultrapassava esse limite, documentos eram removidos a partir do final da lista até que a sequência coubesse na janela definida. Essa política preserva prioritariamente a consulta e os documentos mais bem classificados.
@@ -106,31 +156,6 @@ O objetivo de treinamento foi a \texttt{CachedMultipleNegativesRankingLoss}. Par
     },
 \end{equation}
 em que $s(\cdot,\cdot)$ é a similaridade cosseno e $\tau$ é a temperatura empregada pela função de perda. A versão com \textit{cache} permite utilizar um lote contrastivo maior do que o lote efetivamente codificado em cada passo, reduzindo o consumo de memória. Adicionalmente, o amostrador evita exemplos duplicados dentro do mesmo lote, prevenindo falsos negativos triviais.
-
-\subsection{Configuração de treinamento e seleção do modelo}
-\label{subsec:ctx-emb-configuracao}
-
-Todos os adaptadores foram treinados em precisão \texttt{bfloat16}, com taxa de aprendizado de $2\times10^{-5}$, aquecimento linear em $10\%$ dos passos, semente 42 para a amostragem de treino e minilote de oito exemplos na perda com \textit{cache}. A Tabela~\ref{tab:ctx-emb-configuracoes} resume as configurações que variaram por conjunto. Os treinamentos principais foram executados com lote 32 por dispositivo; Telco-DPR recebeu vinte épocas devido ao seu menor número de exemplos.
-
-\begin{table}[htbp]
-    \centering
-    \caption{Configurações de ajuste fino por conjunto de dados.}
-    \label{tab:ctx-emb-configuracoes}
-    \begin{tabular}{lrrrrrr}
-        \toprule
-        Conjunto & Lote & Épocas & Avaliação & Salvamento & Doc./positivo & Janela \\
-        & & & (passos) & (passos) & (\textit{tokens}) & (\textit{tokens}) \\
-        \midrule
-        BioASQ       & 32  & 10 & 50 & 50 & 512   & 3.072 \\
-        NarrativeQA & 32  & 10 & 50 & 50 & 512   & 3.072 \\
-        QASPER      & 32  & 10 & 10 & 10 & 512   & 3.072 \\
-        Telco-DPR   & 32  & 20 & 5  & 5  & 512   & 3.072 \\
-        BioASQ longo& 128 & 10 & 50 & 50 & 2.048 & 14.336 \\
-        \bottomrule
-    \end{tabular}
-\end{table}
-
-A cada intervalo indicado, um \texttt{InformationRetrievalEvaluator} codificou as consultas da divisão de validação, comparou-as por similaridade cosseno com o \textit{corpus} e calculou as métricas de recuperação. O \textit{checkpoint} com maior nDCG@10 na validação foi carregado ao final do treinamento. Dessa forma, a seleção do modelo foi orientada diretamente pela tarefa de recuperação, e não apenas pelo valor da perda contrastiva. Os treinamentos principais utilizaram dois aceleradores H100; a variante BioASQ de contexto longo utilizou quatro aceleradores devido ao lote e à janela ampliados.
 
 \subsection{Recuperação contextual em dois estágios}
 \label{subsec:ctx-emb-dois-estagios}
