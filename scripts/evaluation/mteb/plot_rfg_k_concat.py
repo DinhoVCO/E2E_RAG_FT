@@ -27,10 +27,14 @@ def main() -> None:
     plt.style.use("seaborn-v0_8-whitegrid")
     figure, axis = plt.subplots(figsize=(8.6, 5.2))
 
+    scale = 100.0
+    deltas = {name: [v * scale for v in values] for name, values in DELTAS.items()}
+    macro_average = [v * scale for v in MACRO_AVERAGE]
+
     colors = ["#0072B2", "#D55E00", "#009E73", "#CC79A7"]
     markers = ["o", "s", "^", "D"]
     for (dataset, values), color, marker in zip(
-        DELTAS.items(), colors, markers, strict=True
+        deltas.items(), colors, markers, strict=True
     ):
         axis.plot(
             K_VALUES,
@@ -44,7 +48,7 @@ def main() -> None:
 
     axis.plot(
         K_VALUES,
-        MACRO_AVERAGE,
+        macro_average,
         color="#222222",
         marker="o",
         linewidth=2.8,
@@ -53,19 +57,19 @@ def main() -> None:
         zorder=5,
     )
     axis.axhline(0, color="#666666", linewidth=1.1, linestyle="--")
-    axis.scatter([7], [MACRO_AVERAGE[3]], color="#222222", s=70, zorder=6)
+    axis.scatter([7], [macro_average[3]], color="#222222", s=70, zorder=6)
     axis.annotate(
         "Melhor média: $k=7$",
-        xy=(7, MACRO_AVERAGE[3]),
-        xytext=(7.55, 0.040),
+        xy=(7, macro_average[3]),
+        xytext=(7.55, 4.0),
         arrowprops={"arrowstyle": "->", "color": "#333333", "lw": 1},
         fontsize=9,
     )
 
     axis.set_xlabel("Documentos utilizados na expansão ($k$)")
-    axis.set_ylabel(r"Variação absoluta do nDCG@10 em relação ao baseline")
+    axis.set_ylabel(r"Variação do nDCG@10 ($\times 100$) em relação ao baseline")
     axis.set_xticks(K_VALUES)
-    axis.set_ylim(-0.065, 0.080)
+    axis.set_ylim(-6.5, 8.0)
     axis.legend(
         loc="upper left",
         ncol=2,
