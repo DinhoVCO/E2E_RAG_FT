@@ -13,6 +13,9 @@ from tesis_unicamp.datasets.analysis.metrics import BenchmarkReport, DatasetMetr
 from tesis_unicamp.datasets.analysis.registry import SPLITS
 
 _PALETA = ["#1B4F72", "#148F77", "#B9770E", "#6C3483"]
+# Referências distintas das barras (Qasper usa o azul da paleta).
+_COR_MEDIA = "#922B21"
+_COR_MEDIANA = "#1C2833"
 _ROTULO_SPLIT = {"train": "Treino", "dev": "Validação", "test": "Teste"}
 
 
@@ -188,40 +191,54 @@ def _desenhar_histograma(
 
     media = float(arr.mean())
     mediana = float(np.median(arr))
-    ymax = max(counts.max(), 1)
+    ymax = max(float(counts.max()), 1.0)
 
-    # Linhas de referência: média (principal) + mediana (robusta à cauda).
+    # Linhas só como referência visual; os valores vão na legenda (texto
+    # horizontal, preto, fora das barras).
+    handles = []
+    labels = []
     if mostrar_media:
         x_media = min(media, edges[-1] - bin_width * 0.05)
-        ax.axvline(x_media, color="#922B21", linestyle="--", linewidth=1.6, zorder=5)
-        ax.text(
+        line_media = ax.axvline(
             x_media,
-            ymax * 0.98,
-            f" média={media:.1f}",
-            color="#922B21",
-            fontsize=8,
-            rotation=90,
-            va="top",
-            ha="right",
+            color=_COR_MEDIA,
+            linestyle="--",
+            linewidth=1.6,
+            zorder=5,
         )
+        handles.append(line_media)
+        labels.append(f"Média = {media:.1f}")
     if mostrar_mediana:
         x_med = min(mediana, edges[-1] - bin_width * 0.05)
-        ax.axvline(x_med, color="#1A5276", linestyle=":", linewidth=1.6, zorder=5)
-        ax.text(
+        line_med = ax.axvline(
             x_med,
-            ymax * 0.72,
-            f" mediana={mediana:.1f}",
-            color="#1A5276",
-            fontsize=8,
-            rotation=90,
-            va="top",
-            ha="right",
+            color=_COR_MEDIANA,
+            linestyle=":",
+            linewidth=1.8,
+            zorder=5,
         )
+        handles.append(line_med)
+        labels.append(f"Mediana = {mediana:.1f}")
 
     # Identificação do painel no eixo X (sem título/header na figura).
     ax.set_xlabel(f"{titulo}\nComprimento ({unidade})")
     ax.set_ylabel("Frequência")
     ax.set_xlim(edges[0], edges[-1])
+    if handles:
+        ax.set_ylim(0, ymax * 1.18)
+        ax.legend(
+            handles,
+            labels,
+            loc="upper right",
+            fontsize=8,
+            frameon=True,
+            fancybox=False,
+            framealpha=0.92,
+            edgecolor="#B0B0B0",
+            handlelength=2.4,
+            borderpad=0.4,
+            labelcolor="black",
+        )
 
 
 def fig_histogramas_por_tipo(

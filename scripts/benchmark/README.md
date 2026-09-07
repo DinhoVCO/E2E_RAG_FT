@@ -94,7 +94,7 @@ Saídas:
 - `tabelas/tabela_histogramas_intervalos.csv`
 - `manifesto_histogramas.json`
 
-A **média** aparece como linha tracejada vermelha; a **mediana** (mais robusta a caudas longas) como linha pontilhada azul.
+A **média** aparece como linha tracejada vermelha e a **mediana** (mais robusta a caudas longas) como linha pontilhada cinza-escuro; os valores ficam numa legenda no canto superior direito.
 
 ## Observações
 
