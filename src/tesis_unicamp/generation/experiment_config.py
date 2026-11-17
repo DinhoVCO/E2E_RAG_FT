@@ -11,7 +11,7 @@ from tesis_unicamp.generation.rag.runner import PromptMode
 
 _EMBEDDING_MODES = frozenset({"base", "lora", "none"})
 _GENERATION_MODES = frozenset({"base", "lora", "qa"})
-_PROMPT_MODES = frozenset({"inference", "qa", "rag-finetune"})
+_PROMPT_MODES = frozenset({"qa", "rag-finetune"})
 
 _EXPERIMENT_KEYS = frozenset(
     {
@@ -32,6 +32,12 @@ _EXPERIMENT_KEYS = frozenset(
         "paper_scoped",
         "retrieval_batch_size",
         "generation_batch_size",
+        "include_title_prompt",
+        "generation_max_tokens",
+        "max_tokens_per_chunk",
+        "max_prompt_tokens",
+        "use_title_retrieval",
+        "retrieved_root",
     }
 )
 
@@ -55,6 +61,12 @@ class ResolvedExperiment:
     paper_scoped: bool
     retrieval_batch_size: int
     generation_batch_size: int
+    include_title_prompt: bool
+    generation_max_tokens: int
+    max_tokens_per_chunk: int
+    max_prompt_tokens: int
+    use_title_retrieval: bool
+    retrieved_root: str
 
 
 def default_experiments_path() -> Path:
@@ -198,14 +210,8 @@ def _resolve_prompt_mode(
         return explicit
 
     if not use_retrieval:
-        if generation_mode == "qa":
-            return "qa"
-        if generation_mode == "base":
-            return "inference"
-        return "rag-finetune"
-    if generation_mode == "qa":
-        return "rag-finetune"
-    return "inference"
+        return "qa"
+    return "rag-finetune"
 
 
 def resolve_experiment(raw: dict[str, Any], experiment_id: str) -> ResolvedExperiment:
@@ -318,6 +324,24 @@ def resolve_experiment(raw: dict[str, Any], experiment_id: str) -> ResolvedExper
         generation_batch_size=int(
             spec.get("generation_batch_size", defaults.get("generation_batch_size", 8))
         ),
+        include_title_prompt=bool(
+            spec.get("include_title_prompt", defaults.get("include_title_prompt", False))
+        ),
+        generation_max_tokens=int(
+            spec.get("generation_max_tokens", defaults.get("generation_max_tokens", 512))
+        ),
+        max_tokens_per_chunk=int(
+            spec.get("max_tokens_per_chunk", defaults.get("max_tokens_per_chunk", 512))
+        ),
+        max_prompt_tokens=int(
+            spec.get("max_prompt_tokens", defaults.get("max_prompt_tokens", 0))
+        ),
+        use_title_retrieval=bool(
+            spec.get("use_title_retrieval", defaults.get("use_title_retrieval", False))
+        ),
+        retrieved_root=str(
+            spec.get("retrieved_root", defaults.get("retrieved_root", "retrieved_inmemory"))
+        ),
     )
 
 
@@ -340,11 +364,12 @@ def retrieved_docs_path(
     dataset: str,
     retrieval_run_label: str,
     split: str,
+    retrieved_root: str = "retrieved_inmemory",
 ) -> Path:
     return (
         project_root
         / "datasets"
-        / "retrieved_inmemory"
+        / retrieved_root
         / dataset
         / retrieval_run_label
         / split

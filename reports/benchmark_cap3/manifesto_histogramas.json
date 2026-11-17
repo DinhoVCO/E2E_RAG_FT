@@ -1,0 +1,49 @@
+{
+  "datasets": [
+    "qasper",
+    "bioasq-resplit",
+    "narrativeqa",
+    "telco-dpr"
+  ],
+  "splits": [
+    "train",
+    "dev",
+    "test"
+  ],
+  "tokenizer": "Qwen/Qwen3-Embedding-4B",
+  "bin_width": {
+    "corpus": 50.0,
+    "consulta": 2.0,
+    "resposta": 10.0
+  },
+  "xmax": {
+    "corpus": 1500.0,
+    "consulta": 60.0,
+    "resposta": 300.0
+  },
+  "artefatos": {
+    "tabela_histogramas_intervalos.csv": "/petrobr/home/ronaldinho.olivera/E2E_RAG_FT/reports/benchmark_cap3/tabelas/tabela_histogramas_intervalos.csv",
+    "fig_hist_intervalos_corpus": [
+      "/petrobr/home/ronaldinho.olivera/E2E_RAG_FT/reports/benchmark_cap3/figuras/fig_hist_intervalos_corpus.pdf",
+      "/petrobr/home/ronaldinho.olivera/E2E_RAG_FT/reports/benchmark_cap3/figuras/fig_hist_intervalos_corpus.png"
+    ],
+    "fig_hist_intervalos_consulta": [
+      "/petrobr/home/ronaldinho.olivera/E2E_RAG_FT/reports/benchmark_cap3/figuras/fig_hist_intervalos_consulta.pdf",
+      "/petrobr/home/ronaldinho.olivera/E2E_RAG_FT/reports/benchmark_cap3/figuras/fig_hist_intervalos_consulta.png"
+    ],
+    "fig_hist_intervalos_resposta": [
+      "/petrobr/home/ronaldinho.olivera/E2E_RAG_FT/reports/benchmark_cap3/figuras/fig_hist_intervalos_resposta.pdf",
+      "/petrobr/home/ronaldinho.olivera/E2E_RAG_FT/reports/benchmark_cap3/figuras/fig_hist_intervalos_resposta.png"
+    ],
+    "fig_hist_intervalos_por_dataset": [
+      "/petrobr/home/ronaldinho.olivera/E2E_RAG_FT/reports/benchmark_cap3/figuras/fig_hist_intervalos_qasper.pdf",
+      "/petrobr/home/ronaldinho.olivera/E2E_RAG_FT/reports/benchmark_cap3/figuras/fig_hist_intervalos_qasper.png",
+      "/petrobr/home/ronaldinho.olivera/E2E_RAG_FT/reports/benchmark_cap3/figuras/fig_hist_intervalos_bioasq-resplit.pdf",
+      "/petrobr/home/ronaldinho.olivera/E2E_RAG_FT/reports/benchmark_cap3/figuras/fig_hist_intervalos_bioasq-resplit.png",
+      "/petrobr/home/ronaldinho.olivera/E2E_RAG_FT/reports/benchmark_cap3/figuras/fig_hist_intervalos_narrativeqa.pdf",
+      "/petrobr/home/ronaldinho.olivera/E2E_RAG_FT/reports/benchmark_cap3/figuras/fig_hist_intervalos_narrativeqa.png",
+      "/petrobr/home/ronaldinho.olivera/E2E_RAG_FT/reports/benchmark_cap3/figuras/fig_hist_intervalos_telco-dpr.pdf",
+      "/petrobr/home/ronaldinho.olivera/E2E_RAG_FT/reports/benchmark_cap3/figuras/fig_hist_intervalos_telco-dpr.png"
+    ]
+  }
+}

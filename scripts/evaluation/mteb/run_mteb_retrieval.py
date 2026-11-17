@@ -173,6 +173,14 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Search the full shared corpus instead of paper-scoped top_ranked.",
     )
     parser.add_argument(
+        "--include-query-title",
+        action="store_true",
+        help=(
+            "Prepend gold document title (## Title:) to each query before embedding, "
+            "matching retrieve_rag_top_k_inmemory_title.py."
+        ),
+    )
+    parser.add_argument(
         "--overwrite",
         choices=("always", "never", "only-missing", "only-cache"),
         default="always",
@@ -198,6 +206,7 @@ def _resolve_tasks(args: argparse.Namespace):
                 args.dataset,
                 eval_splits=tuple(args.splits),
                 use_top_ranked=use_top_ranked,
+                include_query_title=args.include_query_title,
             )
         ]
 
@@ -226,7 +235,8 @@ def _resolve_tasks(args: argparse.Namespace):
 
 def main(argv: list[str] | None = None) -> None:
     _load_env()
-    args = _build_parser().parse_args(argv)
+    parser = _build_parser()
+    args = parser.parse_args(argv)
 
     if args.backend == "offline":
         from tesis_unicamp.evaluation.mteb.runner import configure_vllm_multiprocessing

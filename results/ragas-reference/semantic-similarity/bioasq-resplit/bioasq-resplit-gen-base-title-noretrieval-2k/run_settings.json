@@ -1,0 +1,21 @@
+{
+  "metric_group": "semantic-similarity",
+  "dataset": "bioasq-resplit",
+  "generation_dir": "/petrobr/home/ronaldinho.olivera/E2E_RAG_FT/datasets/generated/bioasq-resplit/bioasq-resplit-gen-base-title-noretrieval-2k",
+  "generation_run_label": "bioasq-resplit-gen-base-title-noretrieval-2k",
+  "retrieval_run_label": "vllm-offline-b128",
+  "split": "test",
+  "metrics": [
+    "semantic_similarity"
+  ],
+  "num_samples": 1145,
+  "summary": {
+    "semantic_similarity": 0.7437549984257983
+  },
+  "embedding_model": "Qwen/Qwen3-Embedding-8B",
+  "embedding_backend": "openai",
+  "embedding_device": null,
+  "embedding_base_url": "http://127.0.0.1:8001/v1",
+  "embedding_batch_size": 32,
+  "api_timeout": 300.0
+}

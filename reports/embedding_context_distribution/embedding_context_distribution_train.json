@@ -1,0 +1,58 @@
+[
+  {
+    "dataset": "QASPER",
+    "split": "train",
+    "total_pairs": 3815,
+    "total_anchors": 2101,
+    "without_context_count": 660,
+    "without_context_pct": 17.30013106159895,
+    "context_with_relevant_count": 2700,
+    "context_with_relevant_pct": 70.7732634338139,
+    "context_without_relevant_count": 455,
+    "context_without_relevant_pct": 11.926605504587156,
+    "relevance_guarantee_applied_anchors": 1206,
+    "relevance_guarantee_applied_pct": 57.401237505949545
+  },
+  {
+    "dataset": "BioASQ-Resplit",
+    "split": "train",
+    "total_pairs": 29385,
+    "total_anchors": 3467,
+    "without_context_count": 4687,
+    "without_context_pct": 15.950314786455674,
+    "context_with_relevant_count": 24297,
+    "context_with_relevant_pct": 82.68504338948443,
+    "context_without_relevant_count": 401,
+    "context_without_relevant_pct": 1.3646418240598945,
+    "relevance_guarantee_applied_anchors": 2026,
+    "relevance_guarantee_applied_pct": 58.43668877992501
+  },
+  {
+    "dataset": "NarrativeQA",
+    "split": "train",
+    "total_pairs": 32747,
+    "total_anchors": 32507,
+    "without_context_count": 5412,
+    "without_context_pct": 16.526704736311725,
+    "context_with_relevant_count": 25217,
+    "context_with_relevant_pct": 77.00552722386783,
+    "context_without_relevant_count": 2118,
+    "context_without_relevant_pct": 6.467768039820442,
+    "relevance_guarantee_applied_anchors": 18970,
+    "relevance_guarantee_applied_pct": 58.35666164210785
+  },
+  {
+    "dataset": "Telco-DPR",
+    "split": "train",
+    "total_pairs": 975,
+    "total_anchors": 975,
+    "without_context_count": 144,
+    "without_context_pct": 14.76923076923077,
+    "context_with_relevant_count": 620,
+    "context_with_relevant_pct": 63.58974358974359,
+    "context_without_relevant_count": 211,
+    "context_without_relevant_pct": 21.641025641025642,
+    "relevance_guarantee_applied_anchors": 577,
+    "relevance_guarantee_applied_pct": 59.17948717948718
+  }
+]

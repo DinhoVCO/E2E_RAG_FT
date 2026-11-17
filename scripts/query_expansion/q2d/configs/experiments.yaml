@@ -1,0 +1,41 @@
+# Query2Doc (Q2D) experiments:
+#   - 4 datasets, base embedding + base generation
+#
+# Pipeline:
+#   1. Sample 4 few-shot (query, passage) pairs from train qrels/corpus
+#   2. Generate a pseudo-passage per test query (Qwen3-8B)
+#   3. MTEB retrieval with embed(query + generated_passage) (Qwen3-Embedding-4B)
+
+defaults:
+  embedding_model: Qwen/Qwen3-Embedding-4B
+  generation_model: Qwen/Qwen3-8B
+  num_few_shot: 4
+  few_shot_split: train
+  max_few_shot_passage_tokens: 2048
+  seed: 42
+  per_query_sampling: true
+  split: test
+  generation_batch_size: 8
+  generation_max_tokens: 512
+  temperature: 0.7
+  top_p: 1.0
+  retrieval_batch_size: 128
+  model_revision_template: "q2d-{dataset}"
+
+experiments:
+  telco-dpr-q2d:
+    dataset: telco-dpr
+    run_label: telco-dpr-q2d
+
+  qasper-q2d:
+    dataset: qasper
+    paper_scoped: true
+    run_label: qasper-q2d
+
+  narrativeqa-q2d:
+    dataset: narrativeqa
+    run_label: narrativeqa-q2d
+
+  bioasq-resplit-q2d:
+    dataset: bioasq-resplit
+    run_label: bioasq-resplit-q2d

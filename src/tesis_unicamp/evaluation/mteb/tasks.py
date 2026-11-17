@@ -20,6 +20,10 @@ from tesis_unicamp.datasets.utils.bioasq_rag import (
     load_bioasq_rag_subset,
     query_to_instruct_text,
 )
+from tesis_unicamp.datasets.utils.title_retrieval import (
+    build_query_document_title_lookup,
+    make_title_aware_query_row_to_text,
+)
 from tesis_unicamp.datasets.utils.narrativeqa_rag import (
     NARRATIVEQA_RAG_DATASET_ID,
     corpus_row_to_text as narrativeqa_corpus_row_to_text,
@@ -66,6 +70,7 @@ class RagRetrievalTaskConfig:
     domains: tuple[str, ...] = ("Written",)
     bibtex_citation: str = ""
     use_top_ranked: bool = False
+    include_query_title: bool = False
 
 
 def _build_relevant_docs(qrels: Dataset) -> dict[str, dict[str, int]]:
@@ -134,6 +139,26 @@ def _prepare_queries(
     )
 
 
+def _prepare_queries_with_title(
+    queries: Dataset,
+    qrels: Dataset,
+    corpus: Dataset,
+    *,
+    num_proc: int | None,
+) -> Dataset:
+    title_lookup = build_query_document_title_lookup(qrels, corpus)
+    query_row_to_text = make_title_aware_query_row_to_text(title_lookup)
+
+    return queries.map(
+        lambda row: {
+            "id": str(row["id"]),
+            "text": query_row_to_text(row),
+        },
+        remove_columns=queries.column_names,
+        num_proc=num_proc,
+    )
+
+
 def load_rag_retrieval_split(
     config: RagRetrievalTaskConfig,
     split: str,
@@ -146,7 +171,15 @@ def load_rag_retrieval_split(
     qrels = config.load_subset("qrels", split=split)
 
     corpus = _prepare_corpus(raw_corpus, config.corpus_text_fn, num_proc=num_proc)
-    queries = _prepare_queries(queries, config.query_text_fn, num_proc=num_proc)
+    if config.include_query_title:
+        queries = _prepare_queries_with_title(
+            queries,
+            qrels,
+            raw_corpus,
+            num_proc=num_proc,
+        )
+    else:
+        queries = _prepare_queries(queries, config.query_text_fn, num_proc=num_proc)
     relevant_docs = _build_relevant_docs(qrels)
     relevant_docs, queries = _filter_queries_without_positives(relevant_docs, queries)
 
@@ -195,13 +228,24 @@ def create_rag_retrieval_task(
             )
         self.data_loaded = True
 
+    task_name = config.name
+    if config.include_query_title:
+        task_name = f"{config.name}-Title"
+
     task_cls = type(
         f"{config.name.replace('-', '_').replace(' ', '_')}Task",
         (AbsTaskRetrieval,),
         {
             "metadata": TaskMetadata(
-                name=config.name,
-                description=config.description,
+                name=task_name,
+                description=(
+                    f"{config.description} "
+                    + (
+                        "Queries include gold document title (## Title:) before Query:."
+                        if config.include_query_title
+                        else ""
+                    )
+                ).strip(),
                 reference=config.reference or f"https://huggingface.co/datasets/{config.hf_repo_id}",
                 dataset={
                     "path": config.hf_repo_id,
@@ -294,6 +338,7 @@ def get_rag_retrieval_task(
     *,
     eval_splits: tuple[str, ...] | None = None,
     use_top_ranked: bool | None = None,
+    include_query_title: bool = False,
 ) -> AbsTaskRetrieval:
     """Return a predefined project RAG task by dataset key."""
     try:
@@ -308,6 +353,8 @@ def get_rag_retrieval_task(
         config = replace(config, eval_splits=eval_splits)
     if use_top_ranked is not None:
         config = replace(config, use_top_ranked=use_top_ranked)
+    if include_query_title:
+        config = replace(config, include_query_title=True)
     return create_rag_retrieval_task(config)
 
 

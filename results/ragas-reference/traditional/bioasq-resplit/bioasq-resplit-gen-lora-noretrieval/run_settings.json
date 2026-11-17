@@ -1,0 +1,25 @@
+{
+  "metric_group": "traditional",
+  "dataset": "bioasq-resplit",
+  "generation_dir": "/petrobr/home/ronaldinho.olivera/E2E_RAG_FT/datasets/generated/bioasq-resplit/bioasq-resplit-gen-lora-noretrieval",
+  "generation_run_label": "bioasq-resplit-gen-lora-noretrieval",
+  "retrieval_run_label": "vllm-offline-b128",
+  "split": "test",
+  "metrics": [
+    "bleu_score",
+    "rouge_score",
+    "exact_match",
+    "string_present",
+    "chrf_score",
+    "non_llm_string_similarity"
+  ],
+  "num_samples": 1145,
+  "summary": {
+    "bleu_score": 0.14714720391338287,
+    "rouge_score(mode=fmeasure)": 0.2838550562044267,
+    "exact_match": 0.004366812227074236,
+    "string_present": 0.011353711790393014,
+    "chrf_score": 0.3151978368613232,
+    "non_llm_string_similarity": 0.2862257450945964
+  }
+}

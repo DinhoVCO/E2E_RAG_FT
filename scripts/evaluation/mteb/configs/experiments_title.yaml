@@ -1,0 +1,78 @@
+# MTEB retrieval experiment matrix with gold document title in queries (## Title:).
+# Same 8 runs as experiments.yaml: embedding (base|lora) x 4 datasets.
+#
+# Run one experiment:
+#   python scripts/evaluation/mteb/run_mteb_experiment_title.py \
+#     --experiment telco-dpr-emb-base-title
+#
+# Run all experiments for one dataset:
+#   python scripts/evaluation/mteb/run_mteb_experiment_title.py --dataset telco-dpr
+#
+# List available experiments:
+#   python scripts/evaluation/mteb/run_mteb_experiment_title.py --list
+
+defaults:
+  embedding_model: Qwen/Qwen3-Embedding-4B
+  backend: offline
+  batch_size: 128
+  splits: [test]
+  max_lora_rank: 16
+  overwrite: always
+  include_query_title: true
+  base_model_revision_template: "vllm-offline-{dataset}-b128-title"
+  lora_model_revision_template: "vllm-lora-{dataset}-b128-e{epochs}-title"
+
+datasets:
+  telco-dpr:
+    embedding_lora: DinoStackAI/Qwen3-Emb-4b-lora-telco-dpr
+    lora_epochs: 20
+
+  qasper:
+    paper_scoped: true
+    embedding_lora: DinoStackAI/Qwen3-Emb-4b-lora-qasper
+    lora_epochs: 10
+
+  narrativeqa:
+    embedding_lora: DinoStackAI/Qwen3-Emb-4b-lora-narrativeqa
+    lora_epochs: 10
+
+  bioasq-resplit:
+    embedding_lora: DinoStackAI/Qwen3-Emb-4b-lora-bioasq-resplit
+    lora_epochs: 10
+
+experiments:
+  # --- telco-dpr ---
+  telco-dpr-emb-base-title:
+    dataset: telco-dpr
+    embedding: base
+
+  telco-dpr-emb-lora-title:
+    dataset: telco-dpr
+    embedding: lora
+
+  # --- qasper ---
+  qasper-emb-base-title:
+    dataset: qasper
+    embedding: base
+
+  qasper-emb-lora-title:
+    dataset: qasper
+    embedding: lora
+
+  # --- narrativeqa ---
+  narrativeqa-emb-base-title:
+    dataset: narrativeqa
+    embedding: base
+
+  narrativeqa-emb-lora-title:
+    dataset: narrativeqa
+    embedding: lora
+
+  # --- bioasq-resplit ---
+  bioasq-resplit-emb-base-title:
+    dataset: bioasq-resplit
+    embedding: base
+
+  bioasq-resplit-emb-lora-title:
+    dataset: bioasq-resplit
+    embedding: lora

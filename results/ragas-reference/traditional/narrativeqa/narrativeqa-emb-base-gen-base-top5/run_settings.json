@@ -1,0 +1,25 @@
+{
+  "metric_group": "traditional",
+  "dataset": "narrativeqa",
+  "generation_dir": "/petrobr/home/ronaldinho.olivera/E2E_RAG_FT/datasets/generated/narrativeqa/narrativeqa-emb-base-gen-base-top5",
+  "generation_run_label": "narrativeqa-emb-base-gen-base-top5",
+  "retrieval_run_label": "vllm-offline-b128",
+  "split": "test",
+  "metrics": [
+    "bleu_score",
+    "rouge_score",
+    "exact_match",
+    "string_present",
+    "chrf_score",
+    "non_llm_string_similarity"
+  ],
+  "num_samples": 10557,
+  "summary": {
+    "bleu_score": 0.03593358972879645,
+    "rouge_score(mode=fmeasure)": 0.10056574836380175,
+    "exact_match": 9.47238798901203e-05,
+    "string_present": 0.1250355214549588,
+    "chrf_score": 0.16953963990162016,
+    "non_llm_string_similarity": 0.08149739112892433
+  }
+}

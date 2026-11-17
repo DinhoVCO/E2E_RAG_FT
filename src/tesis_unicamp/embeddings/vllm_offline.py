@@ -3,7 +3,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from tesis_unicamp.embeddings.base import BaseEmbedder, EmbeddingConfig
-from tesis_unicamp.finetuning.embeddings.config import LORA_R
+
+DEFAULT_MAX_LORA_RANK = 16
 
 if TYPE_CHECKING:
     from vllm import LLM
@@ -21,7 +22,7 @@ class VLLMOfflineEmbedder(BaseEmbedder):
         lora_path: str | None = None,
         lora_name: str = "adapter",
         lora_int_id: int = 1,
-        max_lora_rank: int = LORA_R,
+        max_lora_rank: int = DEFAULT_MAX_LORA_RANK,
         **llm_kwargs: object,
     ) -> None:
         super().__init__(config)

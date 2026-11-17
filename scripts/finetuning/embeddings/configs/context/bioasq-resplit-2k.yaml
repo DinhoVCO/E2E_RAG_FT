@@ -1,0 +1,20 @@
+# BioASQ-resplit context embedding fine-tuning with 2048-token document truncation.
+#
+# Run locally:
+#   CUDA_VISIBLE_DEVICES=0,1,2,3 python scripts/finetuning/embeddings/finetune_qwen3_embedding_context.py \
+#       --config scripts/finetuning/embeddings/configs/context/bioasq-resplit-2k.yaml
+#
+# Run on SLURM (4 GPUs):
+#   bash jobs/scripts/santos_dumont/run_finetune_embedding_context_bioasq_2k_h100.sh
+
+dataset: bioasq-resplit
+run_name: bioasq-resplit-ctx-b128-e10-2k
+batch_size: 128
+mini_batch_size: 8
+epochs: 10
+max_doc_tokens: 2048
+max_positive_tokens: 2048
+max_seq_length: 14336
+logging_steps: 1
+eval_steps: 50
+save_steps: 50

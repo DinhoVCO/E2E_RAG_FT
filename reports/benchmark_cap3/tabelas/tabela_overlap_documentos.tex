@@ -1,0 +1,15 @@
+\begin{table}
+\caption{Sobreposição de documentos relevantes entre partições.}
+\label{tab:tabela_overlap_documentos}
+\begin{tabular}{llrrrrrrrrrrr}
+\toprule
+dataset & nivel & n\_relevants\_train & n\_relevants\_dev & n\_relevants\_test & inter\_train\_dev & inter\_train\_test & inter\_dev\_test & fracao\_test\_em\_train & fracao\_dev\_em\_train & overlap\_query\_train\_dev & overlap\_query\_train\_test & overlap\_query\_dev\_test \\
+\midrule
+QASPER-RAG & documento\_relevante & 3439 & 1682 & 2960 & 0 & 0 & 0 & 0.000000 & 0.000000 & 0.000000 & 0.000000 & 0.000000 \\
+QASPER-RAG & documento\_pai & 824 & 276 & 408 & 0 & 0 & 0 & 0.000000 & 0.000000 & NaN & NaN & NaN \\
+BioASQ-RAG-Resplit & documento\_relevante & 28560 & 7283 & 9401 & 436 & 529 & 143 & 0.056300 & 0.059900 & 0.000000 & 0.000000 & 0.000000 \\
+NarrativeQA-RAG & documento\_relevante & 1102 & 115 & 355 & 0 & 0 & 0 & 0.000000 & 0.000000 & 0.000000 & 0.000000 & 0.000000 \\
+Telco-DPR-RAG & documento\_relevante & 280 & 166 & 251 & 163 & 248 & 145 & 0.988000 & 0.981900 & 0.000000 & 0.000000 & 0.000000 \\
+\bottomrule
+\end{tabular}
+\end{table}

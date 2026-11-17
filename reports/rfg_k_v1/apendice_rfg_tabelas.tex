@@ -1,0 +1,340 @@
+% ============================================================
+% Tabela B.1 — Ablação de k (RFG emb-base + gen-base + concat)
+% ============================================================
+\begin{table}[htbp]
+\caption{Resultados completos da ablação do número de documentos ($k$) no RFG com recuperador e gerador base, utilizando concatenação da consulta original com a expansão. Os valores entre parênteses representam a variação absoluta em relação à recuperação convencional.}
+\label{tab:apendice_rfg_k_concat}
+\centering
+\scriptsize
+\resizebox{\textwidth}{!}{
+\begin{tabular}{llccc}
+\hline
+\textbf{Conjunto} & \textbf{Config.} & \textbf{nDCG@10} & \textbf{MAP@10} & \textbf{Recall@10} \\ \hline
+\multirow{6}{*}{BioASQ-resplit} & Baseline & 0,78468 & 0,61448 & 0,69856 \\
+ & $k=1$ & 0,77418 (-0,01050) & 0,60968 (-0,00480) & 0,68518 (-0,01338) \\
+ & $k=3$ & 0,78129 (-0,00339) & 0,61913 (+0,00465) & 0,69223 (-0,00633) \\
+ & $k=5$ & 0,78944 (+0,00476) & 0,62503 (+0,01055) & 0,70139 (+0,00283) \\
+ & $k=7$ & 0,78803 (+0,00335) & 0,62481 (+0,01033) & 0,70085 (+0,00229) \\
+ & $k=10$ & 0,78357 (-0,00111) & 0,61920 (+0,00472) & 0,69994 (+0,00138) \\
+\hline
+\multirow{6}{*}{NarrativeQA} & Baseline & 0,74365 & 0,71187 & 0,84254 \\
+ & $k=1$ & 0,68816 (-0,05549) & 0,67230 (-0,03957) & 0,73881 (-0,10373) \\
+ & $k=3$ & 0,75997 (+0,01632) & 0,74888 (+0,03701) & 0,79530 (-0,04724) \\
+ & $k=5$ & 0,78401 (+0,04036) & 0,77412 (+0,06225) & 0,81525 (-0,02729) \\
+ & $k=7$ & 0,79354 (+0,04989) & 0,78383 (+0,07196) & 0,82393 (-0,01861) \\
+ & $k=10$ & -- & -- & -- \\
+\hline
+\multirow{6}{*}{QASPER} & Baseline & 0,56841 & 0,45885 & 0,75392 \\
+ & $k=1$ & 0,51754 (-0,05087) & 0,41967 (-0,03918) & 0,66261 (-0,09131) \\
+ & $k=3$ & 0,58568 (+0,01727) & 0,49119 (+0,03234) & 0,72444 (-0,02948) \\
+ & $k=5$ & 0,61448 (+0,04607) & 0,52091 (+0,06206) & 0,74602 (-0,00790) \\
+ & $k=7$ & 0,62085 (+0,05244) & 0,52382 (+0,06497) & 0,76455 (+0,01063) \\
+ & $k=10$ & 0,63937 (+0,07096) & 0,53986 (+0,08101) & 0,78637 (+0,03245) \\
+\hline
+\multirow{6}{*}{Telco-DPR} & Baseline & 0,52933 & 0,46204 & 0,74187 \\
+ & $k=1$ & 0,49242 (-0,03691) & 0,42949 (-0,03255) & 0,69025 (-0,05162) \\
+ & $k=3$ & 0,53173 (+0,00240) & 0,46639 (+0,00435) & 0,73614 (-0,00573) \\
+ & $k=5$ & 0,55154 (+0,02221) & 0,48743 (+0,02539) & 0,75335 (+0,01148) \\
+ & $k=7$ & 0,55302 (+0,02369) & 0,49062 (+0,02858) & 0,74761 (+0,00574) \\
+ & $k=10$ & 0,54950 (+0,02017) & 0,48504 (+0,02300) & 0,74952 (+0,00765) \\
+\hline
+\end{tabular}
+}
+\end{table}
+
+% ============================================================
+% Tabela B.2 — Ablação de k (RFG emb-base + gen-base, sem concat)
+% ============================================================
+\begin{table}[htbp]
+\caption{Resultados completos da ablação do número de documentos ($k$) no RFG com recuperador e gerador base, utilizando somente a expansão gerada. Os valores entre parênteses representam a variação absoluta em relação à recuperação convencional.}
+\label{tab:apendice_rfg_k_noconcat}
+\centering
+\scriptsize
+\resizebox{\textwidth}{!}{
+\begin{tabular}{llccc}
+\hline
+\textbf{Conjunto} & \textbf{Config.} & \textbf{nDCG@10} & \textbf{MAP@10} & \textbf{Recall@10} \\ \hline
+\multirow{6}{*}{BioASQ-resplit} & Baseline & 0,78468 & 0,61448 & 0,69856 \\
+ & $k=1$ & 0,77214 (-0,01254) & 0,60680 (-0,00768) & 0,68388 (-0,01468) \\
+ & $k=3$ & 0,78123 (-0,00345) & 0,61852 (+0,00404) & 0,69190 (-0,00666) \\
+ & $k=5$ & 0,78697 (+0,00229) & 0,62216 (+0,00768) & 0,69875 (+0,00019) \\
+ & $k=7$ & 0,78524 (+0,00056) & 0,62207 (+0,00759) & 0,69869 (+0,00013) \\
+ & $k=10$ & 0,78217 (-0,00251) & 0,61777 (+0,00329) & 0,69870 (+0,00014) \\
+\hline
+\multirow{6}{*}{NarrativeQA} & Baseline & 0,74365 & 0,71187 & 0,84254 \\
+ & $k=1$ & 0,68508 (-0,05857) & 0,67050 (-0,04137) & 0,73137 (-0,11117) \\
+ & $k=3$ & 0,75911 (+0,01546) & 0,74831 (+0,03644) & 0,79368 (-0,04886) \\
+ & $k=5$ & 0,78355 (+0,03990) & 0,77388 (+0,06201) & 0,81410 (-0,02844) \\
+ & $k=7$ & 0,79257 (+0,04892) & 0,78293 (+0,07106) & 0,82279 (-0,01975) \\
+ & $k=10$ & -- & -- & -- \\
+\hline
+\multirow{6}{*}{QASPER} & Baseline & 0,56841 & 0,45885 & 0,75392 \\
+ & $k=1$ & 0,51405 (-0,05436) & 0,41724 (-0,04161) & 0,65726 (-0,09666) \\
+ & $k=3$ & 0,58354 (+0,01513) & 0,48959 (+0,03074) & 0,72027 (-0,03365) \\
+ & $k=5$ & 0,61396 (+0,04555) & 0,52033 (+0,06148) & 0,74734 (-0,00658) \\
+ & $k=7$ & 0,61898 (+0,05057) & 0,52151 (+0,06266) & 0,76352 (+0,00960) \\
+ & $k=10$ & 0,63677 (+0,06836) & 0,53785 (+0,07900) & 0,78159 (+0,02767) \\
+\hline
+\multirow{6}{*}{Telco-DPR} & Baseline & 0,52933 & 0,46204 & 0,74187 \\
+ & $k=1$ & 0,49314 (-0,03619) & 0,42807 (-0,03397) & 0,69790 (-0,04397) \\
+ & $k=3$ & 0,52961 (+0,00028) & 0,46363 (+0,00159) & 0,73614 (-0,00573) \\
+ & $k=5$ & 0,54881 (+0,01948) & 0,48442 (+0,02238) & 0,75143 (+0,00956) \\
+ & $k=7$ & 0,55409 (+0,02476) & 0,49327 (+0,03123) & 0,74379 (+0,00192) \\
+ & $k=10$ & 0,55053 (+0,02120) & 0,48537 (+0,02333) & 0,75335 (+0,01148) \\
+\hline
+\end{tabular}
+}
+\end{table}
+
+% ============================================================
+% Tabela B.3 — Baselines de expansão (HyDE e Query2Doc)
+% ============================================================
+\begin{table}[htbp]
+\caption{Resultados completos dos métodos de expansão HyDE e Query2Doc com modelos base. Os valores entre parênteses representam a variação absoluta em relação à recuperação convencional.}
+\label{tab:apendice_hyde_q2d}
+\centering
+\scriptsize
+\resizebox{\textwidth}{!}{
+\begin{tabular}{llccc}
+\hline
+\textbf{Conjunto} & \textbf{Método} & \textbf{nDCG@10} & \textbf{MAP@10} & \textbf{Recall@10} \\ \hline
+\multirow{3}{*}{BioASQ-resplit} & Baseline & 0,78468 & 0,61448 & 0,69856 \\
+ & HyDE & 0,77291 (-0,01177) & 0,60323 (-0,01125) & 0,69068 (-0,00788) \\
+ & Query2Doc & 0,71542 (-0,06926) & 0,54554 (-0,06894) & 0,64935 (-0,04921) \\
+\hline
+\multirow{3}{*}{NarrativeQA} & Baseline & 0,74365 & 0,71187 & 0,84254 \\
+ & HyDE & 0,69930 (-0,04435) & 0,66465 (-0,04722) & 0,80800 (-0,03454) \\
+ & Query2Doc & 0,45054 (-0,29311) & 0,40785 (-0,30402) & 0,58517 (-0,25737) \\
+\hline
+\multirow{3}{*}{QASPER} & Baseline & 0,56841 & 0,45885 & 0,75392 \\
+ & HyDE & 0,57776 (+0,00935) & 0,46724 (+0,00839) & 0,76082 (+0,00690) \\
+ & Query2Doc & 0,07571 (-0,49270) & 0,05693 (-0,40192) & 0,10478 (-0,64914) \\
+\hline
+\multirow{3}{*}{Telco-DPR} & Baseline & 0,52933 & 0,46204 & 0,74187 \\
+ & HyDE & 0,55574 (+0,02641) & 0,48656 (+0,02452) & 0,77055 (+0,02868) \\
+ & Query2Doc & 0,36579 (-0,16354) & 0,31081 (-0,15123) & 0,54302 (-0,19885) \\
+\hline
+\end{tabular}
+}
+\end{table}
+
+% ============================================================
+% ============================================================
+% Tabela B.4 — Matriz completa emb × gen (k=7, com concatenação)
+% ============================================================
+\begin{table}[htbp]
+\caption{Resultados completos do RFG com $k=7$ e concatenação da consulta original, para todas as combinações entre recuperador e gerador. Os valores entre parênteses representam a variação absoluta em relação à recuperação convencional com o mesmo recuperador.}
+\label{tab:apendice_rfg_ft_k7}
+\centering
+\scriptsize
+\resizebox{\textwidth}{!}{
+\begin{tabular}{lllccc}
+\hline
+\textbf{Conjunto} & \textbf{Recuperador} & \textbf{Gerador} & \textbf{nDCG@10} & \textbf{MAP@10} & \textbf{Recall@10} \\ \hline
+\multirow{6}{*}{BioASQ-resplit} & Base & Sem expansão & 0,78468 & 0,61448 & 0,69856 \\
+ & Base & Base & 0,78803 (+0,00335) & 0,62481 (+0,01033) & 0,70085 (+0,00229) \\
+ & Base & LoRA & 0,78228 (-0,00240) & 0,61882 (+0,00434) & 0,69515 (-0,00341) \\
+ & LoRA & Sem expansão & 0,82635 & 0,66337 & 0,75121 \\
+ & LoRA & Base & 0,79056 (-0,03579) & 0,62991 (-0,03346) & 0,71794 (-0,03327) \\
+ & LoRA & LoRA & 0,81231 (-0,01404) & 0,65209 (-0,01128) & 0,73339 (-0,01782) \\
+\hline
+\multirow{6}{*}{NarrativeQA} & Base & Sem expansão & 0,74365 & 0,71187 & 0,84254 \\
+ & Base & Base & 0,79354 (+0,04989) & 0,78383 (+0,07196) & 0,82393 (-0,01861) \\
+ & Base & LoRA & 0,77830 (+0,03465) & 0,76014 (+0,04827) & 0,83443 (-0,00811) \\
+ & LoRA & Sem expansão & 0,82349 & 0,79524 & 0,91106 \\
+ & LoRA & Base & 0,85422 (+0,03073) & 0,84301 (+0,04777) & 0,88892 (-0,02214) \\
+ & LoRA & LoRA & 0,85586 (+0,03237) & 0,84070 (+0,04546) & 0,90257 (-0,00849) \\
+\hline
+\multirow{6}{*}{QASPER} & Base & Sem expansão & 0,56841 & 0,45885 & 0,75392 \\
+ & Base & Base & 0,62085 (+0,05244) & 0,52382 (+0,06497) & 0,76455 (+0,01063) \\
+ & Base & LoRA & 0,34166 (-0,22675) & 0,27974 (-0,17911) & 0,40814 (-0,34578) \\
+ & LoRA & Sem expansão & 0,63706 & 0,53753 & 0,79098 \\
+ & LoRA & Base & 0,66418 (+0,02712) & 0,56965 (+0,03212) & 0,79224 (+0,00126) \\
+ & LoRA & LoRA & 0,39933 (-0,23773) & 0,33325 (-0,20428) & 0,46793 (-0,32305) \\
+\hline
+\multirow{6}{*}{Telco-DPR} & Base & Sem expansão & 0,52933 & 0,46204 & 0,74187 \\
+ & Base & Base & 0,55302 (+0,02369) & 0,49062 (+0,02858) & 0,74761 (+0,00574) \\
+ & Base & LoRA & 0,53221 (+0,00288) & 0,46631 (+0,00427) & 0,74187 (+0,00000) \\
+ & LoRA & Sem expansão & 0,68671 & 0,63382 & 0,85277 \\
+ & LoRA & Base & 0,69733 (+0,01062) & 0,64962 (+0,01580) & 0,84512 (-0,00765) \\
+ & LoRA & LoRA & 0,68476 (-0,00195) & 0,63269 (-0,00113) & 0,84704 (-0,00573) \\
+\hline
+\end{tabular}
+}
+\end{table}
+
+% ============================================================
+% ============================================================
+% Tabela B.5 — Todos os resultados RFG (nDCG@10, MAP@10, Recall@10)
+% Requer: \usepackage{longtable}
+% ============================================================
+\begin{longtable}{llllcccc}
+\caption{Resultados completos de todos os experimentos RFG. A coluna \textit{Concat} indica se a consulta original foi concatenada à expansão gerada.}
+\label{tab:apendice_rfg_completo}\\
+\hline
+\textbf{Conjunto} & \textbf{Emb.} & \textbf{Ger.} & \textbf{Concat} & \textbf{$k$} & \textbf{nDCG@10} & \textbf{MAP@10} & \textbf{Recall@10} \\ \hline
+\endfirsthead
+\hline
+\textbf{Conjunto} & \textbf{Emb.} & \textbf{Ger.} & \textbf{Concat} & \textbf{$k$} & \textbf{nDCG@10} & \textbf{MAP@10} & \textbf{Recall@10} \\ \hline
+\endhead
+\hline \multicolumn{8}{r}{\textit{Continua na próxima página}} \\
+\endfoot
+\hline
+\endlastfoot
+BioASQ-resplit & Base & Base & Sim & 1 & 0,77418 & 0,60968 & 0,68518 \\
+BioASQ-resplit & Base & Base & Sim & 3 & 0,78129 & 0,61913 & 0,69223 \\
+BioASQ-resplit & Base & Base & Sim & 5 & 0,78944 & 0,62503 & 0,70139 \\
+BioASQ-resplit & Base & Base & Sim & 7 & 0,78803 & 0,62481 & 0,70085 \\
+BioASQ-resplit & Base & Base & Sim & 10 & 0,78357 & 0,61920 & 0,69994 \\
+BioASQ-resplit & Base & Base & Não & 1 & 0,77214 & 0,60680 & 0,68388 \\
+BioASQ-resplit & Base & Base & Não & 3 & 0,78123 & 0,61852 & 0,69190 \\
+BioASQ-resplit & Base & Base & Não & 5 & 0,78697 & 0,62216 & 0,69875 \\
+BioASQ-resplit & Base & Base & Não & 7 & 0,78524 & 0,62207 & 0,69869 \\
+BioASQ-resplit & Base & Base & Não & 10 & 0,78217 & 0,61777 & 0,69870 \\
+BioASQ-resplit & Base & LoRA & Sim & 1 & 0,77562 & 0,61053 & 0,69307 \\
+BioASQ-resplit & Base & LoRA & Sim & 3 & 0,78063 & 0,61667 & 0,69378 \\
+BioASQ-resplit & Base & LoRA & Sim & 5 & 0,78063 & 0,61709 & 0,69181 \\
+BioASQ-resplit & Base & LoRA & Sim & 7 & 0,78228 & 0,61882 & 0,69515 \\
+BioASQ-resplit & Base & LoRA & Sim & 10 & 0,78064 & 0,61727 & 0,69456 \\
+BioASQ-resplit & Base & LoRA & Não & 1 & 0,76719 & 0,60075 & 0,68391 \\
+BioASQ-resplit & Base & LoRA & Não & 3 & 0,77226 & 0,60802 & 0,68410 \\
+BioASQ-resplit & Base & LoRA & Não & 5 & 0,77087 & 0,60577 & 0,68684 \\
+BioASQ-resplit & Base & LoRA & Não & 7 & 0,77308 & 0,60942 & 0,68848 \\
+BioASQ-resplit & Base & LoRA & Não & 10 & 0,77264 & 0,60898 & 0,68849 \\
+BioASQ-resplit & LoRA & Base & Sim & 1 & 0,78778 & 0,62831 & 0,70720 \\
+BioASQ-resplit & LoRA & Base & Sim & 3 & 0,79566 & 0,63469 & 0,71735 \\
+BioASQ-resplit & LoRA & Base & Sim & 5 & 0,79371 & 0,63145 & 0,72313 \\
+BioASQ-resplit & LoRA & Base & Sim & 7 & 0,79056 & 0,62991 & 0,71794 \\
+BioASQ-resplit & LoRA & Base & Sim & 10 & 0,78042 & 0,61963 & 0,71166 \\
+BioASQ-resplit & LoRA & Base & Não & 1 & 0,78880 & 0,62932 & 0,70728 \\
+BioASQ-resplit & LoRA & Base & Não & 3 & 0,79618 & 0,63532 & 0,71553 \\
+BioASQ-resplit & LoRA & Base & Não & 5 & 0,79072 & 0,62888 & 0,72115 \\
+BioASQ-resplit & LoRA & Base & Não & 7 & 0,78920 & 0,62803 & 0,71813 \\
+BioASQ-resplit & LoRA & Base & Não & 10 & 0,77726 & 0,61568 & 0,70911 \\
+BioASQ-resplit & LoRA & LoRA & Sim & 1 & 0,80662 & 0,64564 & 0,73234 \\
+BioASQ-resplit & LoRA & LoRA & Sim & 3 & 0,81062 & 0,64980 & 0,73333 \\
+BioASQ-resplit & LoRA & LoRA & Sim & 5 & 0,81107 & 0,65055 & 0,72933 \\
+BioASQ-resplit & LoRA & LoRA & Sim & 7 & 0,81231 & 0,65209 & 0,73339 \\
+BioASQ-resplit & LoRA & LoRA & Sim & 10 & 0,81290 & 0,65284 & 0,73436 \\
+BioASQ-resplit & LoRA & LoRA & Não & 1 & 0,80435 & 0,64344 & 0,72824 \\
+BioASQ-resplit & LoRA & LoRA & Não & 3 & 0,80317 & 0,64454 & 0,72664 \\
+BioASQ-resplit & LoRA & LoRA & Não & 5 & 0,80300 & 0,64325 & 0,72380 \\
+BioASQ-resplit & LoRA & LoRA & Não & 7 & 0,80613 & 0,64650 & 0,72616 \\
+BioASQ-resplit & LoRA & LoRA & Não & 10 & 0,80776 & 0,64794 & 0,73164 \\
+NarrativeQA & Base & Base & Sim & 1 & 0,68816 & 0,67230 & 0,73881 \\
+NarrativeQA & Base & Base & Sim & 3 & 0,75997 & 0,74888 & 0,79530 \\
+NarrativeQA & Base & Base & Sim & 5 & 0,78401 & 0,77412 & 0,81525 \\
+NarrativeQA & Base & Base & Sim & 7 & 0,79354 & 0,78383 & 0,82393 \\
+NarrativeQA & Base & Base & Não & 1 & 0,68508 & 0,67050 & 0,73137 \\
+NarrativeQA & Base & Base & Não & 3 & 0,75911 & 0,74831 & 0,79368 \\
+NarrativeQA & Base & Base & Não & 5 & 0,78355 & 0,77388 & 0,81410 \\
+NarrativeQA & Base & Base & Não & 7 & 0,79257 & 0,78293 & 0,82279 \\
+NarrativeQA & Base & LoRA & Sim & 1 & 0,72304 & 0,69622 & 0,80742 \\
+NarrativeQA & Base & LoRA & Sim & 3 & 0,75640 & 0,73691 & 0,81783 \\
+NarrativeQA & Base & LoRA & Sim & 5 & 0,77101 & 0,75274 & 0,82794 \\
+NarrativeQA & Base & LoRA & Sim & 7 & 0,77830 & 0,76014 & 0,83443 \\
+NarrativeQA & Base & LoRA & Sim & 10 & 0,78529 & 0,76735 & 0,84044 \\
+NarrativeQA & Base & LoRA & Não & 1 & 0,28733 & 0,25836 & 0,38009 \\
+NarrativeQA & Base & LoRA & Não & 3 & 0,31611 & 0,28540 & 0,41397 \\
+NarrativeQA & Base & LoRA & Não & 5 & 0,33079 & 0,29934 & 0,43115 \\
+NarrativeQA & Base & LoRA & Não & 7 & 0,33802 & 0,30592 & 0,44060 \\
+NarrativeQA & Base & LoRA & Não & 10 & 0,34873 & 0,31664 & 0,45109 \\
+NarrativeQA & LoRA & Base & Sim & 1 & 0,77684 & 0,76156 & 0,82527 \\
+NarrativeQA & LoRA & Base & Sim & 3 & 0,83276 & 0,82146 & 0,86812 \\
+NarrativeQA & LoRA & Base & Sim & 5 & 0,84843 & 0,83730 & 0,88319 \\
+NarrativeQA & LoRA & Base & Sim & 7 & 0,85422 & 0,84301 & 0,88892 \\
+NarrativeQA & LoRA & Base & Não & 1 & 0,77700 & 0,76169 & 0,82546 \\
+NarrativeQA & LoRA & Base & Não & 3 & 0,83257 & 0,82122 & 0,86812 \\
+NarrativeQA & LoRA & Base & Não & 5 & 0,84775 & 0,83670 & 0,88205 \\
+NarrativeQA & LoRA & Base & Não & 7 & 0,85392 & 0,84258 & 0,88902 \\
+NarrativeQA & LoRA & LoRA & Sim & 1 & 0,81021 & 0,78605 & 0,88529 \\
+NarrativeQA & LoRA & LoRA & Sim & 3 & 0,84087 & 0,82399 & 0,89388 \\
+NarrativeQA & LoRA & LoRA & Sim & 5 & 0,85119 & 0,83586 & 0,89875 \\
+NarrativeQA & LoRA & LoRA & Sim & 7 & 0,85586 & 0,84070 & 0,90257 \\
+NarrativeQA & LoRA & LoRA & Sim & 10 & 0,86374 & 0,84888 & 0,90925 \\
+NarrativeQA & LoRA & LoRA & Não & 1 & 0,37626 & 0,34234 & 0,48440 \\
+NarrativeQA & LoRA & LoRA & Não & 3 & 0,41270 & 0,37745 & 0,52515 \\
+NarrativeQA & LoRA & LoRA & Não & 5 & 0,42709 & 0,39159 & 0,54032 \\
+NarrativeQA & LoRA & LoRA & Não & 7 & 0,43162 & 0,39575 & 0,54614 \\
+NarrativeQA & LoRA & LoRA & Não & 10 & 0,44163 & 0,40548 & 0,55702 \\
+QASPER & Base & Base & Sim & 1 & 0,51754 & 0,41967 & 0,66261 \\
+QASPER & Base & Base & Sim & 3 & 0,58568 & 0,49119 & 0,72444 \\
+QASPER & Base & Base & Sim & 5 & 0,61448 & 0,52091 & 0,74602 \\
+QASPER & Base & Base & Sim & 7 & 0,62085 & 0,52382 & 0,76455 \\
+QASPER & Base & Base & Sim & 10 & 0,63937 & 0,53986 & 0,78637 \\
+QASPER & Base & Base & Não & 1 & 0,51405 & 0,41724 & 0,65726 \\
+QASPER & Base & Base & Não & 3 & 0,58354 & 0,48959 & 0,72027 \\
+QASPER & Base & Base & Não & 5 & 0,61396 & 0,52033 & 0,74734 \\
+QASPER & Base & Base & Não & 7 & 0,61898 & 0,52151 & 0,76352 \\
+QASPER & Base & Base & Não & 10 & 0,63677 & 0,53785 & 0,78159 \\
+QASPER & Base & LoRA & Sim & 1 & 0,26563 & 0,20861 & 0,33597 \\
+QASPER & Base & LoRA & Sim & 3 & 0,31593 & 0,25499 & 0,38373 \\
+QASPER & Base & LoRA & Sim & 5 & 0,32913 & 0,26955 & 0,39482 \\
+QASPER & Base & LoRA & Sim & 7 & 0,34166 & 0,27974 & 0,40814 \\
+QASPER & Base & LoRA & Sim & 10 & 0,35040 & 0,28814 & 0,41845 \\
+QASPER & Base & LoRA & Não & 1 & 0,16855 & 0,13305 & 0,20353 \\
+QASPER & Base & LoRA & Não & 3 & 0,21873 & 0,17661 & 0,26113 \\
+QASPER & Base & LoRA & Não & 5 & 0,23790 & 0,19650 & 0,27747 \\
+QASPER & Base & LoRA & Não & 7 & 0,24718 & 0,20249 & 0,29000 \\
+QASPER & Base & LoRA & Não & 10 & 0,25024 & 0,20499 & 0,29426 \\
+QASPER & LoRA & Base & Sim & 1 & 0,56906 & 0,47873 & 0,68764 \\
+QASPER & LoRA & Base & Sim & 3 & 0,64351 & 0,55095 & 0,76779 \\
+QASPER & LoRA & Base & Sim & 5 & 0,65454 & 0,56049 & 0,78356 \\
+QASPER & LoRA & Base & Sim & 7 & 0,66418 & 0,56965 & 0,79224 \\
+QASPER & LoRA & Base & Sim & 10 & 0,66802 & 0,57055 & 0,80602 \\
+QASPER & LoRA & Base & Não & 1 & 0,56789 & 0,47791 & 0,68684 \\
+QASPER & LoRA & Base & Não & 3 & 0,64184 & 0,54997 & 0,76465 \\
+QASPER & LoRA & Base & Não & 5 & 0,65492 & 0,56082 & 0,78382 \\
+QASPER & LoRA & Base & Não & 7 & 0,66139 & 0,56652 & 0,79114 \\
+QASPER & LoRA & Base & Não & 10 & 0,66587 & 0,56839 & 0,80655 \\
+QASPER & LoRA & LoRA & Sim & 1 & 0,33463 & 0,27091 & 0,40918 \\
+QASPER & LoRA & LoRA & Sim & 3 & 0,38570 & 0,31949 & 0,45087 \\
+QASPER & LoRA & LoRA & Sim & 5 & 0,39420 & 0,32655 & 0,46447 \\
+QASPER & LoRA & LoRA & Sim & 7 & 0,39933 & 0,33325 & 0,46793 \\
+QASPER & LoRA & LoRA & Sim & 10 & 0,40204 & 0,33546 & 0,47090 \\
+QASPER & LoRA & LoRA & Não & 1 & 0,22135 & 0,17698 & 0,27006 \\
+QASPER & LoRA & LoRA & Não & 3 & 0,27843 & 0,22772 & 0,32787 \\
+QASPER & LoRA & LoRA & Não & 5 & 0,27858 & 0,22848 & 0,33158 \\
+QASPER & LoRA & LoRA & Não & 7 & 0,28140 & 0,23095 & 0,33512 \\
+QASPER & LoRA & LoRA & Não & 10 & 0,29048 & 0,23846 & 0,34475 \\
+Telco-DPR & Base & Base & Sim & 1 & 0,49242 & 0,42949 & 0,69025 \\
+Telco-DPR & Base & Base & Sim & 3 & 0,53173 & 0,46639 & 0,73614 \\
+Telco-DPR & Base & Base & Sim & 5 & 0,55154 & 0,48743 & 0,75335 \\
+Telco-DPR & Base & Base & Sim & 7 & 0,55302 & 0,49062 & 0,74761 \\
+Telco-DPR & Base & Base & Sim & 10 & 0,54950 & 0,48504 & 0,74952 \\
+Telco-DPR & Base & Base & Não & 1 & 0,49314 & 0,42807 & 0,69790 \\
+Telco-DPR & Base & Base & Não & 3 & 0,52961 & 0,46363 & 0,73614 \\
+Telco-DPR & Base & Base & Não & 5 & 0,54881 & 0,48442 & 0,75143 \\
+Telco-DPR & Base & Base & Não & 7 & 0,55409 & 0,49327 & 0,74379 \\
+Telco-DPR & Base & Base & Não & 10 & 0,55053 & 0,48537 & 0,75335 \\
+Telco-DPR & Base & LoRA & Sim & 1 & 0,51939 & 0,45060 & 0,73614 \\
+Telco-DPR & Base & LoRA & Sim & 3 & 0,52576 & 0,46100 & 0,73040 \\
+Telco-DPR & Base & LoRA & Sim & 5 & 0,52920 & 0,46338 & 0,73805 \\
+Telco-DPR & Base & LoRA & Sim & 7 & 0,53221 & 0,46631 & 0,74187 \\
+Telco-DPR & Base & LoRA & Sim & 10 & 0,53276 & 0,46795 & 0,73805 \\
+Telco-DPR & Base & LoRA & Não & 1 & 0,06052 & 0,04778 & 0,10134 \\
+Telco-DPR & Base & LoRA & Não & 3 & 0,06110 & 0,04861 & 0,10134 \\
+Telco-DPR & Base & LoRA & Não & 5 & 0,05707 & 0,04561 & 0,09369 \\
+Telco-DPR & Base & LoRA & Não & 7 & 0,06085 & 0,04880 & 0,09943 \\
+Telco-DPR & Base & LoRA & Não & 10 & 0,05725 & 0,04691 & 0,08987 \\
+Telco-DPR & LoRA & Base & Sim & 1 & 0,65329 & 0,60532 & 0,80306 \\
+Telco-DPR & LoRA & Base & Sim & 3 & 0,68316 & 0,63210 & 0,84130 \\
+Telco-DPR & LoRA & Base & Sim & 5 & 0,69794 & 0,64939 & 0,84895 \\
+Telco-DPR & LoRA & Base & Sim & 7 & 0,69733 & 0,64962 & 0,84512 \\
+Telco-DPR & LoRA & Base & Sim & 10 & 0,70437 & 0,65318 & 0,86233 \\
+Telco-DPR & LoRA & Base & Não & 1 & 0,65458 & 0,60768 & 0,80115 \\
+Telco-DPR & LoRA & Base & Não & 3 & 0,68323 & 0,63287 & 0,83939 \\
+Telco-DPR & LoRA & Base & Não & 5 & 0,69296 & 0,64325 & 0,84704 \\
+Telco-DPR & LoRA & Base & Não & 7 & 0,69673 & 0,64886 & 0,84512 \\
+Telco-DPR & LoRA & Base & Não & 10 & 0,69786 & 0,64404 & 0,86424 \\
+Telco-DPR & LoRA & LoRA & Sim & 1 & 0,67162 & 0,61802 & 0,83939 \\
+Telco-DPR & LoRA & LoRA & Sim & 3 & 0,67818 & 0,62468 & 0,84512 \\
+Telco-DPR & LoRA & LoRA & Sim & 5 & 0,68701 & 0,63601 & 0,84512 \\
+Telco-DPR & LoRA & LoRA & Sim & 7 & 0,68476 & 0,63269 & 0,84704 \\
+Telco-DPR & LoRA & LoRA & Sim & 10 & 0,68647 & 0,63523 & 0,84512 \\
+Telco-DPR & LoRA & LoRA & Não & 1 & 0,12266 & 0,10647 & 0,17591 \\
+Telco-DPR & LoRA & LoRA & Não & 3 & 0,12680 & 0,11135 & 0,17591 \\
+Telco-DPR & LoRA & LoRA & Não & 5 & 0,12942 & 0,11413 & 0,17782 \\
+Telco-DPR & LoRA & LoRA & Não & 7 & 0,12845 & 0,11299 & 0,17782 \\
+Telco-DPR & LoRA & LoRA & Não & 10 & 0,13390 & 0,11764 & 0,18547 \\
+\end{longtable}

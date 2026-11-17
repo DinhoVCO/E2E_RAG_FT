@@ -1,0 +1,14 @@
+\begin{table}
+\caption{Estatísticas completas dos conjuntos do benchmark RAG.}
+\label{tab:tabela_resumo_datasets}
+\begin{tabular}{llllrrrlrrrrrrrrrrrrrrrrrr}
+\toprule
+dataset & chave & dominio & unidade\_corpus & n\_corpus & n\_docs\_relevantes\_unicos & fracao\_corpus\_relevante & repo\_id & n\_consultas\_train & n\_consultas\_unicas\_train & n\_qrels\_train & n\_respostas\_train & n\_sem\_positivo\_train & media\_relevants\_train & n\_consultas\_dev & n\_consultas\_unicas\_dev & n\_qrels\_dev & n\_respostas\_dev & n\_sem\_positivo\_dev & media\_relevants\_dev & n\_consultas\_test & n\_consultas\_unicas\_test & n\_qrels\_test & n\_respostas\_test & n\_sem\_positivo\_test & media\_relevants\_test \\
+\midrule
+QASPER-RAG & qasper & Literatura científica (PLN) & Parágrafo / abstract de artigo & 81550 & 8081 & 0.099100 & DinoStackAI/qasper-rag & 2101 & 2101 & 3815 & 2101 & 0 & 1.816000 & 890 & 890 & 1913 & 890 & 0 & 2.149000 & 1310 & 1310 & 3434 & 1310 & 0 & 2.621000 \\
+BioASQ-RAG-Resplit & bioasq-resplit & Biomedicina & Abstract PubMed & 44183 & 44183 & 1.000000 & DinoStackAI/bioasq-rag-13b-resplit & 3668 & 3668 & 29427 & 3668 & 201 & 8.023000 & 916 & 916 & 7342 & 916 & 44 & 8.015000 & 1145 & 1145 & 9478 & 1145 & 72 & 8.278000 \\
+NarrativeQA-RAG & narrativeqa & Narrativa / literatura & Resumo (summary) do documento & 1572 & 1572 & 1.000000 & DinoStackAI/narrativeqa-rag & 32747 & 32507 & 32747 & 32747 & 0 & 1.007000 & 3461 & 3425 & 3461 & 3461 & 0 & 1.011000 & 10557 & 10479 & 10557 & 10557 & 0 & 1.007000 \\
+Telco-DPR-RAG & telco-dpr & Telecomunicações & Passagem técnica & 14654 & 283 & 0.019300 & DinoStackAI/telco-dpr-rag & 975 & 975 & 975 & 975 & 0 & 1.000000 & 243 & 243 & 243 & 243 & 0 & 1.000000 & 523 & 523 & 523 & 523 & 0 & 1.000000 \\
+\bottomrule
+\end{tabular}
+\end{table}

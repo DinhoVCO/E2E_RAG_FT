@@ -71,6 +71,20 @@ def query_to_instruct_text(
     return f"Instruct: {task}\nQuery:{query}"
 
 
+def query_to_instruct_text_with_title(
+    query: str,
+    *,
+    title: str | None = None,
+    task: str = DEFAULT_RETRIEVAL_TASK,
+) -> str:
+    query = query.strip()
+    parts = [f"Instruct: {task}"]
+    if title and title.strip():
+        parts.extend(["## Title:", title.strip()])
+    parts.append(f"Query:{query}")
+    return "\n".join(parts)
+
+
 def index_bioasq_corpus(
     embedder: BaseEmbedder,
     store: BaseVectorStore,

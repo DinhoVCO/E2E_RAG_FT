@@ -108,3 +108,11 @@ def load_corpus_subset(
 ) -> Dataset:
     corpus_split = split or config.corpus_split
     return config.load_corpus(split=corpus_split)
+
+
+def load_qrels_subset(
+    config: RagGenerationDatasetConfig,
+    *,
+    split: str,
+) -> Dataset:
+    return config.load_subset("qrels", split=split)

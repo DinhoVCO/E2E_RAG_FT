@@ -1,0 +1,1 @@
+{"task": "TelcoDPR-RAG", "split": "test", "subset": "default", "version": {"mteb": "2.18.0", "torch": "2.8.0+cu128", "sentence-transformers": "5.6.0", "flash-attn": null, "transformers": "4.57.6"}, "encode_kwargs": {"batch_size": 128}}

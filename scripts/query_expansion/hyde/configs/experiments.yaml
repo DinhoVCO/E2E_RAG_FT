@@ -1,0 +1,36 @@
+# HyDE (Hypothetical Document Embeddings) experiments:
+#   - 4 datasets, base embedding + base generation
+#
+# Pipeline:
+#   1. Generate 8 pseudo-passages per query (Qwen3-8B, n=8)
+#   2. MTEB retrieval with mean embedding of instruct-query + 8 passages (Qwen3-Embedding-4B)
+
+defaults:
+  embedding_model: Qwen/Qwen3-Embedding-4B
+  generation_model: Qwen/Qwen3-8B
+  num_passages: 8
+  split: test
+  generation_batch_size: 8
+  generation_max_tokens: 512
+  temperature: 0.7
+  top_p: 1.0
+  retrieval_batch_size: 128
+  model_revision_template: "hyde-{dataset}"
+
+experiments:
+  telco-dpr-hyde:
+    dataset: telco-dpr
+    run_label: telco-dpr-hyde
+
+  qasper-hyde:
+    dataset: qasper
+    paper_scoped: true
+    run_label: qasper-hyde
+
+  narrativeqa-hyde:
+    dataset: narrativeqa
+    run_label: narrativeqa-hyde
+
+  bioasq-resplit-hyde:
+    dataset: bioasq-resplit
+    run_label: bioasq-resplit-hyde

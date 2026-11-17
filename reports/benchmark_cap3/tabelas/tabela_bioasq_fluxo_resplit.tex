@@ -1,0 +1,23 @@
+\begin{table}
+\caption{Transição das consultas BioASQ original → resplit.}
+\label{tab:tabela_bioasq_fluxo_resplit}
+\begin{tabular}{llr}
+\toprule
+particao\_original & particao\_resplit & n\_consultas \\
+\midrule
+train & train & 3111 \\
+train & dev & 779 \\
+train & test & 961 \\
+dev & train & 338 \\
+dev & dev & 86 \\
+dev & test & 114 \\
+test & train & 219 \\
+test & dev & 51 \\
+test & test & 70 \\
+META & n\_consultas\_originais & 5729 \\
+META & n\_consultas\_resplit & 5729 \\
+META & apenas\_original & 0 \\
+META & apenas\_resplit & 0 \\
+\bottomrule
+\end{tabular}
+\end{table}

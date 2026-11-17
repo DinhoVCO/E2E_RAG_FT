@@ -1,0 +1,15 @@
+| particao_original   | particao_resplit      |   n_consultas |
+|:--------------------|:----------------------|--------------:|
+| train               | train                 |          3111 |
+| train               | dev                   |           779 |
+| train               | test                  |           961 |
+| dev                 | train                 |           338 |
+| dev                 | dev                   |            86 |
+| dev                 | test                  |           114 |
+| test                | train                 |           219 |
+| test                | dev                   |            51 |
+| test                | test                  |            70 |
+| META                | n_consultas_originais |          5729 |
+| META                | n_consultas_resplit   |          5729 |
+| META                | apenas_original       |             0 |
+| META                | apenas_resplit        |             0 |

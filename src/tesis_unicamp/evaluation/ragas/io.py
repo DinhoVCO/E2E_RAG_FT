@@ -14,16 +14,18 @@ def save_ragas_results(
     per_sample_scores: list[dict[str, Any]],
     summary: dict[str, Any],
     run_settings: dict[str, Any] | None = None,
+    scores_filename: str = "ragas_scores.json",
+    summary_filename: str = "ragas_summary.json",
 ) -> Path:
     """Persist per-sample scores, summary, and run settings."""
     split_dir = output_dir / split
     split_dir.mkdir(parents=True, exist_ok=True)
 
-    scores_path = split_dir / "ragas_scores.json"
+    scores_path = split_dir / scores_filename
     with scores_path.open("w", encoding="utf-8") as handle:
         json.dump(per_sample_scores, handle, ensure_ascii=False, indent=2)
 
-    summary_path = split_dir / "ragas_summary.json"
+    summary_path = split_dir / summary_filename
     with summary_path.open("w", encoding="utf-8") as handle:
         json.dump(summary, handle, ensure_ascii=False, indent=2)
 

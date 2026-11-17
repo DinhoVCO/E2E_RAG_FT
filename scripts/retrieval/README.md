@@ -217,6 +217,30 @@ CUDA_VISIBLE_DEVICES=0 python scripts/retrieval/retrieve_rag_top_k_inmemory.py \
   --run-label vllm-offline-b128-full-corpus
 ```
 
+#### Title-aware retrieval (`retrieve_rag_top_k_inmemory_title.py`)
+
+For generation experiments with `--include-title-prompt`, embed queries with the gold
+document title before `Query:`:
+
+```
+Instruct: Given a web search query, retrieve relevant passages that answer the query
+## Title:
+<gold title from qrels>
+Query:<question>
+```
+
+Results are saved under `datasets/retrieved_inmemory_title/` (same run-label layout as
+above). Title generation experiments in `experiments_title.yaml` use this path
+automatically; `run_rag_generation.py` can also launch it when retrieved docs are
+missing (`--run-title-retrieval-if-missing`).
+
+```bash
+CUDA_VISIBLE_DEVICES=0 python scripts/retrieval/retrieve_rag_top_k_inmemory_title.py \
+  --dataset telco-dpr \
+  --mode offline \
+  --run-label vllm-offline-b128
+```
+
 #### Output layout
 
 ```

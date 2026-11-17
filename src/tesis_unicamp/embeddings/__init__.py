@@ -3,8 +3,6 @@ from tesis_unicamp.embeddings.base import (
     BaseEmbedder,
     EmbeddingConfig,
 )
-from tesis_unicamp.embeddings.openai_online import OpenAIEmbedder
-from tesis_unicamp.embeddings.vllm_offline import VLLMOfflineEmbedder
 
 __all__ = [
     "DEFAULT_EMBED_BATCH_SIZE",
@@ -13,3 +11,15 @@ __all__ = [
     "OpenAIEmbedder",
     "VLLMOfflineEmbedder",
 ]
+
+
+def __getattr__(name: str):
+    if name == "OpenAIEmbedder":
+        from tesis_unicamp.embeddings.openai_online import OpenAIEmbedder
+
+        return OpenAIEmbedder
+    if name == "VLLMOfflineEmbedder":
+        from tesis_unicamp.embeddings.vllm_offline import VLLMOfflineEmbedder
+
+        return VLLMOfflineEmbedder
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

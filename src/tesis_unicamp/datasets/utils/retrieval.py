@@ -4,6 +4,7 @@ from collections import defaultdict
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 from datasets import Dataset
 from tqdm import tqdm
@@ -31,13 +32,19 @@ def retrieve_top_k_for_queries(
     qrels: Dataset,
     *,
     top_k: int = 10,
-    query_to_text: Callable[[str], str],
+    query_to_text: Callable[[str], str] | None = None,
+    query_row_to_text: Callable[[dict[str, Any]], str] | None = None,
     batch_size: int | None = None,
     show_progress: bool = True,
 ) -> list[RetrievedDocRecord]:
     """Retrieve top-k corpus documents for each query and label relevance from qrels."""
     if top_k <= 0:
         raise ValueError("top_k must be positive")
+
+    if query_row_to_text is None:
+        if query_to_text is None:
+            raise ValueError("query_to_text or query_row_to_text is required")
+        query_row_to_text = lambda row: query_to_text(str(row["text"]))
 
     relevant = build_relevant_corpus_ids(qrels)
     batch_size = batch_size or embedder.batch_size
@@ -55,7 +62,7 @@ def retrieve_top_k_for_queries(
         )
 
     for batch in batch_iterator:
-        texts = [query_to_text(row["text"]) for row in batch]
+        texts = [query_row_to_text(row) for row in batch]
         vectors = embedder.embed_texts(texts)
         for row, vector in zip(batch, vectors, strict=True):
             hits = store.search(vector, limit=top_k)
@@ -84,7 +91,8 @@ def retrieve_top_k_for_queries_scoped(
     query_candidates: dict[str, list[str]],
     *,
     top_k: int = 10,
-    query_to_text: Callable[[str], str],
+    query_to_text: Callable[[str], str] | None = None,
+    query_row_to_text: Callable[[dict[str, Any]], str] | None = None,
     batch_size: int | None = None,
     show_progress: bool = True,
 ) -> list[RetrievedDocRecord]:
@@ -96,6 +104,11 @@ def retrieve_top_k_for_queries_scoped(
             f"{type(store).__name__} does not support scoped retrieval "
             "(missing search_candidates)"
         )
+
+    if query_row_to_text is None:
+        if query_to_text is None:
+            raise ValueError("query_to_text or query_row_to_text is required")
+        query_row_to_text = lambda row: query_to_text(str(row["text"]))
 
     relevant = build_relevant_corpus_ids(qrels)
     batch_size = batch_size or embedder.batch_size
@@ -114,7 +127,7 @@ def retrieve_top_k_for_queries_scoped(
         )
 
     for batch in batch_iterator:
-        texts = [query_to_text(row["text"]) for row in batch]
+        texts = [query_row_to_text(row) for row in batch]
         vectors = embedder.embed_texts(texts)
         for row, vector in zip(batch, vectors, strict=True):
             query_id = row["id"]
@@ -143,12 +156,26 @@ def retrieve_split(
     split: str,
     load_subset: Callable[..., Dataset],
     top_k: int = 10,
-    query_to_text: Callable[[str], str],
+    query_to_text: Callable[[str], str] | None = None,
+    query_row_to_text: Callable[[dict[str, Any]], str] | None = None,
+    load_corpus: Callable[..., Dataset] | None = None,
+    include_query_title: bool = False,
+    corpus_split: str = "train",
     batch_size: int | None = None,
     show_progress: bool = True,
 ) -> list[RetrievedDocRecord]:
     queries = load_subset("queries", split=split)
     qrels = load_subset("qrels", split=split)
+    if query_row_to_text is None and include_query_title:
+        if load_corpus is None:
+            raise ValueError("load_corpus is required when include_query_title=True")
+        from tesis_unicamp.datasets.utils.title_retrieval import (
+            build_query_document_title_lookup,
+            make_title_aware_query_row_to_text,
+        )
+
+        title_lookup = build_query_document_title_lookup(qrels, load_corpus(split=corpus_split))
+        query_row_to_text = make_title_aware_query_row_to_text(title_lookup)
     return retrieve_top_k_for_queries(
         embedder,
         store,
@@ -156,6 +183,7 @@ def retrieve_split(
         qrels,
         top_k=top_k,
         query_to_text=query_to_text,
+        query_row_to_text=query_row_to_text,
         batch_size=batch_size,
         show_progress=show_progress,
     )
@@ -169,13 +197,27 @@ def retrieve_split_scoped(
     load_subset: Callable[..., Dataset],
     load_top_ranked_for_split: Callable[[str], dict[str, list[str]]],
     top_k: int = 10,
-    query_to_text: Callable[[str], str],
+    query_to_text: Callable[[str], str] | None = None,
+    query_row_to_text: Callable[[dict[str, Any]], str] | None = None,
+    load_corpus: Callable[..., Dataset] | None = None,
+    include_query_title: bool = False,
+    corpus_split: str = "train",
     batch_size: int | None = None,
     show_progress: bool = True,
 ) -> list[RetrievedDocRecord]:
     queries = load_subset("queries", split=split)
     qrels = load_subset("qrels", split=split)
     query_candidates = load_top_ranked_for_split(split)
+    if query_row_to_text is None and include_query_title:
+        if load_corpus is None:
+            raise ValueError("load_corpus is required when include_query_title=True")
+        from tesis_unicamp.datasets.utils.title_retrieval import (
+            build_query_document_title_lookup,
+            make_title_aware_query_row_to_text,
+        )
+
+        title_lookup = build_query_document_title_lookup(qrels, load_corpus(split=corpus_split))
+        query_row_to_text = make_title_aware_query_row_to_text(title_lookup)
     return retrieve_top_k_for_queries_scoped(
         embedder,
         store,
@@ -184,6 +226,7 @@ def retrieve_split_scoped(
         query_candidates,
         top_k=top_k,
         query_to_text=query_to_text,
+        query_row_to_text=query_row_to_text,
         batch_size=batch_size,
         show_progress=show_progress,
     )
@@ -195,7 +238,11 @@ def retrieve_all_splits(
     *,
     load_subset: Callable[..., Dataset],
     top_k: int = 10,
-    query_to_text: Callable[[str], str],
+    query_to_text: Callable[[str], str] | None = None,
+    query_row_to_text: Callable[[dict[str, Any]], str] | None = None,
+    load_corpus: Callable[..., Dataset] | None = None,
+    include_query_title: bool = False,
+    corpus_split: str = "train",
     splits: tuple[str, ...] = RAG_SPLITS,
     batch_size: int | None = None,
     show_progress: bool = True,
@@ -208,6 +255,10 @@ def retrieve_all_splits(
             load_subset=load_subset,
             top_k=top_k,
             query_to_text=query_to_text,
+            query_row_to_text=query_row_to_text,
+            load_corpus=load_corpus,
+            include_query_title=include_query_title,
+            corpus_split=corpus_split,
             batch_size=batch_size,
             show_progress=show_progress,
         )
@@ -222,7 +273,11 @@ def retrieve_all_splits_scoped(
     load_subset: Callable[..., Dataset],
     load_top_ranked_for_split: Callable[[str], dict[str, list[str]]],
     top_k: int = 10,
-    query_to_text: Callable[[str], str],
+    query_to_text: Callable[[str], str] | None = None,
+    query_row_to_text: Callable[[dict[str, Any]], str] | None = None,
+    load_corpus: Callable[..., Dataset] | None = None,
+    include_query_title: bool = False,
+    corpus_split: str = "train",
     splits: tuple[str, ...] = RAG_SPLITS,
     batch_size: int | None = None,
     show_progress: bool = True,
@@ -236,6 +291,10 @@ def retrieve_all_splits_scoped(
             load_top_ranked_for_split=load_top_ranked_for_split,
             top_k=top_k,
             query_to_text=query_to_text,
+            query_row_to_text=query_row_to_text,
+            load_corpus=load_corpus,
+            include_query_title=include_query_title,
+            corpus_split=corpus_split,
             batch_size=batch_size,
             show_progress=show_progress,
         )
